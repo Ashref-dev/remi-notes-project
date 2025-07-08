@@ -149,3 +149,33 @@ remi/
 - [x] Archive the app in Xcode.
 - [x] Sign with a Developer ID for distribution outside the App Store.
 - [x] Consider notarizing the app to ensure it runs smoothly on other machines.
+
+---
+
+## V2 - Modernization & Enhanced User Experience
+
+This phase focuses on making the app more robust, intelligent, and delightful to use. The guiding principle is to create a modern, elegant, and fresh aesthetic, incorporating smooth animations and micro-interactions throughout.
+
+### V2.1: Core AI & Stability Improvements (Critical)
+
+- [ ] **Filter AI "Thinking" Tokens:** *(Critical)* Modify the AI response handler to strip all content between `<thinking>` and `</thinking>` tags before streaming to the UI. This prevents the AI's thought process from being displayed to the user.
+- [ ] **Update System Prompt:** *(Critical)* Refine the AI's system prompt to instruct it to return the *entire, updated document* as plain text, ensuring no Markdown or other formatting is included in the final output. The prompt will still allow the AI to use `<thinking>` tags internally.
+- [ ] **Refactor AI Streaming:** Reorganize the `GroqService` streaming code to be more modular, maintainable, and easier to debug.
+- [ ] **Implement Undo for AI Edits:** Add a crucial safety net by allowing users to undo (`Cmd+Z`) an AI-driven document replacement. This builds user trust and encourages experimentation.
+- [ ] **Add Visual AI Loading Indicator:** Provide clear visual feedback in the UI while waiting for an AI response. This should be an elegant, non-intrusive animation (e.g., a subtle spinner or pulsing cursor) to show the app is working.
+- [ ] **Graceful Error & Network Handling:** Implement robust error handling. Display clean, user-friendly toast notifications or inline messages for issues like network disconnects or API outages.
+- [ ] **Handle Invalid API Keys:** Specifically detect API authentication errors. If a key is invalid, show a targeted message that guides the user to the settings page to correct it.
+
+### V2.2: Elegant Onboarding & User Guidance
+
+- [ ] **Create Modern Onboarding Flow:** Design a beautiful, multi-step onboarding experience for first-time users. It should use clear, concise language and elegant animations to introduce core concepts like Nooks, the hotkey, and the AI assistant.
+- [ ] **Design Helpful Empty States:** When the Nook list is empty, display a helpful and well-designed message that guides the user to create their first Nook, avoiding a confusing blank screen.
+
+### V2.3: Advanced Features & UI Modernization
+
+- [ ] **Build Elegant Settings Page:** Redesign the settings view to be modern and user-friendly. It should include:
+    - An intuitive interface for changing the global hotkey.
+    - A field for the "About Me" context, with a clear explanation of its purpose.
+    - All UI elements should be well-spaced with clear labels and subtle animations.
+- [ ] **Implement Markdown Preview:** Add a toggle or button to switch between the raw text editor and a beautifully rendered preview of the Markdown content, using the `MarkdownUI` library.
+- [ ] **Overall UI/UX Modernization:** Conduct a full design pass on all existing views (Nook list, editor, etc.). The goal is a fresh, spacious, and elegant design. Pay close attention to typography, spacing, and color. Implement meaningful micro-interactions (e.g., button presses, list updates) to make the app feel alive and responsive.
