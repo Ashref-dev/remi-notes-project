@@ -6,6 +6,26 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E40EE8462E1C303C00635227 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = E40EE8452E1C303C00635227 /* Alamofire */; };
+		E40EE84B2E1C305600635227 /* HotKey in Frameworks */ = {isa = PBXBuildFile; productRef = E40EE84A2E1C305600635227 /* HotKey */; };
+		E40EE84E2E1C306E00635227 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = E40EE84D2E1C306E00635227 /* SwiftyJSON */; };
+		E40EE8512E1C308500635227 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = E40EE8502E1C308500635227 /* LaunchAtLogin */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		E40EE8532E1C384200635227 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		E40EE82F2E1C2ED300635227 /* remi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = remi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +43,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E40EE84B2E1C305600635227 /* HotKey in Frameworks */,
+				E40EE8462E1C303C00635227 /* Alamofire in Frameworks */,
+				E40EE84E2E1C306E00635227 /* SwiftyJSON in Frameworks */,
+				E40EE8512E1C308500635227 /* LaunchAtLogin in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -55,6 +79,7 @@
 				E40EE82B2E1C2ED300635227 /* Sources */,
 				E40EE82C2E1C2ED300635227 /* Frameworks */,
 				E40EE82D2E1C2ED300635227 /* Resources */,
+				E40EE8532E1C384200635227 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -65,6 +90,10 @@
 			);
 			name = remi;
 			packageProductDependencies = (
+				E40EE8452E1C303C00635227 /* Alamofire */,
+				E40EE84A2E1C305600635227 /* HotKey */,
+				E40EE84D2E1C306E00635227 /* SwiftyJSON */,
+				E40EE8502E1C308500635227 /* LaunchAtLogin */,
 			);
 			productName = remi;
 			productReference = E40EE82F2E1C2ED300635227 /* remi.app */;
@@ -94,6 +123,12 @@
 			);
 			mainGroup = E40EE8262E1C2ED200635227;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E40EE8442E1C303C00635227 /* XCRemoteSwiftPackageReference "Alamofire" */,
+				E40EE8492E1C305600635227 /* XCRemoteSwiftPackageReference "HotKey" */,
+				E40EE84C2E1C306E00635227 /* XCRemoteSwiftPackageReference "SwiftyJSON" */,
+				E40EE84F2E1C308500635227 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Legacy" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E40EE8302E1C2ED300635227 /* Products */;
 			projectDirPath = "";
@@ -257,6 +292,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -284,6 +320,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -319,6 +356,64 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E40EE8442E1C303C00635227 /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.10.2;
+			};
+		};
+		E40EE8492E1C305600635227 /* XCRemoteSwiftPackageReference "HotKey" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/soffes/HotKey.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		E40EE84C2E1C306E00635227 /* XCRemoteSwiftPackageReference "SwiftyJSON" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SwiftyJSON/SwiftyJSON";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.2;
+			};
+		};
+		E40EE84F2E1C308500635227 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Legacy" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Legacy.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E40EE8452E1C303C00635227 /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E40EE8442E1C303C00635227 /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
+		};
+		E40EE84A2E1C305600635227 /* HotKey */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E40EE8492E1C305600635227 /* XCRemoteSwiftPackageReference "HotKey" */;
+			productName = HotKey;
+		};
+		E40EE84D2E1C306E00635227 /* SwiftyJSON */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E40EE84C2E1C306E00635227 /* XCRemoteSwiftPackageReference "SwiftyJSON" */;
+			productName = SwiftyJSON;
+		};
+		E40EE8502E1C308500635227 /* LaunchAtLogin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E40EE84F2E1C308500635227 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Legacy" */;
+			productName = LaunchAtLogin;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E40EE8272E1C2ED300635227 /* Project object */;
 }
