@@ -8,7 +8,7 @@ struct HotkeyRecorderView: View {
 
     var body: some View {
         HStack {
-            Text(HotKey(key: key, modifiers: modifiers).description)
+            Text(verbatim: "\(modifiers.description) \(key.description)")
                 .padding(8)
                 .background(isRecording ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.1))
                 .cornerRadius(8)
