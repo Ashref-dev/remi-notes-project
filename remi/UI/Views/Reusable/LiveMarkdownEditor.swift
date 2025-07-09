@@ -110,7 +110,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         }
 
         // Bold (**text** or __text__)
-        let boldRegex = try! NSRegularExpression(pattern: "(\*\*|__)(.*?)\1", options: [])
+        let boldRegex = try! NSRegularExpression(pattern: "(\*\*|__)(.*?)\*\*", options: [])
         boldRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
             guard let match = match else { return }
             let contentRange = match.range(at: 2)
@@ -118,7 +118,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         }
 
         // Italic (*text* or _text_)
-        let italicRegex = try! NSRegularExpression(pattern: "(\*|_)(.*?)\1", options: [])
+        let italicRegex = try! NSRegularExpression(pattern: "(\\*|_)(.*?)\\*", options: [])
         italicRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
             guard let match = match else { return }
             let contentRange = match.range(at: 2)
