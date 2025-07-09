@@ -53,8 +53,8 @@ struct SettingsView: View {
     
     private func saveHotkey() {
         let newHotkey = HotKey(key: hotkeyKey, modifiers: hotkeyModifiers)
-        UserDefaults.standard.set(newHotkey.key.description, forKey: "globalHotkeyKey")
-        UserDefaults.standard.set(newHotkey.modifiers.rawValue, forKey: "globalHotkeyModifiers")
+        UserDefaults.standard.set(hotkeyKey.description, forKey: "globalHotkeyKey")
+        UserDefaults.standard.set(hotkeyModifiers.rawValue, forKey: "globalHotkeyModifiers")
         
         // Re-register hotkey
         HotkeyManager.shared.unregisterAllHotKeys()

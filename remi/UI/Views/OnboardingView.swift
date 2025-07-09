@@ -31,7 +31,7 @@ struct OnboardingView: View {
                     description: "Ask Remi to edit, summarize, or add to your notes. Just type your request and let the AI do the work."
                 ).tag(3)
             }
-            .tabViewStyle(.page(indexDisplayMode: .automatic))
+            .tabViewStyle(.automatic)
             
             Button(action: {
                 withAnimation {
