@@ -42,13 +42,13 @@ struct SettingsView: View {
                 globalHotkey = HotKey(key: key, modifiers: NSEvent.ModifierFlags(rawValue: savedModifiers))
             }
         }
-        .onDisappear {
+        .onChange(of: globalHotkey) { newHotkey in
             // Save new hotkey
-            UserDefaults.standard.set(globalHotkey.key.description, forKey: "globalHotkeyKey")
-            UserDefaults.standard.set(globalHotkey.modifiers.rawValue, forKey: "globalHotkeyModifiers")
+            UserDefaults.standard.set(newHotkey.key.description, forKey: "globalHotkeyKey")
+            UserDefaults.standard.set(newHotkey.modifiers.rawValue, forKey: "globalHotkeyModifiers")
             // Re-register hotkey
             HotkeyManager.shared.unregisterAllHotKeys()
-            HotkeyManager.shared.register(hotkey: globalHotkey) { }
+            HotkeyManager.shared.register(hotkey: newHotkey) { }
         }
     }
 }

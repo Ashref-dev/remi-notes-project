@@ -90,7 +90,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         attributedString.addAttribute(.foregroundColor, value: NSColor.labelColor, range: fullRange)
 
         // Headings (simplified: #, ##, ###)
-        let headingRegex = try! NSRegularExpression(pattern: "^(#+)\s*(.*)$", options: [.anchorsMatchLines])
+        let headingRegex = try! NSRegularExpression(pattern: "^(#+)\\s*(.*)$", options: [.anchorsMatchLines])
         headingRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
             guard let match = match else { return }
             let hashRange = match.range(at: 1)
@@ -111,6 +111,56 @@ struct LiveMarkdownEditor: NSViewRepresentable {
 
         // Bold (**text** or __text__)
         let boldRegex = try! NSRegularExpression(pattern: "(\*\*|__)(.*?)\*\*", options: [])
+        boldRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
+            guard let match = match else { return }
+            let contentRange = match.range(at: 2)
+            attributedString.addAttribute(.font, value: NSFont.boldSystemFont(ofSize: font.pointSize), range: contentRange)
+        }
+
+        // Italic (*text* or _text_)
+        let italicRegex = try! NSRegularExpression(pattern: "(\*|_)(.*?)\*", options: [])
+        italicRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
+            guard let match = match else { return }
+            let contentRange = match.range(at: 2)
+            attributedString.addAttribute(.font, value: NSFont.italicSystemFont(ofSize: font.pointSize), range: contentRange)
+        }
+        
+        // Apply the attributed string to the text view
+        textView.textStorage?.setAttributedString(attributedString)
+    }iew) {
+        let attributedString = NSMutableAttributedString(string: textView.string)
+        let fullRange = NSRange(location: 0, length: attributedString.length)
+        
+        // Reset all attributes first
+        attributedString.removeAttribute(.font, range: fullRange)
+        attributedString.removeAttribute(.foregroundColor, range: fullRange)
+        
+        // Apply default font
+        attributedString.addAttribute(.font, value: font, range: fullRange)
+        attributedString.addAttribute(.foregroundColor, value: NSColor.labelColor, range: fullRange)
+
+        // Headings (simplified: #, ##, ###)
+        let headingRegex = try! NSRegularExpression(pattern: "^(#+)\s*(.*)$", options: [.anchorsMatchLines])
+        headingRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
+            guard let match = match else { return }
+            let hashRange = match.range(at: 1)
+            let contentRange = match.range(at: 2)
+            
+            let level = hashRange.length
+            var headingFont: NSFont
+            switch level {
+            case 1: headingFont = .boldSystemFont(ofSize: 28)
+            case 2: headingFont = .boldSystemFont(ofSize: 24)
+            case 3: headingFont = .boldSystemFont(ofSize: 20)
+            default: headingFont = .boldSystemFont(ofSize: 18)
+            }
+            attributedString.addAttribute(.font, value: headingFont, range: contentRange)
+            attributedString.addAttribute(.foregroundColor, value: NSColor.labelColor, range: contentRange)
+            attributedString.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: hashRange)
+        }
+
+        // Bold (**text** or __text__)
+        let boldRegex = try! NSRegularExpression(pattern: "(\\\*\\*|__)(.*?)\\*\\*", options: [])
         boldRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
             guard let match = match else { return }
             let contentRange = match.range(at: 2)
