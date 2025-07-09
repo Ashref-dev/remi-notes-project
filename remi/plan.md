@@ -121,9 +121,9 @@ remi/
 ### 5.1. Settings
 - [x] Create `SettingsManager.swift` to handle `UserDefaults`.
 - [x] Create a simple settings view where users can:
-    - [ ] Set the global hotkey combination.
-    - [x] Enter their Groq API key.
-    - [x] Toggle "Launch at Login" using the `LaunchAtLogin` package.
+    - [x] **Set the global hotkey combination.**
+- [x] **Enter their Groq API key.**
+- [x] **Toggle "Launch at Login" using the `LaunchAtLogin` package.**
 - [x] Persist the last-viewed Nook using `UserDefaults`.
 
 ### 5.2. UI/UX Polish
@@ -179,3 +179,19 @@ This phase focuses on making the app more robust, intelligent, and delightful to
     - All UI elements should be well-spaced with clear labels and subtle animations.
 - [x] **Live Markdown Editor & Formatting Buttons:** Implement a live Markdown editing experience where text is rendered as it's typed, and add sleek, compact buttons for common Markdown formatting (bold, italic, headings) that interact directly with the editor.
 - [x] **Overall UI/UX Modernization:** Conduct a full design pass on all existing views (Nook list, editor, etc.). The goal is a fresh, spacious, and elegant design. Pay close attention to typography, spacing, and color. Implement meaningful micro-interactions (e.g., button presses, list updates) to make the app feel alive and responsive.
+
+## v3
+
+- [x] **Strip AI "Thinking" Tokens:** Implement a more robust filtering mechanism to ensure the AI's thought process is completely removed from the response before being displayed to the user.
+- [x] **Improve Markdown Rendering:** Enhance the live editor to hide Markdown syntax characters (like `#`, `*`, `_`) for a clean, WYSIWYG-style appearance.
+    - **Implementation:**
+        - Create a custom SwiftUI view that uses a `TextEditor` for input.
+        - Use `NSRegularExpression` to identify Markdown patterns (bold, italics, headers).
+        - On text change, generate an `AttributedString` where Markdown syntax characters are hidden by setting their font size to a near-zero value and their color to `.clear`.
+        - The styled text will be displayed in a separate `Text` view, providing a live-rendered preview.
+- [x] **Add Delete Nook Button:** Add a dedicated and clearly visible button to delete the current Nook from the editor view.
+    - **Implementation:**
+        - Add a trash icon button to the `TaskEditorView`.
+        - On tap, trigger a confirmation `Alert` to prevent accidental deletion.
+        - If confirmed, call the `NookManager.delete()` function.
+        - After deletion, the view will be dismissed, returning the user to the `NookListView`.

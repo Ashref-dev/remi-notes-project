@@ -41,24 +41,31 @@ class TaskEditorViewModel: ObservableObject {
     private func setTaskContent(_ newContent: String) {
         let oldContent = self.taskContent
         undoManager?.registerUndo(withTarget: self) { target in
-            target.setTaskContent(oldContent)
+            Task {
+                target.setTaskContent(oldContent)
+            }
         }
         self.taskContent = newContent
     }
     
+    func deleteNook() {
+        nookManager.deleteNook(nook)
+    }
+    
     func sendQuery(prompt: String) async {
         isSendingQuery = true
-        thinkingText = ""
+        var accumulatedResponse = ""
         
         let initialContent = self.taskContent
         
         do {
             let stream = groqService.streamQuery(prompt: prompt, context: initialContent)
             for try await chunk in stream {
-                thinkingText += chunk
+                accumulatedResponse += chunk
             }
-            // Once the stream is complete, update the actual task content
-            setTaskContent(thinkingText)
+            // Once the stream is complete, filter and update the actual task content
+            let filteredContent = accumulatedResponse.replacingOccurrences(of: "<thinking>.*?</thinking>", with: "", options: .regularExpression)
+            setTaskContent(filteredContent)
         } catch {
             let errorMessage = (error as? LocalizedError)?.errorDescription ?? "An unexpected error occurred."
             ErrorHandlingService.shared.showError(message: errorMessage)

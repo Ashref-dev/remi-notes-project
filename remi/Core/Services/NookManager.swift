@@ -88,13 +88,11 @@ class NookManager {
         }
     }
 
-    func deleteNook(_ nook: Nook, completion: (Bool) -> Void) {
+    func deleteNook(_ nook: Nook) {
         do {
             try fileManager.removeItem(at: nook.url)
-            completion(true)
         } catch {
             print("Error deleting nook: \(error)")
-            completion(false)
         }
     }
 

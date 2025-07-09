@@ -78,25 +78,36 @@ struct LiveMarkdownEditor: NSViewRepresentable {
     }
     
     private func applyMarkdownStyling(to textView: NSTextView) {
-        let attributedString = NSMutableAttributedString(string: textView.string)
-        let fullRange = NSRange(location: 0, length: attributedString.length)
+        guard let textStorage = textView.textStorage else { return }
         
-        // Reset all attributes first
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+        
+        // Start with a mutable attributed string
+        let attributedString = NSMutableAttributedString(attributedString: textStorage)
+        
+        // 1. Reset all styles to default
         attributedString.removeAttribute(.font, range: fullRange)
         attributedString.removeAttribute(.foregroundColor, range: fullRange)
-        
-        // Apply default font
         attributedString.addAttribute(.font, value: font, range: fullRange)
         attributedString.addAttribute(.foregroundColor, value: NSColor.labelColor, range: fullRange)
 
-        // Headings (simplified: #, ##, ###)
+        // Define a "hidden" style for Markdown syntax characters
+        let hiddenAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 0.1),
+            .foregroundColor: NSColor.clear
+        ]
+
+        // 2. Apply styles and hide syntax
+        
+        // Headings (#, ##, ###)
         let headingRegex = try! NSRegularExpression(pattern: "^(#+)\\s*(.*)$", options: [.anchorsMatchLines])
         headingRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
             guard let match = match else { return }
-            let hashRange = match.range(at: 1)
+            
+            let syntaxRange = match.range(at: 1)
             let contentRange = match.range(at: 2)
             
-            let level = hashRange.length
+            let level = syntaxRange.length
             var headingFont: NSFont
             switch level {
             case 1: headingFont = .boldSystemFont(ofSize: 28)
@@ -104,30 +115,56 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             case 3: headingFont = .boldSystemFont(ofSize: 20)
             default: headingFont = .boldSystemFont(ofSize: 18)
             }
+            
             attributedString.addAttribute(.font, value: headingFont, range: contentRange)
-            attributedString.addAttribute(.foregroundColor, value: NSColor.labelColor, range: contentRange)
-            attributedString.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: hashRange)
+            attributedString.addAttributes(hiddenAttributes, range: syntaxRange) // Hide the hashes
         }
 
         // Bold (**text** or __text__)
-        let boldRegex = try! NSRegularExpression(pattern: "(\\*\\*|__)(.*?)\\*\\*", options: [])
+        let boldRegex = try! NSRegularExpression(pattern: "(\\*\\*|__)(.*?)\\1", options: [])
         boldRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
-            guard let match = match else { return }
+            guard let match = match, match.numberOfRanges == 3 else { return }
+            
+            let leadingSyntaxRange = match.range(at: 1)
             let contentRange = match.range(at: 2)
-            attributedString.addAttribute(.font, value: NSFont.boldSystemFont(ofSize: font.pointSize), range: contentRange)
+            
+            // Calculate trailing syntax range
+            let trailingSyntaxStart = match.range.location + match.range.length - leadingSyntaxRange.length
+            let trailingSyntaxRange = NSRange(location: trailingSyntaxStart, length: leadingSyntaxRange.length)
+
+            let boldFont = NSFont.boldSystemFont(ofSize: font.pointSize)
+            attributedString.addAttribute(.font, value: boldFont, range: contentRange)
+            
+            attributedString.addAttributes(hiddenAttributes, range: leadingSyntaxRange)
+            attributedString.addAttributes(hiddenAttributes, range: trailingSyntaxRange)
         }
 
         // Italic (*text* or _text_)
-        let italicRegex = try! NSRegularExpression(pattern: "(\\*|_)(.*?)\\*", options: [])
+        let italicRegex = try! NSRegularExpression(pattern: "(\\*|_)(?!\\s)(.*?)(?<!\\s)\\1", options: [])
         italicRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
-            guard let match = match else { return }
+            guard let match = match, match.numberOfRanges == 3 else { return }
+
+            let leadingSyntaxRange = match.range(at: 1)
             let contentRange = match.range(at: 2)
+            
+            // Calculate trailing syntax range
+            let trailingSyntaxStart = match.range.location + match.range.length - leadingSyntaxRange.length
+            let trailingSyntaxRange = NSRange(location: trailingSyntaxStart, length: leadingSyntaxRange.length)
+
             let fontManager = NSFontManager.shared
             let italicFont = fontManager.font(withFamily: font.familyName ?? "", traits: .italicFontMask, weight: 5, size: font.pointSize) ?? font
             attributedString.addAttribute(.font, value: italicFont, range: contentRange)
+            
+            attributedString.addAttributes(hiddenAttributes, range: leadingSyntaxRange)
+            attributedString.addAttributes(hiddenAttributes, range: trailingSyntaxRange)
         }
         
-        // Apply the attributed string to the text view
-        textView.textStorage?.setAttributedString(attributedString)
+        // 3. Apply the final attributed string to the text storage
+        // This must be done carefully to avoid triggering the delegate's textDidChange method unnecessarily
+        let selectedRange = textView.selectedRange
+        textStorage.beginEditing()
+        textStorage.setAttributedString(attributedString)
+        textStorage.endEditing()
+        textView.setSelectedRange(selectedRange)
     }
 }

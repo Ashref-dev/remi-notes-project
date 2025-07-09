@@ -34,11 +34,8 @@ class NookListViewModel: ObservableObject {
     }
 
     func deleteNook(_ nook: Nook) {
-        nookManager.deleteNook(nook) { [weak self] success in
-            if success {
-                self?.nooks.removeAll { $0.id == nook.id }
-            }
-        }
+        nookManager.deleteNook(nook)
+        self.nooks.removeAll { $0.id == nook.id }
     }
     
     func renameNook(_ nook: Nook, to newName: String) {

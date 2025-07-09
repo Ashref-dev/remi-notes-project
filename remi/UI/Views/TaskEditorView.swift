@@ -6,9 +6,11 @@ struct TaskEditorView: View {
     @State private var userInput: String = ""
     @FocusState private var isInputFocused: Bool
     @State private var textView: NSTextView? // Reference to the NSTextView
+    @State private var isShowingDeleteAlert = false
     
     // Access the undo manager from the environment
     @Environment(\.undoManager) private var undoManager
+    @Environment(\.presentationMode) private var presentationMode // To dismiss the view
 
     init(nook: Nook) {
         _viewModel = StateObject(wrappedValue: TaskEditorViewModel(nook: nook))
@@ -16,6 +18,26 @@ struct TaskEditorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text(viewModel.nook.name)
+                    .font(.headline)
+                    .padding(.horizontal)
+                Spacer()
+                Button(action: {
+                    isShowingDeleteAlert = true
+                }) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal)
+            }
+            .padding(.vertical, 8)
+            .background(Material.bar)
+            
+            Divider()
+
             ZStack(alignment: .center) {
                 LiveMarkdownEditor(text: $viewModel.taskContent, textViewBinding: { self.textView = $0 })
                 
@@ -59,7 +81,17 @@ struct TaskEditorView: View {
             .padding()
             .background(Material.bar)
         }
-        .navigationTitle(viewModel.nook.name)
+        .alert(isPresented: $isShowingDeleteAlert) {
+            Alert(
+                title: Text("Delete Nook?"),
+                message: Text("Are you sure you want to delete the nook '\(viewModel.nook.name)'? This action cannot be undone."),
+                primaryButton: .destructive(Text("Delete")) {
+                    viewModel.deleteNook()
+                    presentationMode.wrappedValue.dismiss()
+                },
+                secondaryButton: .cancel()
+            )
+        }
         .onAppear {
             // Pass the undo manager to the view model
             viewModel.undoManager = self.undoManager
