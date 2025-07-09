@@ -4,7 +4,8 @@ import HotKey
 
 struct SettingsView: View {
     @StateObject private var settings = SettingsManager.shared
-    @State private var globalHotkey: HotKey = HotKey(key: .r, modifiers: [.command, .option]) // Default hotkey
+    @State private var hotkeyKey: Key = .r
+    @State private var hotkeyModifiers: NSEvent.ModifierFlags = [.command, .option]
 
     var body: some View {
         Form {
@@ -18,7 +19,7 @@ struct SettingsView: View {
                 HStack {
                     Text("Global Hotkey")
                     Spacer()
-                    HotkeyRecorderView(hotkey: $globalHotkey)
+                    HotkeyRecorderView(key: $hotkeyKey, modifiers: $hotkeyModifiers)
                 }
             }
             
@@ -34,22 +35,30 @@ struct SettingsView: View {
         }
         .padding()
         .frame(width: 500, height: 450)
-        .onAppear {
-            // Load saved hotkey or use default
-            if let savedKey = UserDefaults.standard.string(forKey: "globalHotkeyKey"),
-               let savedModifiers = UserDefaults.standard.object(forKey: "globalHotkeyModifiers") as? UInt,
-               let key = Key(string: savedKey) {
-                globalHotkey = HotKey(key: key, modifiers: NSEvent.ModifierFlags(rawValue: savedModifiers))
-            }
+        .onAppear(perform: loadHotkey)
+        .onDisappear(perform: saveHotkey)
+    }
+    
+    private func loadHotkey() {
+        if let savedKey = UserDefaults.standard.string(forKey: "globalHotkeyKey"),
+           let key = Key(string: savedKey) {
+            self.hotkeyKey = key
         }
-        .onChange(of: globalHotkey) { newHotkey in
-            // Save new hotkey
-            UserDefaults.standard.set(newHotkey.key.description, forKey: "globalHotkeyKey")
-            UserDefaults.standard.set(newHotkey.modifiers.rawValue, forKey: "globalHotkeyModifiers")
-            // Re-register hotkey
-            HotkeyManager.shared.unregisterAllHotKeys()
-            HotkeyManager.shared.register(hotkey: newHotkey) { }
+        
+        let savedModifiers = UserDefaults.standard.integer(forKey: "globalHotkeyModifiers")
+        if savedModifiers > 0 {
+            self.hotkeyModifiers = NSEvent.ModifierFlags(rawValue: UInt(savedModifiers))
         }
+    }
+    
+    private func saveHotkey() {
+        let newHotkey = HotKey(key: hotkeyKey, modifiers: hotkeyModifiers)
+        UserDefaults.standard.set(newHotkey.key.description, forKey: "globalHotkeyKey")
+        UserDefaults.standard.set(newHotkey.modifiers.rawValue, forKey: "globalHotkeyModifiers")
+        
+        // Re-register hotkey
+        HotkeyManager.shared.unregisterAllHotKeys()
+        HotkeyManager.shared.register(hotkey: newHotkey) { }
     }
 }
 
