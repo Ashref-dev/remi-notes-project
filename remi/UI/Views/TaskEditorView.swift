@@ -1,9 +1,14 @@
 import SwiftUI
+import MarkdownUI
 
 struct TaskEditorView: View {
     @StateObject private var viewModel: TaskEditorViewModel
     @State private var userInput: String = ""
     @FocusState private var isInputFocused: Bool
+    @State private var showMarkdownPreview = false
+    
+    // Access the undo manager from the environment
+    @Environment(\.undoManager) private var undoManager
 
     init(nook: Nook) {
         _viewModel = StateObject(wrappedValue: TaskEditorViewModel(nook: nook))
@@ -12,26 +17,35 @@ struct TaskEditorView: View {
     var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .center) {
-                TextEditor(text: $viewModel.taskContent)
-                    .font(.system(.body, design: .monospaced))
-                    .padding()
+                if showMarkdownPreview {
+                    ScrollView {
+                        Markdown(viewModel.taskContent)
+                            .markdownTextStyle { 
+                                FontSize(16)
+                                ForegroundColor(.primary)
+                            }
+                            .padding()
+                    }
+                } else {
+                    TextEditor(text: $viewModel.taskContent)
+                        .font(.system(.body, design: .monospaced))
+                        .padding()
+                }
                 
                 if viewModel.isSendingQuery {
-                    ScrollView {
-                        VStack {
-                            Text(viewModel.thinkingText)
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                    .background(Material.ultraThick)
-                    .transition(.opacity.animation(.easeInOut))
+                    ElegantProgressView()
                 }
             }
 
             Divider()
 
             HStack(spacing: 12) {
+                Button(action: { showMarkdownPreview.toggle() }) {
+                    Image(systemName: showMarkdownPreview ? "doc.text.fill" : "doc.text")
+                        .font(.title2)
+                }
+                .buttonStyle(.plain)
+                
                 TextField("Ask Remi to edit your tasks...", text: $userInput)
                     .textFieldStyle(.plain)
                     .focused($isInputFocused)
@@ -49,6 +63,8 @@ struct TaskEditorView: View {
         }
         .navigationTitle(viewModel.nook.name)
         .onAppear {
+            // Pass the undo manager to the view model
+            viewModel.undoManager = self.undoManager
             isInputFocused = true
         }
     }

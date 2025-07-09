@@ -28,6 +28,22 @@ struct NookListView: View {
                     }
                 }
                 .listStyle(.sidebar)
+                .overlay {
+                    if viewModel.nooks.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "doc.text.magnifyingglass")
+                                .font(.system(size: 50))
+                                .foregroundColor(.secondary)
+                            Text("No Nooks Found")
+                                .font(.title2)
+                            Text("Click the button below to create your first Nook.")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: 250)
+                        }
+                    }
+                }
 
                 Divider()
 

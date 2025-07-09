@@ -4,7 +4,7 @@ import HotKey
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
-    private var hotkeyManager = HotkeyManager()
+    private let hotkeyManager = HotkeyManager.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create the status bar item
@@ -21,8 +21,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.popover.contentViewController = NSHostingController(rootView: ContentView())
 
         // Register the global hotkey
-        hotkeyManager.register { [weak self] in
-            self?.togglePopover()
+        // Load saved hotkey or use default
+        if let savedKey = UserDefaults.standard.string(forKey: "globalHotkeyKey"),
+           let savedModifiers = UserDefaults.standard.object(forKey: "globalHotkeyModifiers") as? UInt,
+           let key = Key(string: savedKey) {
+            let hotkey = HotKey(key: key, modifiers: NSEvent.ModifierFlags(rawValue: savedModifiers))
+            hotkeyManager.register(hotkey: hotkey) { [weak self] in
+                self?.togglePopover()
+            }
+        } else {
+            hotkeyManager.registerDefaultHotkey { [weak self] in
+                self?.togglePopover()
+            }
         }
     }
 
@@ -38,6 +48,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationWillTerminate(_ notification: Notification) {
-        hotkeyManager.unregister()
+        hotkeyManager.unregisterAllHotKeys()
     }
 }

@@ -17,9 +17,23 @@ class SettingsManager: ObservableObject {
         }
     }
 
+    @Published var hasCompletedOnboarding: Bool {
+        didSet {
+            UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding")
+        }
+    }
+
+    @Published var aboutMeContext: String {
+        didSet {
+            UserDefaults.standard.set(aboutMeContext, forKey: "aboutMeContext")
+        }
+    }
+
     private init() {
         self.groqAPIKey = UserDefaults.standard.string(forKey: "groqAPIKey") ?? ""
         self.launchAtLogin = LaunchAtLogin.isEnabled
+        self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        self.aboutMeContext = UserDefaults.standard.string(forKey: "aboutMeContext") ?? ""
     }
     
     func lastViewedNookURL() -> URL? {
