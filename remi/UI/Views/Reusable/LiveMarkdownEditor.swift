@@ -4,7 +4,7 @@ import AppKit
 struct LiveMarkdownEditor: NSViewRepresentable {
     @Binding var text: String
     var isEditable: Bool = true
-    var font: NSFont = .monospacedSystemFont(ofSize: 16, weight: .regular)
+    var font: NSFont = AppTheme.Fonts.editor
     
     // Callback to provide the NSTextView instance
     var textViewBinding: ((NSTextView) -> Void)? = nil

@@ -1,113 +1,115 @@
 import SwiftUI
 
-
 struct TaskEditorView: View {
     @StateObject private var viewModel: TaskEditorViewModel
     @State private var userInput: String = ""
     @FocusState private var isInputFocused: Bool
     @State private var textView: NSTextView? // Reference to the NSTextView
-    @State private var isShowingDeleteAlert = false
     
-    // Access the undo manager from the environment
     @Environment(\.undoManager) private var undoManager
-    @Environment(\.presentationMode) private var presentationMode // To dismiss the view
+    @Environment(\.dismiss) private var dismiss
 
     init(nook: Nook) {
         _viewModel = StateObject(wrappedValue: TaskEditorViewModel(nook: nook))
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text(viewModel.nook.name)
-                    .font(.headline)
-                    .padding(.horizontal)
-                Spacer()
-                Button(action: {
-                    isShowingDeleteAlert = true
-                }) {
-                    Image(systemName: "trash")
-                        .foregroundColor(.red)
+        ZStack(alignment: .bottom) {
+            VStack(spacing: 0) {
+                Header()
+                
+                Divider()
+
+                ZStack(alignment: .center) {
+                    LiveMarkdownEditor(text: $viewModel.taskContent, textViewBinding: { self.textView = $0 })
+                        .padding(AppTheme.Spacing.medium)
+                    
+                    if viewModel.isSendingQuery {
+                        ElegantProgressView()
+                    }
                 }
-                .buttonStyle(.plain)
-                .padding(.horizontal)
+
+                Divider()
+
+                BottomBar()
             }
-            .padding(.vertical, 8)
-            .background(Material.bar)
             
-            Divider()
-
-            ZStack(alignment: .center) {
-                LiveMarkdownEditor(text: $viewModel.taskContent, textViewBinding: { self.textView = $0 })
-                
-                if viewModel.isSendingQuery {
-                    ElegantProgressView()
-                }
+            if isAIInputVisible {
+                AIInputView(isVisible: $isAIInputVisible, onSend: handleAIInput)
             }
-
-            Divider()
-
-            HStack(spacing: 12) {
-                // Formatting buttons
-                Group {
-                    Button(action: { applyMarkdown("**", to: textView) }) {
-                        Image(systemName: "bold")
-                    }
-                    Button(action: { applyMarkdown("*", to: textView) }) {
-                        Image(systemName: "italic")
-                    }
-                    Button(action: { applyMarkdown("# ", to: textView, prefixOnly: true) }) {
-                        Image(systemName: "h.square")
-                    }
-                }
-                .buttonStyle(.plain)
-                .font(.title2)
-                
-                Spacer()
-                
-                TextField("Ask Remi to edit your tasks...", text: $userInput)
-                    .textFieldStyle(.plain)
-                    .focused($isInputFocused)
-                    .onSubmit(handleInput)
-                
-                Button(action: handleInput) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.title2)
-                }
-                .buttonStyle(.plain)
-                .disabled(userInput.isEmpty || viewModel.isSendingQuery)
-            }
-            .padding()
-            .background(Material.bar)
         }
-        .alert(isPresented: $isShowingDeleteAlert) {
-            Alert(
-                title: Text("Delete Nook?"),
-                message: Text("Are you sure you want to delete the nook '\(viewModel.nook.name)'? This action cannot be undone."),
-                primaryButton: .destructive(Text("Delete")) {
-                    viewModel.deleteNook()
-                    presentationMode.wrappedValue.dismiss()
-                },
-                secondaryButton: .cancel()
-            )
-        }
+        .background(AppColors.background)
+        .frame(minWidth: 500, minHeight: 400) // Give the sheet a reasonable size
         .onAppear {
-            // Pass the undo manager to the view model
             viewModel.undoManager = self.undoManager
-            isInputFocused = true
         }
     }
     
-    private func handleInput() {
-        let input = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !input.isEmpty else { return }
-        
-        Task {
-            await viewModel.sendQuery(prompt: input)
+    @State private var isAIInputVisible = false
+
+    // MARK: - Subviews
+
+    @ViewBuilder
+    private func Header() -> some View {
+        HStack {
+            Text(viewModel.nook.name)
+                .font(.headline)
+                .foregroundColor(AppColors.textPrimary)
+            
+            Spacer()
+            
+            Button(action: {
+                dismiss()
+            }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(AppColors.textSecondary)
+                    .padding(AppTheme.Spacing.xsmall)
+                    .background(Color.primary.opacity(0.1))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
         }
-        
-        userInput = ""
+        .padding(AppTheme.Spacing.medium)
+        .background(AppColors.backgroundSecondary)
+    }
+    
+    @ViewBuilder
+    private func BottomBar() -> some View {
+        HStack(spacing: AppTheme.Spacing.medium) {
+            // Formatting buttons
+            Group {
+                Button(action: { applyMarkdown("**", to: textView) }) { Image(systemName: "bold") }
+                Button(action: { applyMarkdown("*", to: textView) }) { Image(systemName: "italic") }
+                Button(action: { applyMarkdown("# ", to: textView, prefixOnly: true) }) { Image(systemName: "h.square") }
+            }
+            .buttonStyle(.plain)
+            .font(.title3)
+            .foregroundColor(AppColors.textSecondary)
+            
+            Spacer()
+            
+            Button(action: {
+                withAnimation {
+                    isAIInputVisible.toggle()
+                }
+            }) {
+                Image(systemName: "sparkles")
+                    .font(.title2)
+                    .foregroundColor(AppColors.accent)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(AppTheme.Spacing.medium)
+        .background(AppColors.backgroundSecondary)
+    }
+    
+    // MARK: - Private Methods
+    
+    private func handleAIInput(prompt: String) {
+        Task {
+            await viewModel.sendQuery(prompt: prompt)
+        }
     }
     
     private func applyMarkdown(_ markdown: String, to textView: NSTextView?, prefixOnly: Bool = false) {
@@ -117,17 +119,10 @@ struct TaskEditorView: View {
         let currentText = textView.string as NSString
         
         if selectedRange.length > 0 {
-            // If text is selected, wrap it
             let selectedText = currentText.substring(with: selectedRange)
-            let newText: String
-            if prefixOnly {
-                newText = markdown + selectedText
-            } else {
-                newText = markdown + selectedText + markdown
-            }
+            let newText = prefixOnly ? (markdown + selectedText) : (markdown + selectedText + markdown)
             textView.insertText(newText, replacementRange: selectedRange)
         } else {
-            // If no text is selected, insert at cursor
             textView.insertText(markdown, replacementRange: selectedRange)
         }
     }

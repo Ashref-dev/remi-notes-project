@@ -2,156 +2,149 @@ import SwiftUI
 
 struct NookListView: View {
     @StateObject private var viewModel = NookListViewModel()
-    @State private var showingCreateNookAlert = false
-    @State private var newNookName = ""
-    @State private var showingRenameAlert = false
-    @State private var renamingNook: Nook?
+    @State private var showingEditorSheet = false
+    @State private var nookToEdit: Nook?
+    
+    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                List {
-                    ForEach(viewModel.nooks) { nook in
-                        NavigationLink(destination: TaskEditorView(nook: nook), tag: nook, selection: $viewModel.selectedNook) {
-                            NookRowView(nook: nook)
+        VStack(spacing: 0) {
+            HeaderView()
+            
+            SearchBarView(searchText: $viewModel.searchText, isFocused: $isSearchFocused)
+                .onSubmit(handleSearchSubmit)
+            
+            Divider()
+
+            if viewModel.filteredNooks.isEmpty && !viewModel.searchText.isEmpty {
+                createNookSuggestionView
+            } else if viewModel.filteredNooks.isEmpty {
+                emptyStateView
+            } else {
+                nookScrollView
+            }
+        }
+        .background(AppColors.background)
+        .edgesIgnoringSafeArea(.all)
+        .onAppear {
+            viewModel.fetchNooks()
+            // Focus search bar on appear
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isSearchFocused = true
+            }
+        }
+        .sheet(item: $nookToEdit) { nook in
+            TaskEditorView(nook: nook)
+        }
+    }
+
+    private var nookScrollView: some View {
+        ScrollView {
+            LazyVStack(spacing: AppTheme.Spacing.small) {
+                ForEach(viewModel.filteredNooks) { nook in
+                    NookCardView(nook: nook, isSelected: nookToEdit == nook)
+                        .onTapGesture {
+                            nookToEdit = nook
                         }
                         .contextMenu {
-                            Button("Rename") {
-                                renamingNook = nook
-                                newNookName = nook.name
-                                showingRenameAlert = true
-                            }
                             Button("Delete", role: .destructive) {
                                 viewModel.deleteNook(nook)
                             }
                         }
-                    }
-                }
-                .listStyle(.sidebar)
-                .overlay {
-                    if viewModel.nooks.isEmpty {
-                        VStack(spacing: 10) {
-                            Image(systemName: "doc.text.magnifyingglass")
-                                .font(.system(size: 50))
-                                .foregroundColor(.secondary)
-                            Text("No Nooks Found")
-                                .font(.title2)
-                            Text("Click the button below to create your first Nook.")
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .frame(maxWidth: 250)
-                        }
-                    }
-                }
-
-                Divider()
-
-                HStack {
-                    Button(action: {
-                        newNookName = ""
-                        showingCreateNookAlert = true
-                    }) {
-                        Label("New Nook", systemImage: "plus")
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.leading)
-                    
-                    Spacer()
-                }
-                .padding(.vertical, 8)
-            }
-            .navigationTitle("My Nooks")
-            .background(Material.bar)
-            .onAppear(perform: viewModel.fetchNooks)
-            .sheet(isPresented: $showingCreateNookAlert) {
-                createNookSheet
-            }
-            .sheet(isPresented: $showingRenameAlert, onDismiss: { renamingNook = nil }) {
-                renameNookSheet
-            }
-            
-            // Detail view
-            if let selectedNook = viewModel.selectedNook {
-                TaskEditorView(nook: selectedNook)
-            } else {
-                VStack {
-                    Image(systemName: "r.circle")
-                        .font(.system(size: 60))
-                        .foregroundColor(.secondary)
-                    Text("Select a Nook")
-                        .font(.title)
-                        .foregroundColor(.secondary)
                 }
             }
         }
-    }
-
-    private var createNookSheet: some View {
-        VStack(spacing: 16) {
-            Text("Create New Nook")
-                .font(.headline)
-            TextField("Nook Name", text: $newNookName)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-            HStack {
-                Button("Cancel") { showingCreateNookAlert = false }
-                    .keyboardShortcut(.escape)
-                Spacer()
-                Button("Create") {
-                    if !newNookName.isEmpty {
-                        viewModel.createNook(named: newNookName)
-                        showingCreateNookAlert = false
-                    }
-                }
-                .disabled(newNookName.isEmpty)
-            }
-        }
-        .padding()
-        .frame(width: 300)
+        .padding(.horizontal, AppTheme.Spacing.small)
     }
     
-    private var renameNookSheet: some View {
-        VStack(spacing: 16) {
-            Text("Rename Nook")
-                .font(.headline)
-            TextField("New Name", text: $newNookName)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-            HStack {
-                Button("Cancel") { showingRenameAlert = false }
-                    .keyboardShortcut(.escape)
-                Spacer()
-                Button("Rename") {
-                    if let nook = renamingNook, !newNookName.isEmpty {
-                        viewModel.renameNook(nook, to: newNookName)
-                        showingRenameAlert = false
-                    }
-                }
-                .disabled(newNookName.isEmpty)
-            }
+    private var emptyStateView: some View {
+        VStack {
+            Spacer()
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 40))
+                .foregroundColor(AppColors.textSecondary)
+            Text("No Nooks Yet")
+                .font(.title2.weight(.semibold))
+                .foregroundColor(AppColors.textPrimary)
+            Text("Type in the search bar and press Enter to create your first Nook.")
+                .font(.body)
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 300)
+            Spacer()
         }
-        .padding()
-        .frame(width: 300)
+    }
+    
+    private var createNookSuggestionView: some View {
+        VStack {
+            Spacer()
+            Text("No nooks found for \"\(viewModel.searchText)\"")
+                .font(.title2.weight(.semibold))
+                .foregroundColor(AppColors.textPrimary)
+            Button(action: {
+                viewModel.createNook(named: viewModel.searchText)
+            }) {
+                Text("Create New Nook: \"\(viewModel.searchText)\"")
+                    .fontWeight(.semibold)
+            }
+            .buttonStyle(.plain)
+            .padding(.vertical, AppTheme.Spacing.small)
+            .padding(.horizontal, AppTheme.Spacing.medium)
+            .background(AppColors.accent.opacity(0.2))
+            .cornerRadius(AppTheme.CornerRadius.small)
+            Spacer()
+        }
+    }
+    
+    private func handleSearchSubmit() {
+        if !viewModel.searchText.isEmpty && viewModel.filteredNooks.isEmpty {
+            viewModel.createNook(named: viewModel.searchText)
+        } else if let firstResult = viewModel.filteredNooks.first {
+            nookToEdit = firstResult
+        }
     }
 }
 
-struct NookRowView: View {
-    let nook: Nook
-    
-    private func preview(for nook: Nook) -> String {
-        let content = NookManager.shared.fetchTasks(for: nook)
-        return content.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "\n", with: " ")
-    }
-    
+// MARK: - Subviews
+
+private struct HeaderView: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(nook.name)
+        HStack {
+            Image(systemName: "r.circle.fill")
+                .font(.title)
+                .foregroundColor(AppColors.accent)
+            Text("Remi Nooks")
                 .font(.headline)
-            Text(preview(for: nook))
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(2)
+                .foregroundColor(AppColors.textPrimary)
+            Spacer()
         }
-        .padding(.vertical, 8)
+        .padding(AppTheme.Spacing.medium)
+        .background(AppColors.backgroundSecondary)
+    }
+}
+
+private struct SearchBarView: View {
+    @Binding var searchText: String
+    var isFocused: FocusState<Bool>.Binding
+
+    var body: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(AppColors.textSecondary)
+            
+            TextField("Search or create a new Nook...", text: $searchText)
+                .textFieldStyle(.plain)
+                .focused(isFocused)
+            
+            if !searchText.isEmpty {
+                Button(action: { searchText = "" }) {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(AppColors.textSecondary)
+            }
+        }
+        .padding(AppTheme.Spacing.medium)
     }
 }
 

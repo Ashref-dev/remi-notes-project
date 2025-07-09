@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftUI
 import HotKey
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -16,7 +17,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Create the popover
         self.popover = NSPopover()
-        self.popover.contentSize = NSSize(width: 600, height: 700)
+        self.popover.contentSize = NSSize(width: AppTheme.Popover.width, height: AppTheme.Popover.height)
         self.popover.behavior = .transient
         self.popover.contentViewController = NSHostingController(rootView: ContentView())
 

@@ -4,18 +4,14 @@ struct ContentView: View {
     @ObservedObject private var settingsManager = SettingsManager.shared
 
     var body: some View {
-        ZStack {
+        Group {
             if settingsManager.hasCompletedOnboarding {
                 NookListView()
-                    .frame(width: 600, height: 700)
-                    .transition(.opacity.animation(.easeInOut))
             } else {
                 OnboardingView()
-                    .transition(.opacity.animation(.easeInOut))
             }
-            
-            ToastView()
         }
+        .transition(.opacity.animation(.easeInOut))
     }
 }
 

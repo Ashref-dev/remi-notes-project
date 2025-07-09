@@ -42,7 +42,7 @@ class TaskEditorViewModel: ObservableObject {
         let oldContent = self.taskContent
         undoManager?.registerUndo(withTarget: self) { target in
             Task {
-                target.setTaskContent(oldContent)
+                await target.setTaskContent(oldContent)
             }
         }
         self.taskContent = newContent

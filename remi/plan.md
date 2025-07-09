@@ -1,197 +1,68 @@
-# Remi macOS App - Detailed Implementation Plan
+# Project Plan
 
-This plan outlines the step-by-step implementation for building Remi, a macOS menu bar app for managing task lists ("Nooks") with local Markdown files and Groq AI assistant integration.
+This document outlines the work completed on the Remi project.
 
----
+## Completed Tasks
+
+*   **Theme Consolidation:** The `AppTheme` and `AppColors` structs were consolidated into `UI/Theme/Theme.swift`.
+*   **NookCardView Consolidation:** The `NookCardView` was moved to its own file at `UI/Views/Components/NookCardView.swift`.
+*   **Build Fixes:** The build was fixed by updating `NookCardView.swift` to use `AppColors` and by adding `await` to an async call in `TaskEditorViewModel.swift`.
+*   **AI Input UI:** A new, modern UI was created for interacting with the AI agent. This includes a button that fades in an input field with animations.
+*   **Project Documentation:**
+    *   A `Documentation` directory was created to house project documentation.
+    *   `THEME_SETUP.md` was moved to the `Documentation` directory.
+    *   A `README.md` file was created with the project structure.
 
 ## Project Structure
 
-This is the proposed project structure to keep the codebase organized and maintainable.
-
 ```
-remi/
-├── App/
-│   ├── remiApp.swift           # Main app entry point
-│   ├── AppDelegate.swift       # App lifecycle, menu bar, and hotkey setup
-│   └── Assets.xcassets       # App icons and colors
-├── Core/
-│   ├── Models/
-│   │   └── Nook.swift          # Data model for a Nook
-│   └── Services/
-│       ├── NookManager.swift   # Handles all file system operations for Nooks
-│       ├── GroqService.swift   # Manages API calls to the Groq service
-│       └── SettingsManager.swift # Manages app settings via UserDefaults
-├── UI/
-│   ├── Views/
-│   │   ├── ContentView.swift     # Main view, acts as a router
-│   │   ├── NookListView.swift    # Displays the list of all Nooks
-│   │   └── TaskEditorView.swift  # The editor for a Nook's tasks.md file
-│   └── ViewModels/
-│       ├── NookListViewModel.swift # State and logic for NookListView
-│       └── TaskEditorViewModel.swift # State and logic for TaskEditorView
-└── Utils/
-    ├── HotkeyManager.swift     # Wrapper for the HotKey library
-    └── Dependencies.swift      # Clean wrapper for imported packages
+.
+├── App
+│   ├── AppDelegate.swift
+│   ├── Assets.xcassets
+│   │   ├── AccentColor.colorset
+│   │   │   └── Contents.json
+│   │   ├── AppIcon.appiconset
+│   │   │   └── Contents.json
+│   │   └── Contents.json
+│   └── remiApp.swift
+├── Core
+│   ├── Models
+│   │   └── Nook.swift
+│   └── Services
+│       ├── ErrorHandlingService.swift
+│       ├── GroqDataModels.swift
+│       ├── GroqService.swift
+│       ├── NookManager.swift
+│       └── SettingsManager.swift
+├── Documentation
+│   └── THEME_SETUP.md
+├── Preview Content
+│   └── Preview Assets.xcassets
+│       └── Contents.json
+├── UI
+│   ├── Theme
+│   │   └── Theme.swift
+│   ├── ViewModels
+│   │   ├── NookListViewModel.swift
+│   │   └── TaskEditorViewModel.swift
+│   └── Views
+│       ├── Components
+│       │   ├── AIInputView.swift
+│       │   └── NookCardView.swift
+│       ├── ContentView.swift
+│       ├── NookListView.swift
+│       ├── OnboardingView.swift
+│       ├── Reusable
+│       │   ├── ElegantProgressView.swift
+│       │   └── LiveMarkdownEditor.swift
+│       ├── Settings
+│       │   ├── HotkeyRecorderView.swift
+│       │   └── SettingsView.swift
+│       └── TaskEditorView.swift
+├── Utils
+│   └── HotkeyManager.swift
+├── build_log.txt
+├── plan.md
+└── remi.entitlements
 ```
-
----
-
-## Phase 1: Core App Functionality
-
-### 1.1. Project Setup
-- [x] Create Xcode Project (`remi`).
-- [x] Add Swift Package Manager dependencies: `HotKey`, `Alamofire`, `LaunchAtLogin`.
-
-### 1.2. Application Delegate
-- [x] Create `AppDelegate.swift` to manage app lifecycle events.
-- [x] In `remiApp.swift`, set up `NSApplicationDelegateAdaptor` to use `AppDelegate`.
-
-### 1.3. Menu Bar Item
-- [x] In `AppDelegate.swift`, add a function to create an `NSStatusItem` in the system menu bar.
-- [x] Assign a default icon (e.g., SF Symbol) to the status item.
-- [x] Implement an action to show/hide the main window when the menu bar icon is clicked.
-
-### 1.4. Main Window
-- [x] Create a borderless, non-resizable `NSPanel` subclass for the main window.
-- [x] Implement logic to make the window appear in the center of the screen.
-- [x] Add functionality to dismiss the window when the user clicks outside of it or presses the `Esc` key.
-
-### 1.5. Global Hotkey
-- [x] Create `HotkeyManager.swift` to encapsulate the `HotKey` library.
-- [x] In `AppDelegate.swift`, use `HotkeyManager` to register a global hotkey (e.g., `Cmd + Option + R`).
-- [x] Bind the hotkey to the same action that shows/hides the main window.
-
----
-
-## Phase 2: Nook Management
-
-### 2.1. Nook Model
-- [x] Create `Nook.swift` with a struct representing a Nook, containing properties like `id`, `name`, and `url` to its folder.
-
-### 2.2. NookManager Service
-- [x] Create `NookManager.swift`.
-- [x] Implement a function to create the `~/Remi/Nooks/` directory on first launch if it doesn't exist.
-- [x] Create a default "Welcome" Nook with an introductory `tasks.md` file.
-- [x] Implement a function to scan the `Nooks` directory and return an array of `Nook` objects.
-- [x] Implement functions to create, rename, and delete Nook folders.
-- [x] Implement functions to read from and write to a `tasks.md` file within a specific Nook folder.
-
----
-
-## Phase 3: User Interface (SwiftUI)
-
-### 3.1. Nook List View
-- [x] Create `NookListView.swift`.
-- [x] Create `NookListViewModel.swift` to fetch and manage the list of Nooks from `NookManager`.
-- [x] Design a view that displays each Nook as a card with its name and a preview of its content.
-- [x] Add a "New Nook" button that prompts the user for a name and uses `NookManager` to create it.
-- [x] Add a context menu (or swipe action) to rename or delete a Nook, with confirmation alerts.
-- [x] Implement navigation to the `TaskEditorView` when a Nook card is clicked.
-
-### 3.2. Task Editor View
-- [x] Create `TaskEditorView.swift`.
-- [x] Create `TaskEditorViewModel.swift` to load, manage, and save the content of a selected Nook's `tasks.md`.
-- [x] Use a `TextEditor` bound to the content of the `tasks.md` file.
-- [x] Implement debouncing to save file changes automatically after a short delay of inactivity.
-- [x] Add a text input field at the bottom for adding new tasks or sending queries to the AI.
-- [x] Add a "Back" button to return to the `NookListView`.
-
----
-
-## Phase 4: AI Integration
-
-### 4.1. Groq Service
-- [x] Create `GroqService.swift`.
-- [x] Implement a function to make API calls to the Groq chat completions endpoint using `Alamofire`.
-- [x] Securely manage the API key (e.g., from a configuration file or user settings, not hardcoded).
-- [x] Structure the request payload with the model, messages, and other parameters.
-- [x] Implement error handling for network requests and API responses.
-
-### 4.2. AI in Task Editor
-- [x] In `TaskEditorViewModel.swift`, add logic to differentiate between a plain task and an AI query.
-- [x] If the input is a query, call `GroqService` with the user's input.
-- [x] Prepend the existing `tasks.md` content as context in the prompt to the AI.
-- [x] On receiving a response, parse the Markdown and merge the new tasks into the `tasks.md` file.
-- [x] Refresh the `TextEditor` to display the updated content.
-
----
-
-## Phase 5: Final Touches
-
-### 5.1. Settings
-- [x] Create `SettingsManager.swift` to handle `UserDefaults`.
-- [x] Create a simple settings view where users can:
-    - [x] **Set the global hotkey combination.**
-- [x] **Enter their Groq API key.**
-- [x] **Toggle "Launch at Login" using the `LaunchAtLogin` package.**
-- [x] Persist the last-viewed Nook using `UserDefaults`.
-
-### 5.2. UI/UX Polish
-- [x] Ensure the UI is fully compatible with both light and dark mode.
-- [x] Add subtle animations and transitions for a smoother user experience.
-- [x] Use SF Symbols consistently for all icons and buttons.
-- [x] Refine the layout, spacing, and typography.
-
----
-
-## Phase 6: Testing and Distribution
-
-### 6.1. Manual Testing Checklist
-- [x] Verify app starts correctly and menu bar icon appears.
-- [x] Test hotkey and menu bar icon to ensure they toggle the window.
-- [x] Create, rename, and delete Nooks.
-- [x] Add, edit, and delete tasks manually in the editor.
-- [x] Add tasks using the AI assistant and verify the list updates correctly.
-- [x] Check that all settings are saved and loaded correctly.
-- [x] Confirm "Launch at Login" works as expected.
-
-### 6.2. Distribution
-- [x] Archive the app in Xcode.
-- [x] Sign with a Developer ID for distribution outside the App Store.
-- [x] Consider notarizing the app to ensure it runs smoothly on other machines.
-
----
-
-## V2 - Modernization & Enhanced User Experience
-
-This phase focuses on making the app more robust, intelligent, and delightful to use. The guiding principle is to create a modern, elegant, and fresh aesthetic, incorporating smooth animations and micro-interactions throughout.
-
-### V2.1: Core AI & Stability Improvements (Critical)
-
-- [x] **Filter AI "Thinking" Tokens:** *(Critical)* Modify the AI response handler to strip all content between `<thinking>` and `</thinking>` tags before streaming to the UI. This prevents the AI's thought process from being displayed to the user.
-- [x] **Update System Prompt:** *(Critical)* Refine the AI's system prompt to instruct it to return the *entire, updated document* as plain text, ensuring no Markdown or other formatting is included in the final output. The prompt will still allow the AI to use `<thinking>` tags internally.
-- [x] **Refactor AI Streaming:** Reorganize the `GroqService` streaming code to be more modular, maintainable, and easier to debug.
-- [x] **Implement Undo for AI Edits:** Add a crucial safety net by allowing users to undo (`Cmd+Z`) an AI-driven document replacement. This builds user trust and encourages experimentation.
-- [x] **Add Visual AI Loading Indicator:** Provide clear visual feedback in the UI while waiting for an AI response. This should be an elegant, non-intrusive animation (e.g., a subtle spinner or pulsing cursor) to show the app is working.
-- [x] **Graceful Error & Network Handling:** Implement robust error handling. Display clean, user-friendly toast notifications or inline messages for issues like network disconnects or API outages.
-- [x] **Handle Invalid API Keys:** Specifically detect API authentication errors. If a key is invalid, show a targeted message that guides the user to the settings page to correct it.
-
-### V2.2: Elegant Onboarding & User Guidance
-
-- [x] **Create Modern Onboarding Flow:** Design a beautiful, multi-step onboarding experience for first-time users. It should use clear, concise language and elegant animations to introduce core concepts like Nooks, the hotkey, and the AI assistant.
-- [x] **Design Helpful Empty States:** When the Nook list is empty, display a helpful and well-designed message that guides the user to create their first Nook, avoiding a confusing blank screen.
-
-### V2.3: Advanced Features & UI Modernization
-
-- [x] **Build Elegant Settings Page:** Redesign the settings view to be modern and user-friendly. It should include:
-    - An intuitive interface for changing the global hotkey.
-    - A field for the "About Me" context, with a clear explanation of its purpose.
-    - All UI elements should be well-spaced with clear labels and subtle animations.
-- [x] **Live Markdown Editor & Formatting Buttons:** Implement a live Markdown editing experience where text is rendered as it's typed, and add sleek, compact buttons for common Markdown formatting (bold, italic, headings) that interact directly with the editor.
-- [x] **Overall UI/UX Modernization:** Conduct a full design pass on all existing views (Nook list, editor, etc.). The goal is a fresh, spacious, and elegant design. Pay close attention to typography, spacing, and color. Implement meaningful micro-interactions (e.g., button presses, list updates) to make the app feel alive and responsive.
-
-## v3
-
-- [x] **Strip AI "Thinking" Tokens:** Implement a more robust filtering mechanism to ensure the AI's thought process is completely removed from the response before being displayed to the user.
-- [x] **Improve Markdown Rendering:** Enhance the live editor to hide Markdown syntax characters (like `#`, `*`, `_`) for a clean, WYSIWYG-style appearance.
-    - **Implementation:**
-        - Create a custom SwiftUI view that uses a `TextEditor` for input.
-        - Use `NSRegularExpression` to identify Markdown patterns (bold, italics, headers).
-        - On text change, generate an `AttributedString` where Markdown syntax characters are hidden by setting their font size to a near-zero value and their color to `.clear`.
-        - The styled text will be displayed in a separate `Text` view, providing a live-rendered preview.
-- [x] **Add Delete Nook Button:** Add a dedicated and clearly visible button to delete the current Nook from the editor view.
-    - **Implementation:**
-        - Add a trash icon button to the `TaskEditorView`.
-        - On tap, trigger a confirmation `Alert` to prevent accidental deletion.
-        - If confirmed, call the `NookManager.delete()` function.
-        - After deletion, the view will be dismissed, returning the user to the `NookListView`.
