@@ -177,5 +177,5 @@ This phase focuses on making the app more robust, intelligent, and delightful to
     - An intuitive interface for changing the global hotkey.
     - A field for the "About Me" context, with a clear explanation of its purpose.
     - All UI elements should be well-spaced with clear labels and subtle animations.
-- [x] **Implement Markdown Preview:** Add a toggle or button to switch between the raw text editor and a beautifully rendered preview of the Markdown content, using the `MarkdownUI` library.
+- [x] **Live Markdown Editor & Formatting Buttons:** Implement a live Markdown editing experience where text is rendered as it's typed, and add sleek, compact buttons for common Markdown formatting (bold, italic, headings) that interact directly with the editor.
 - [x] **Overall UI/UX Modernization:** Conduct a full design pass on all existing views (Nook list, editor, etc.). The goal is a fresh, spacious, and elegant design. Pay close attention to typography, spacing, and color. Implement meaningful micro-interactions (e.g., button presses, list updates) to make the app feel alive and responsive.

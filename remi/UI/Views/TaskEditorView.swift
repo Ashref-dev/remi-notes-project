@@ -5,7 +5,7 @@ struct TaskEditorView: View {
     @StateObject private var viewModel: TaskEditorViewModel
     @State private var userInput: String = ""
     @FocusState private var isInputFocused: Bool
-    @State private var showMarkdownPreview = false
+    @State private var textView: NSTextView? // Reference to the NSTextView
     
     // Access the undo manager from the environment
     @Environment(\.undoManager) private var undoManager
@@ -17,20 +17,7 @@ struct TaskEditorView: View {
     var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .center) {
-                if showMarkdownPreview {
-                    ScrollView {
-                        Markdown(viewModel.taskContent)
-                            .markdownTextStyle { 
-                                FontSize(16)
-                                ForegroundColor(.primary)
-                            }
-                            .padding()
-                    }
-                } else {
-                    TextEditor(text: $viewModel.taskContent)
-                        .font(.system(.body, design: .monospaced))
-                        .padding()
-                }
+                LiveMarkdownEditor(text: $viewModel.taskContent, textViewBinding: { self.textView = $0 })
                 
                 if viewModel.isSendingQuery {
                     ElegantProgressView()
@@ -40,11 +27,22 @@ struct TaskEditorView: View {
             Divider()
 
             HStack(spacing: 12) {
-                Button(action: { showMarkdownPreview.toggle() }) {
-                    Image(systemName: showMarkdownPreview ? "doc.text.fill" : "doc.text")
-                        .font(.title2)
+                // Formatting buttons
+                Group {
+                    Button(action: { applyMarkdown("**", to: textView) }) {
+                        Image(systemName: "bold")
+                    }
+                    Button(action: { applyMarkdown("*", to: textView) }) {
+                        Image(systemName: "italic")
+                    }
+                    Button(action: { applyMarkdown("# ", to: textView, prefixOnly: true) }) {
+                        Image(systemName: "h.square")
+                    }
                 }
                 .buttonStyle(.plain)
+                .font(.title2)
+                
+                Spacer()
                 
                 TextField("Ask Remi to edit your tasks...", text: $userInput)
                     .textFieldStyle(.plain)
@@ -78,6 +76,28 @@ struct TaskEditorView: View {
         }
         
         userInput = ""
+    }
+    
+    private func applyMarkdown(_ markdown: String, to textView: NSTextView?, prefixOnly: Bool = false) {
+        guard let textView = textView else { return }
+        
+        let selectedRange = textView.selectedRange()
+        let currentText = textView.string as NSString
+        
+        if selectedRange.length > 0 {
+            // If text is selected, wrap it
+            let selectedText = currentText.substring(with: selectedRange)
+            let newText: String
+            if prefixOnly {
+                newText = markdown + selectedText
+            } else {
+                newText = markdown + selectedText + markdown
+            }
+            textView.insertText(newText, replacementRange: selectedRange)
+        } else {
+            // If no text is selected, insert at cursor
+            textView.insertText(markdown, replacementRange: selectedRange)
+        }
     }
 }
 
