@@ -19,7 +19,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         textView.allowsUndo = true
         textView.font = font
         textView.textContainerInset = NSSize(width: 10, height: 10)
-        textView.usesAdaptiveColorMappingForSystemColors = true
+        
         textView.importsGraphics = false
         textView.drawsBackground = true
         textView.backgroundColor = .clear
