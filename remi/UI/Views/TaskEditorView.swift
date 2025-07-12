@@ -2,49 +2,68 @@ import SwiftUI
 
 struct TaskEditorView: View {
     @StateObject private var viewModel: TaskEditorViewModel
-    @State private var userInput: String = ""
     @FocusState private var isInputFocused: Bool
-    @State private var textView: NSTextView? // Reference to the NSTextView
+    @State private var textView: NSTextView?
     
     @Environment(\.undoManager) private var undoManager
+    @Environment(\.dismiss) private var dismiss
     
+    @State private var isAIInputVisible = false
+
     init(nook: Nook) {
         _viewModel = StateObject(wrappedValue: TaskEditorViewModel(nook: nook))
     }
 
     var body: some View {
         Themed { theme in
-            VStack(spacing: 0) {
-                ZStack(alignment: .center) {
-                    LiveMarkdownEditor(text: $viewModel.taskContent, theme: theme, textViewBinding: { self.textView = $0 })
-                    
-                    if viewModel.isSendingQuery {
-                        ElegantProgressView()
+            ZStack(alignment: .bottom) {
+                VStack(spacing: 0) {
+                    // Main editor view
+                    ZStack(alignment: .center) {
+                        LiveMarkdownEditor(text: $viewModel.taskContent, theme: theme, textViewBinding: { self.textView = $0 })
+                        
+                        if viewModel.isSendingQuery {
+                            ElegantProgressView()
+                        }
                     }
+
+                    Divider()
+
+                    // Bottom toolbar
+                    BottomBar(theme: theme)
                 }
-
-                Divider()
-
-                BottomBar(theme: theme)
+                
+                // AI Input View - Slides from the bottom
+                if isAIInputVisible {
+                    AIInputView(isVisible: $isAIInputVisible, onSend: handleAIInput)
+                        .frame(maxWidth: .infinity)
+                        .padding(AppTheme.Spacing.large)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
             .background(theme.background)
             .navigationTitle(viewModel.nook.name)
+            .navigationBarBackButtonHidden(true) // Hide default back button
             .onAppear {
                 viewModel.undoManager = self.undoManager
             }
-            .sheet(isPresented: $isAIInputVisible) {
-                AIInputView(isVisible: $isAIInputVisible, onSend: handleAIInput)
-            }
+            .animation(.easeInOut, value: isAIInputVisible)
         }
     }
     
-    @State private var isAIInputVisible = false
-
     // MARK: - Subviews
     
     @ViewBuilder
     private func BottomBar(theme: Theme) -> some View {
         HStack(spacing: AppTheme.Spacing.medium) {
+            // Back button
+            Button(action: { dismiss() }) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 16, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(theme.textSecondary)
+
             // Formatting buttons
             Group {
                 Button(action: { applyMarkdown("**", to: textView) }) { Image(systemName: "bold") }
@@ -57,9 +76,8 @@ struct TaskEditorView: View {
             
             Spacer()
             
-            Button(action: {
-                isAIInputVisible.toggle()
-            }) {
+            // AI Sparkle button
+            Button(action: { isAIInputVisible.toggle() }) {
                 Image(systemName: "sparkles")
                     .font(.title2)
                     .foregroundColor(theme.accent)
