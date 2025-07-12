@@ -4,20 +4,21 @@ import HotKey
 class HotkeyManager {
     static let shared = HotkeyManager()
     private var hotKey: HotKey?
+    private var callback: (() -> Void)?
 
     private init() {}
 
     func register(hotkey: HotKey, callback: @escaping () -> Void) {
+        self.callback = callback
+        update(hotkey: hotkey)
+    }
+    
+    func update(hotkey: HotKey) {
         self.hotKey = hotkey
-        self.hotKey?.keyDownHandler = callback
+        self.hotKey?.keyDownHandler = self.callback
     }
 
-    func unregisterAllHotKeys() {
+    func unregister() {
         hotKey = nil
-    }
-
-    func registerDefaultHotkey(callback: @escaping () -> Void) {
-        let defaultHotkey = HotKey(key: .r, modifiers: [.command, .option])
-        register(hotkey: defaultHotkey, callback: callback)
     }
 }

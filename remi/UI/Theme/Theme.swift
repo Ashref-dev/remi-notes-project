@@ -22,7 +22,7 @@ struct AppTheme {
     }
     
     struct Popover {
-        static let width: CGFloat = 480
-        static let height: CGFloat = 520
+        static let width: CGFloat = 600
+        static let height: CGFloat = 680
     }
 }

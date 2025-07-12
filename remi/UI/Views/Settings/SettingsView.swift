@@ -4,61 +4,74 @@ import HotKey
 
 struct SettingsView: View {
     @StateObject private var settings = SettingsManager.shared
-    @State private var hotkeyKey: Key = .r
-    @State private var hotkeyModifiers: NSEvent.ModifierFlags = [.command, .option]
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        Form {
-            Section(header: Text("API")) {
-                SecureField("Groq API Key", text: $settings.groqAPIKey)
-            }
-            
-            Section(header: Text("General")) {
-                Toggle("Launch at Login", isOn: $settings.launchAtLogin)
+        Themed { theme in
+            VStack(spacing: 0) {
+                Header(theme: theme)
                 
-                HStack {
-                    Text("Global Hotkey")
-                    Spacer()
-                    HotkeyRecorderView(key: $hotkeyKey, modifiers: $hotkeyModifiers)
+                Divider()
+                
+                Form {
+                    Section(header: Text("API Configuration").font(.headline)) {
+                        SecureField("Groq API Key", text: $settings.groqAPIKey)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }
+                    
+                    Section(header: Text("General").font(.headline)) {
+                        Toggle("Launch at Login", isOn: $settings.launchAtLogin)
+                        
+                        HStack {
+                            Text("Global Hotkey")
+                            Spacer()
+                            HotkeyRecorderView(hotkey: $settings.hotkey)
+                        }
+                    }
+                    
+                    Section(header: Text("AI Personalization").font(.headline)) {
+                        Text("Provide context about yourself for more tailored AI responses.")
+                            .font(.caption)
+                            .foregroundColor(theme.textSecondary)
+                        
+                        TextEditor(text: $settings.aboutMeContext)
+                            .frame(height: 120)
+                            .font(.body)
+                            .lineLimit(nil)
+                            .padding(AppTheme.Spacing.small)
+                            .background(theme.backgroundSecondary)
+                            .cornerRadius(AppTheme.CornerRadius.small)
+                    }
                 }
+                .padding(AppTheme.Spacing.large)
+                .formStyle(.grouped)
+                .background(theme.background)
             }
+            .frame(width: 550, height: 550)
+        }
+    }
+    
+    @ViewBuilder
+    private func Header(theme: Theme) -> some View {
+        HStack {
+            Text("Settings")
+                .font(.title2.weight(.bold))
+                .foregroundColor(theme.textPrimary)
             
-            Section(header: Text("About Me Context")) {
-                TextEditor(text: $settings.aboutMeContext)
-                    .frame(minHeight: 100)
-                    .font(.body)
-                    .lineLimit(nil)
-                Text("This context will be included in every AI call to personalize responses. E.g., 'I am a software engineer working on macOS apps.'")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            Spacer()
+            
+            Button(action: { dismiss() }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(theme.textSecondary)
+                    .padding(AppTheme.Spacing.small)
+                    .background(Color.primary.opacity(0.1))
+                    .clipShape(Circle())
             }
+            .buttonStyle(.plain)
         }
-        .padding()
-        .frame(width: 500, height: 450)
-        .onAppear(perform: loadHotkey)
-        .onDisappear(perform: saveHotkey)
-    }
-    
-    private func loadHotkey() {
-        if let savedKey = UserDefaults.standard.string(forKey: "globalHotkeyKey"),
-           let key = Key(string: savedKey) {
-            self.hotkeyKey = key
-        }
-        
-        let savedModifiers = UserDefaults.standard.integer(forKey: "globalHotkeyModifiers")
-        if savedModifiers > 0 {
-            self.hotkeyModifiers = NSEvent.ModifierFlags(rawValue: UInt(savedModifiers))
-        }
-    }
-    
-    private func saveHotkey() {
-        let newHotkey = HotKey(key: hotkeyKey, modifiers: hotkeyModifiers)
-        UserDefaults.standard.set(hotkeyKey.description, forKey: "globalHotkeyKey")
-        UserDefaults.standard.set(hotkeyModifiers.rawValue, forKey: "globalHotkeyModifiers")
-        
-        // Re-register hotkey
-        HotkeyManager.shared.unregisterAllHotKeys()
-        HotkeyManager.shared.register(hotkey: newHotkey) { }
+        .padding(AppTheme.Spacing.large)
+        .background(theme.backgroundSecondary)
     }
 }
 

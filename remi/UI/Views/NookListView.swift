@@ -5,16 +5,18 @@ struct NookListView: View {
     @FocusState private var isSearchFocused: Bool
     @State private var navigationPath = NavigationPath()
     @State private var nookToNavigate: Nook?
+    @State private var isSettingsPresented = false
 
     var body: some View {
         Themed { theme in
             NavigationStack(path: $navigationPath) {
                 VStack(spacing: 0) {
-                    HeaderView(theme: theme)
+                    HeaderView(theme: theme, onSettingsTap: { isSettingsPresented.toggle() })
                     
                     SearchBarView(searchText: $viewModel.searchText, isFocused: $isSearchFocused, theme: theme)
-                        .onSubmit(handleSearchSubmit)
-                    
+                        .padding(.horizontal, AppTheme.Spacing.large)
+                        .padding(.vertical, AppTheme.Spacing.medium)
+
                     Divider()
 
                     if viewModel.filteredNooks.isEmpty && !viewModel.searchText.isEmpty {
@@ -26,21 +28,23 @@ struct NookListView: View {
                     }
                 }
                 .background(theme.background)
-                .edgesIgnoringSafeArea(.all)
                 .navigationDestination(for: Nook.self) { nook in
                     TaskEditorView(nook: nook)
                 }
                 .onAppear {
                     viewModel.fetchNooks()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { // Slightly longer delay
                         isSearchFocused = true
                     }
                 }
                 .onChange(of: nookToNavigate) {
                     if let nook = nookToNavigate {
                         navigationPath.append(nook)
-                        nookToNavigate = nil // Reset after navigation
+                        nookToNavigate = nil
                     }
+                }
+                .sheet(isPresented: $isSettingsPresented) {
+                    SettingsView()
                 }
             }
         }
@@ -48,7 +52,7 @@ struct NookListView: View {
 
     private var nookScrollView: some View {
         ScrollView {
-            LazyVStack(spacing: AppTheme.Spacing.small) {
+            LazyVStack(spacing: AppTheme.Spacing.medium) {
                 ForEach(viewModel.filteredNooks) {
                     nook in
                     NavigationLink(value: nook) {
@@ -62,26 +66,28 @@ struct NookListView: View {
                     }
                 }
             }
+            .padding(AppTheme.Spacing.large)
         }
-        .padding(.horizontal, AppTheme.Spacing.small)
     }
     
     private func emptyStateView(theme: Theme) -> some View {
-        VStack {
+        VStack(spacing: AppTheme.Spacing.medium) {
             Spacer()
-            Image(systemName: "doc.text.magnifyingglass")
-                .font(.system(size: 40))
-                .foregroundColor(theme.textSecondary)
-            Text("No Nooks Yet")
-                .font(.title2.weight(.semibold))
+            Image(systemName: "moon.stars.fill")
+                .font(.system(size: 50))
+                .foregroundColor(theme.accent)
+            Text("A Quiet Place for Your Thoughts")
+                .font(.title2.weight(.bold))
                 .foregroundColor(theme.textPrimary)
-            Text("Type in the search bar and press Enter to create your first Nook.")
+            Text("Search for a Nook to get started, or type a new name and press Enter to create one.")
                 .font(.body)
                 .foregroundColor(theme.textSecondary)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: 300)
+                .frame(maxWidth: 350)
+            Spacer()
             Spacer()
         }
+        .padding(AppTheme.Spacing.large)
     }
     
     private func createNookSuggestionView(theme: Theme) -> some View {
@@ -94,14 +100,16 @@ struct NookListView: View {
                 let newNook = viewModel.createNook(named: viewModel.searchText)
                 nookToNavigate = newNook
             }) {
-                Text("Create New Nook: \"\(viewModel.searchText)\"")
-                    .fontWeight(.semibold)
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Create New Nook: \"\(viewModel.searchText)\"")
+                        .fontWeight(.semibold)
+                }
             }
             .buttonStyle(.plain)
-            .padding(.vertical, AppTheme.Spacing.small)
-            .padding(.horizontal, AppTheme.Spacing.medium)
+            .padding()
             .background(theme.accent.opacity(0.2))
-            .cornerRadius(AppTheme.CornerRadius.small)
+            .cornerRadius(AppTheme.CornerRadius.medium)
             Spacer()
         }
     }
@@ -120,18 +128,26 @@ struct NookListView: View {
 
 private struct HeaderView: View {
     let theme: Theme
+    var onSettingsTap: () -> Void
+
     var body: some View {
         HStack {
             Image(systemName: "r.circle.fill")
-                .font(.title)
+                .font(.system(size: 24, weight: .bold))
                 .foregroundColor(theme.accent)
-            Text("Remi Nooks")
-                .font(.headline)
+            Text("Remi")
+                .font(.title2.weight(.bold))
                 .foregroundColor(theme.textPrimary)
             Spacer()
+            Button(action: onSettingsTap) {
+                Image(systemName: "gearshape.fill")
+                    .font(.title2)
+                    .foregroundColor(theme.textSecondary)
+            }
+            .buttonStyle(.plain)
         }
-        .padding(AppTheme.Spacing.medium)
-        .background(theme.backgroundSecondary)
+        .padding(AppTheme.Spacing.large)
+        .background(theme.background) // Match the main background
     }
 }
 
@@ -145,8 +161,9 @@ private struct SearchBarView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(theme.textSecondary)
             
-            TextField("Search or create a new Nook...", text: $searchText)
+            TextField("Search or create a Nook...", text: $searchText)
                 .textFieldStyle(.plain)
+                .font(.title3)
                 .focused(isFocused)
             
             if !searchText.isEmpty {
@@ -158,6 +175,8 @@ private struct SearchBarView: View {
             }
         }
         .padding(AppTheme.Spacing.medium)
+        .background(theme.backgroundSecondary)
+        .cornerRadius(AppTheme.CornerRadius.medium)
     }
 }
 
@@ -166,3 +185,4 @@ struct NookListView_Previews: PreviewProvider {
         NookListView()
     }
 }
+
