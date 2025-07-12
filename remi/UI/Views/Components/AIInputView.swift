@@ -2,42 +2,46 @@ import SwiftUI
 
 struct AIInputView: View {
     @Binding var isVisible: Bool
-    @State private var userInput: String = ""
-    
     var onSend: (String) -> Void
-
+    
+    @State private var inputText: String = ""
+    @FocusState private var isFocused: Bool
+    
     var body: some View {
-        HStack(spacing: AppTheme.Spacing.medium) {
-            TextField("Ask Remi to edit your tasks...", text: $userInput)
-                .textFieldStyle(.plain)
-                .onSubmit(handleSend)
-            
-            Button(action: handleSend) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.title2)
-                    .foregroundColor(AppColors.accent)
+        Themed { theme in
+            VStack {
+                Spacer()
+                HStack {
+                    TextField("Ask AI to edit or generate...", text: $inputText)
+                        .textFieldStyle(.plain)
+                        .focused($isFocused)
+                        .onSubmit { send() }
+                    
+                    Button(action: { send() }) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(theme.accent)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(inputText.isEmpty)
+                }
+                .padding()
+                .background(theme.backgroundSecondary)
+                .cornerRadius(AppTheme.CornerRadius.medium)
+                .shadow(radius: 10)
+                .padding()
             }
-            .buttonStyle(.plain)
-            .disabled(userInput.isEmpty)
-        }
-        .padding(AppTheme.Spacing.medium)
-        .background(AppColors.backgroundSecondary)
-        .cornerRadius(AppTheme.CornerRadius.medium)
-        .shadow(radius: 10)
-        .padding()
-        .transition(.move(edge: .bottom).combined(with: .opacity))
-        .onChange(of: isVisible) { newValue in
-            if !newValue {
-                userInput = ""
-            }
+            .onAppear { isFocused = true }
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
     
-    private func handleSend() {
-        let input = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !input.isEmpty else { return }
-        
-        onSend(input)
-        isVisible = false
+    private func send() {
+        if !inputText.isEmpty {
+            onSend(inputText)
+            inputText = ""
+            withAnimation { isVisible = false }
+        }
     }
 }
+

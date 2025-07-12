@@ -14,34 +14,37 @@ struct TaskEditorView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            VStack(spacing: 0) {
-                Header()
-                
-                Divider()
-
-                ZStack(alignment: .center) {
-                    LiveMarkdownEditor(text: $viewModel.taskContent, textViewBinding: { self.textView = $0 })
-                        .padding(AppTheme.Spacing.medium)
+        Themed { theme in
+            ZStack(alignment: .bottom) {
+                VStack(spacing: 0) {
+                    Header(theme: theme)
                     
-                    if viewModel.isSendingQuery {
-                        ElegantProgressView()
+                    Divider()
+
+                    ZStack(alignment: .center) {
+                        LiveMarkdownEditor(text: $viewModel.taskContent, textViewBinding: { self.textView = $0 })
+                            .padding(AppTheme.Spacing.medium)
+                        
+                        if viewModel.isSendingQuery {
+                            ElegantProgressView()
+                        }
                     }
+
+                    Divider()
+
+                    BottomBar(theme: theme)
                 }
-
-                Divider()
-
-                BottomBar()
+                
+                if isAIInputVisible {
+                    AIInputView(isVisible: $isAIInputVisible, onSend: handleAIInput)
+                        .offset(y: -80) // Move the AI input view up
+                }
             }
-            
-            if isAIInputVisible {
-                AIInputView(isVisible: $isAIInputVisible, onSend: handleAIInput)
+            .background(theme.background)
+            .frame(minWidth: 500, minHeight: 400) // Give the sheet a reasonable size
+            .onAppear {
+                viewModel.undoManager = self.undoManager
             }
-        }
-        .background(AppColors.background)
-        .frame(minWidth: 500, minHeight: 400) // Give the sheet a reasonable size
-        .onAppear {
-            viewModel.undoManager = self.undoManager
         }
     }
     
@@ -50,11 +53,11 @@ struct TaskEditorView: View {
     // MARK: - Subviews
 
     @ViewBuilder
-    private func Header() -> some View {
+    private func Header(theme: Theme) -> some View {
         HStack {
             Text(viewModel.nook.name)
                 .font(.headline)
-                .foregroundColor(AppColors.textPrimary)
+                .foregroundColor(theme.textPrimary)
             
             Spacer()
             
@@ -63,7 +66,7 @@ struct TaskEditorView: View {
             }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(AppColors.textSecondary)
+                    .foregroundColor(theme.textSecondary)
                     .padding(AppTheme.Spacing.xsmall)
                     .background(Color.primary.opacity(0.1))
                     .clipShape(Circle())
@@ -71,11 +74,11 @@ struct TaskEditorView: View {
             .buttonStyle(.plain)
         }
         .padding(AppTheme.Spacing.medium)
-        .background(AppColors.backgroundSecondary)
+        .background(theme.backgroundSecondary)
     }
     
     @ViewBuilder
-    private func BottomBar() -> some View {
+    private func BottomBar(theme: Theme) -> some View {
         HStack(spacing: AppTheme.Spacing.medium) {
             // Formatting buttons
             Group {
@@ -85,7 +88,7 @@ struct TaskEditorView: View {
             }
             .buttonStyle(.plain)
             .font(.title3)
-            .foregroundColor(AppColors.textSecondary)
+            .foregroundColor(theme.textSecondary)
             
             Spacer()
             
@@ -96,12 +99,12 @@ struct TaskEditorView: View {
             }) {
                 Image(systemName: "sparkles")
                     .font(.title2)
-                    .foregroundColor(AppColors.accent)
+                    .foregroundColor(theme.accent)
             }
             .buttonStyle(.plain)
         }
         .padding(AppTheme.Spacing.medium)
-        .background(AppColors.backgroundSecondary)
+        .background(theme.backgroundSecondary)
     }
     
     // MARK: - Private Methods

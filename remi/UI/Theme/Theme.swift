@@ -1,23 +1,6 @@
-import SwiftUI
-import Foundation
-import CoreGraphics
+import CoreFoundation
+import AppKit
 
-// Defines the color palette for the Remi app, with support for both light and dark modes.
-// These colors are defined in the App/Assets.xcassets file.
-struct AppColors {
-    static let background: Color = Color("BackgroundColor")
-    static let backgroundSecondary: Color = Color("BackgroundSecondaryColor")
-    
-    static let textPrimary: Color = Color("TextPrimaryColor")
-    static let textSecondary: Color = Color("TextSecondaryColor")
-    
-    static let cardBackground: Color = Color("CardBackgroundColor")
-    static let cardBackgroundHover: Color = Color("CardBackgroundHoverColor")
-    static let cardBackgroundSelected: Color = Color.accentColor.opacity(0.3) // Programmatically defined
-    
-    static let accent: Color = .accentColor
-    static let border: Color = Color.primary.opacity(0.1) // Programmatically defined
-}
 
 // Defines spacing, corner radius, and other layout constants for the Remi app.
 struct AppTheme {

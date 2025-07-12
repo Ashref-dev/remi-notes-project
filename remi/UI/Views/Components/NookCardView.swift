@@ -12,39 +12,41 @@ struct NookCardView: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: AppTheme.Spacing.small) {
-            Image(systemName: "doc.text")
-                .font(.system(size: 16))
-                .foregroundColor(AppColors.textSecondary)
-                .padding(.top, 2) // Minor adjustment for alignment
+        Themed { theme in
+            HStack(alignment: .top, spacing: AppTheme.Spacing.small) {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 16))
+                    .foregroundColor(theme.textSecondary)
+                    .padding(.top, 2) // Minor adjustment for alignment
 
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.xsmall) {
-                Text(nook.name)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(AppColors.textPrimary)
-                
-                Text(preview(for: nook))
-                    .font(.system(size: 12))
-                    .foregroundColor(AppColors.textSecondary)
-                    .lineLimit(2)
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.xsmall) {
+                    Text(nook.name)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(theme.textPrimary)
+                    
+                    Text(preview(for: nook))
+                        .font(.system(size: 12))
+                        .foregroundColor(theme.textSecondary)
+                        .lineLimit(2)
+                }
             }
-        }
-        .padding(AppTheme.Spacing.medium)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(cardBackgroundColor)
-        .cornerRadius(AppTheme.CornerRadius.medium)
-        .onHover { hovering in
-            isHovering = hovering
+            .padding(AppTheme.Spacing.medium)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(cardBackgroundColor(theme: theme))
+            .cornerRadius(AppTheme.CornerRadius.medium)
+            .onHover { hovering in
+                isHovering = hovering
+            }
         }
     }
     
-    private var cardBackgroundColor: Color {
+    private func cardBackgroundColor(theme: Theme) -> Color {
         if isSelected {
-            return AppColors.cardBackgroundSelected
+            return theme.cardBackgroundSelected
         } else if isHovering {
-            return AppColors.cardBackgroundHover
+            return theme.cardBackgroundHover
         } else {
-            return AppColors.cardBackground
+            return theme.cardBackground
         }
     }
 }
@@ -58,6 +60,6 @@ struct NookCardView_Previews: PreviewProvider {
             NookCardView(nook: previewNook, isSelected: true)
         }
         .padding()
-        .background(AppColors.background)
+        .background(ColorPalette.background)
     }
 }

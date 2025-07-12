@@ -8,33 +8,35 @@ struct NookListView: View {
     @FocusState private var isSearchFocused: Bool
 
     var body: some View {
-        VStack(spacing: 0) {
-            HeaderView()
-            
-            SearchBarView(searchText: $viewModel.searchText, isFocused: $isSearchFocused)
-                .onSubmit(handleSearchSubmit)
-            
-            Divider()
+        Themed { theme in
+            VStack(spacing: 0) {
+                HeaderView(theme: theme)
+                
+                SearchBarView(searchText: $viewModel.searchText, isFocused: $isSearchFocused, theme: theme)
+                    .onSubmit(handleSearchSubmit)
+                
+                Divider()
 
-            if viewModel.filteredNooks.isEmpty && !viewModel.searchText.isEmpty {
-                createNookSuggestionView
-            } else if viewModel.filteredNooks.isEmpty {
-                emptyStateView
-            } else {
-                nookScrollView
+                if viewModel.filteredNooks.isEmpty && !viewModel.searchText.isEmpty {
+                    createNookSuggestionView(theme: theme)
+                } else if viewModel.filteredNooks.isEmpty {
+                    emptyStateView(theme: theme)
+                } else {
+                    nookScrollView
+                }
             }
-        }
-        .background(AppColors.background)
-        .edgesIgnoringSafeArea(.all)
-        .onAppear {
-            viewModel.fetchNooks()
-            // Focus search bar on appear
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                isSearchFocused = true
+            .background(theme.background)
+            .edgesIgnoringSafeArea(.all)
+            .onAppear {
+                viewModel.fetchNooks()
+                // Focus search bar on appear
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    isSearchFocused = true
+                }
             }
-        }
-        .sheet(item: $nookToEdit) { nook in
-            TaskEditorView(nook: nook)
+            .sheet(item: $nookToEdit) { nook in
+                TaskEditorView(nook: nook)
+            }
         }
     }
 
@@ -57,30 +59,30 @@ struct NookListView: View {
         .padding(.horizontal, AppTheme.Spacing.small)
     }
     
-    private var emptyStateView: some View {
+    private func emptyStateView(theme: Theme) -> some View {
         VStack {
             Spacer()
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 40))
-                .foregroundColor(AppColors.textSecondary)
+                .foregroundColor(theme.textSecondary)
             Text("No Nooks Yet")
                 .font(.title2.weight(.semibold))
-                .foregroundColor(AppColors.textPrimary)
+                .foregroundColor(theme.textPrimary)
             Text("Type in the search bar and press Enter to create your first Nook.")
                 .font(.body)
-                .foregroundColor(AppColors.textSecondary)
+                .foregroundColor(theme.textSecondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 300)
             Spacer()
         }
     }
     
-    private var createNookSuggestionView: some View {
+    private func createNookSuggestionView(theme: Theme) -> some View {
         VStack {
             Spacer()
             Text("No nooks found for \"\(viewModel.searchText)\"")
                 .font(.title2.weight(.semibold))
-                .foregroundColor(AppColors.textPrimary)
+                .foregroundColor(theme.textPrimary)
             Button(action: {
                 viewModel.createNook(named: viewModel.searchText)
             }) {
@@ -90,7 +92,7 @@ struct NookListView: View {
             .buttonStyle(.plain)
             .padding(.vertical, AppTheme.Spacing.small)
             .padding(.horizontal, AppTheme.Spacing.medium)
-            .background(AppColors.accent.opacity(0.2))
+            .background(theme.accent.opacity(0.2))
             .cornerRadius(AppTheme.CornerRadius.small)
             Spacer()
         }
@@ -108,29 +110,31 @@ struct NookListView: View {
 // MARK: - Subviews
 
 private struct HeaderView: View {
+    let theme: Theme
     var body: some View {
         HStack {
             Image(systemName: "r.circle.fill")
                 .font(.title)
-                .foregroundColor(AppColors.accent)
+                .foregroundColor(theme.accent)
             Text("Remi Nooks")
                 .font(.headline)
-                .foregroundColor(AppColors.textPrimary)
+                .foregroundColor(theme.textPrimary)
             Spacer()
         }
         .padding(AppTheme.Spacing.medium)
-        .background(AppColors.backgroundSecondary)
+        .background(theme.backgroundSecondary)
     }
 }
 
 private struct SearchBarView: View {
     @Binding var searchText: String
     var isFocused: FocusState<Bool>.Binding
+    let theme: Theme
 
     var body: some View {
         HStack {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(AppColors.textSecondary)
+                .foregroundColor(theme.textSecondary)
             
             TextField("Search or create a new Nook...", text: $searchText)
                 .textFieldStyle(.plain)
@@ -141,7 +145,7 @@ private struct SearchBarView: View {
                     Image(systemName: "xmark.circle.fill")
                 }
                 .buttonStyle(.plain)
-                .foregroundColor(AppColors.textSecondary)
+                .foregroundColor(theme.textSecondary)
             }
         }
         .padding(AppTheme.Spacing.medium)

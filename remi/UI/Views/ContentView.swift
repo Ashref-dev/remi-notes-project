@@ -4,14 +4,18 @@ struct ContentView: View {
     @ObservedObject private var settingsManager = SettingsManager.shared
 
     var body: some View {
-        Group {
-            if settingsManager.hasCompletedOnboarding {
-                NookListView()
-            } else {
-                OnboardingView()
+        Themed { theme in
+            Group {
+                if settingsManager.hasCompletedOnboarding {
+                    NookListView()
+                } else {
+                    OnboardingView()
+                }
             }
+            .frame(width: AppTheme.Popover.width, height: AppTheme.Popover.height)
+            .background(theme.background)
+            .transition(.opacity.animation(.easeInOut))
         }
-        .transition(.opacity.animation(.easeInOut))
     }
 }
 

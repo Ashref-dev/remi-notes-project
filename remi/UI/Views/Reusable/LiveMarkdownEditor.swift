@@ -22,7 +22,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         
         textView.importsGraphics = false
         textView.drawsBackground = true
-        textView.backgroundColor = .clear
+        textView.backgroundColor = NSColor(ColorPalette.background)
 
         // Enable automatic quote substitution and dash substitution
         textView.isAutomaticQuoteSubstitutionEnabled = true
