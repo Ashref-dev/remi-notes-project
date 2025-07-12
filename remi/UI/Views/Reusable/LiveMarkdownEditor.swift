@@ -3,6 +3,7 @@ import AppKit
 
 struct LiveMarkdownEditor: NSViewRepresentable {
     @Binding var text: String
+    let theme: Theme // Use the theme passed from the parent
     var isEditable: Bool = true
     var font: NSFont = AppTheme.Fonts.editor
     
@@ -15,24 +16,26 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         
         textView.delegate = context.coordinator
         textView.isEditable = isEditable
-        textView.isRichText = false // We will handle rich text via attributed strings
+        textView.isRichText = false
         textView.allowsUndo = true
         textView.font = font
-        textView.textContainerInset = NSSize(width: 10, height: 10)
+        textView.textContainerInset = NSSize(width: 25, height: 25) // More spacious padding
         
         textView.importsGraphics = false
         textView.drawsBackground = true
-        textView.backgroundColor = NSColor(ColorPalette.background)
 
-        // Enable automatic quote substitution and dash substitution
+        // Style the background and insertion point
+        textView.backgroundColor = NSColor(theme.background)
+        textView.insertionPointColor = NSColor(theme.accent)
+
+        // Enable smart substitutions
         textView.isAutomaticQuoteSubstitutionEnabled = true
         textView.isAutomaticDashSubstitutionEnabled = true
         textView.isAutomaticTextReplacementEnabled = true
         textView.isAutomaticSpellingCorrectionEnabled = true
-        textView.isAutomaticLinkDetectionEnabled = false // We don't want automatic links
-
-        context.coordinator.textView = textView // Store reference to textView
-        textViewBinding?(textView) // Provide the textView instance
+        
+        context.coordinator.textView = textView
+        textViewBinding?(textView)
 
         return scrollView
     }
@@ -40,11 +43,15 @@ struct LiveMarkdownEditor: NSViewRepresentable {
     func updateNSView(_ nsView: NSScrollView, context: Context) {
         let textView = nsView.documentView as! NSTextView
         
-        // Prevent infinite loop when text is updated programmatically
+        // Update colors from the theme
+        textView.backgroundColor = NSColor(theme.background)
+        textView.textColor = NSColor(theme.textPrimary)
+        textView.insertionPointColor = NSColor(theme.accent)
+        
         if textView.string != text {
             let selectedRange = textView.selectedRange
             textView.string = text
-            applyMarkdownStyling(to: textView)
+            applyMarkdownStyling(to: textView, theme: theme)
             textView.setSelectedRange(selectedRange)
         }
         textView.isEditable = isEditable
@@ -56,7 +63,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
 
     class Coordinator: NSObject, NSTextViewDelegate {
         var parent: LiveMarkdownEditor
-        var textView: NSTextView? // Reference to the NSTextView
+        var textView: NSTextView?
 
         init(_ parent: LiveMarkdownEditor) {
             self.parent = parent
@@ -65,31 +72,25 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             
-            // Update the binding only if the text has actually changed by user input
             if textView.string != parent.text {
                 parent.text = textView.string
-                parent.applyMarkdownStyling(to: textView)
+                // Pass the correct theme from the parent struct
+                parent.applyMarkdownStyling(to: textView, theme: parent.theme)
             }
-        }
-        
-        func textView(_ textView: NSTextView, shouldChangeTextIn affectedCharRange: NSRange, replacementString: String?) -> Bool {
-            return true
         }
     }
     
-    private func applyMarkdownStyling(to textView: NSTextView) {
+    private func applyMarkdownStyling(to textView: NSTextView, theme: Theme) {
         guard let textStorage = textView.textStorage else { return }
         
         let fullRange = NSRange(location: 0, length: textStorage.length)
-        
-        // Start with a mutable attributed string
         let attributedString = NSMutableAttributedString(attributedString: textStorage)
         
-        // 1. Reset all styles to default
+        // 1. Reset styles
         attributedString.removeAttribute(.font, range: fullRange)
         attributedString.removeAttribute(.foregroundColor, range: fullRange)
         attributedString.addAttribute(.font, value: font, range: fullRange)
-        attributedString.addAttribute(.foregroundColor, value: NSColor.labelColor, range: fullRange)
+        attributedString.addAttribute(.foregroundColor, value: NSColor(theme.textPrimary), range: fullRange)
 
         // Define a "hidden" style for Markdown syntax characters
         let hiddenAttributes: [NSAttributedString.Key: Any] = [
@@ -97,12 +98,12 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             .foregroundColor: NSColor.clear
         ]
 
-        // 2. Apply styles and hide syntax
+        // 2. Apply styles
         
-        // Headings (#, ##, ###)
-        let headingRegex = try! NSRegularExpression(pattern: "^(#+)\\s*(.*)$", options: [.anchorsMatchLines])
+        // Headings
+        let headingRegex = try! NSRegularExpression(pattern: "^(#+)\s*(.*)$", options: [.anchorsMatchLines])
         headingRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
-            guard let match = match else { return }
+            guard let match = match, match.numberOfRanges == 3 else { return }
             
             let syntaxRange = match.range(at: 1)
             let contentRange = match.range(at: 2)
@@ -117,50 +118,39 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             }
             
             attributedString.addAttribute(.font, value: headingFont, range: contentRange)
-            attributedString.addAttributes(hiddenAttributes, range: syntaxRange) // Hide the hashes
+            attributedString.addAttributes(hiddenAttributes, range: syntaxRange)
         }
 
-        // Bold (**text** or __text__)
-        let boldRegex = try! NSRegularExpression(pattern: "(\\*\\*|__)(.*?)\\1", options: [])
+        // Bold
+        let boldRegex = try! NSRegularExpression(pattern: "(\*\*|__)(.*?)\\1", options: [])
         boldRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
             guard let match = match, match.numberOfRanges == 3 else { return }
-            
-            let leadingSyntaxRange = match.range(at: 1)
+            let syntaxRange = match.range(at: 1)
             let contentRange = match.range(at: 2)
-            
-            // Calculate trailing syntax range
-            let trailingSyntaxStart = match.range.location + match.range.length - leadingSyntaxRange.length
-            let trailingSyntaxRange = NSRange(location: trailingSyntaxStart, length: leadingSyntaxRange.length)
-
+            let trailingSyntaxStart = match.range.location + match.range.length - syntaxRange.length
+            let trailingSyntaxRange = NSRange(location: trailingSyntaxStart, length: syntaxRange.length)
             let boldFont = NSFont.boldSystemFont(ofSize: font.pointSize)
             attributedString.addAttribute(.font, value: boldFont, range: contentRange)
-            
-            attributedString.addAttributes(hiddenAttributes, range: leadingSyntaxRange)
+            attributedString.addAttributes(hiddenAttributes, range: syntaxRange)
             attributedString.addAttributes(hiddenAttributes, range: trailingSyntaxRange)
         }
 
-        // Italic (*text* or _text_)
-        let italicRegex = try! NSRegularExpression(pattern: "(\\*|_)(?!\\s)(.*?)(?<!\\s)\\1", options: [])
+        // Italic
+        let italicRegex = try! NSRegularExpression(pattern: "(\*|_)(?!\\s)(.*?)(?<!\\s)\\1", options: [])
         italicRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
             guard let match = match, match.numberOfRanges == 3 else { return }
-
-            let leadingSyntaxRange = match.range(at: 1)
+            let syntaxRange = match.range(at: 1)
             let contentRange = match.range(at: 2)
-            
-            // Calculate trailing syntax range
-            let trailingSyntaxStart = match.range.location + match.range.length - leadingSyntaxRange.length
-            let trailingSyntaxRange = NSRange(location: trailingSyntaxStart, length: leadingSyntaxRange.length)
-
+            let trailingSyntaxStart = match.range.location + match.range.length - syntaxRange.length
+            let trailingSyntaxRange = NSRange(location: trailingSyntaxStart, length: syntaxRange.length)
             let fontManager = NSFontManager.shared
             let italicFont = fontManager.font(withFamily: font.familyName ?? "", traits: .italicFontMask, weight: 5, size: font.pointSize) ?? font
             attributedString.addAttribute(.font, value: italicFont, range: contentRange)
-            
-            attributedString.addAttributes(hiddenAttributes, range: leadingSyntaxRange)
+            attributedString.addAttributes(hiddenAttributes, range: syntaxRange)
             attributedString.addAttributes(hiddenAttributes, range: trailingSyntaxRange)
         }
         
-        // 3. Apply the final attributed string to the text storage
-        // This must be done carefully to avoid triggering the delegate's textDidChange method unnecessarily
+        // 3. Apply the final attributed string
         let selectedRange = textView.selectedRange
         textStorage.beginEditing()
         textStorage.setAttributedString(attributedString)

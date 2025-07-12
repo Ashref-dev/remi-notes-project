@@ -2,40 +2,46 @@ import SwiftUI
 
 struct NookListView: View {
     @StateObject private var viewModel = NookListViewModel()
-    @State private var showingEditorSheet = false
-    @State private var nookToEdit: Nook?
-    
     @FocusState private var isSearchFocused: Bool
+    @State private var navigationPath = NavigationPath()
+    @State private var nookToNavigate: Nook?
 
     var body: some View {
         Themed { theme in
-            VStack(spacing: 0) {
-                HeaderView(theme: theme)
-                
-                SearchBarView(searchText: $viewModel.searchText, isFocused: $isSearchFocused, theme: theme)
-                    .onSubmit(handleSearchSubmit)
-                
-                Divider()
+            NavigationStack(path: $navigationPath) {
+                VStack(spacing: 0) {
+                    HeaderView(theme: theme)
+                    
+                    SearchBarView(searchText: $viewModel.searchText, isFocused: $isSearchFocused, theme: theme)
+                        .onSubmit(handleSearchSubmit)
+                    
+                    Divider()
 
-                if viewModel.filteredNooks.isEmpty && !viewModel.searchText.isEmpty {
-                    createNookSuggestionView(theme: theme)
-                } else if viewModel.filteredNooks.isEmpty {
-                    emptyStateView(theme: theme)
-                } else {
-                    nookScrollView
+                    if viewModel.filteredNooks.isEmpty && !viewModel.searchText.isEmpty {
+                        createNookSuggestionView(theme: theme)
+                    } else if viewModel.filteredNooks.isEmpty {
+                        emptyStateView(theme: theme)
+                    } else {
+                        nookScrollView
+                    }
                 }
-            }
-            .background(theme.background)
-            .edgesIgnoringSafeArea(.all)
-            .onAppear {
-                viewModel.fetchNooks()
-                // Focus search bar on appear
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    isSearchFocused = true
+                .background(theme.background)
+                .edgesIgnoringSafeArea(.all)
+                .navigationDestination(for: Nook.self) { nook in
+                    TaskEditorView(nook: nook)
                 }
-            }
-            .sheet(item: $nookToEdit) { nook in
-                TaskEditorView(nook: nook)
+                .onAppear {
+                    viewModel.fetchNooks()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        isSearchFocused = true
+                    }
+                }
+                .onChange(of: nookToNavigate) {
+                    if let nook = nookToNavigate {
+                        navigationPath.append(nook)
+                        nookToNavigate = nil // Reset after navigation
+                    }
+                }
             }
         }
     }
@@ -43,16 +49,17 @@ struct NookListView: View {
     private var nookScrollView: some View {
         ScrollView {
             LazyVStack(spacing: AppTheme.Spacing.small) {
-                ForEach(viewModel.filteredNooks) { nook in
-                    NookCardView(nook: nook, isSelected: nookToEdit == nook)
-                        .onTapGesture {
-                            nookToEdit = nook
+                ForEach(viewModel.filteredNooks) {
+                    nook in
+                    NavigationLink(value: nook) {
+                        NookCardView(nook: nook, isSelected: false)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button("Delete", role: .destructive) {
+                            viewModel.deleteNook(nook)
                         }
-                        .contextMenu {
-                            Button("Delete", role: .destructive) {
-                                viewModel.deleteNook(nook)
-                            }
-                        }
+                    }
                 }
             }
         }
@@ -84,7 +91,8 @@ struct NookListView: View {
                 .font(.title2.weight(.semibold))
                 .foregroundColor(theme.textPrimary)
             Button(action: {
-                viewModel.createNook(named: viewModel.searchText)
+                let newNook = viewModel.createNook(named: viewModel.searchText)
+                nookToNavigate = newNook
             }) {
                 Text("Create New Nook: \"\(viewModel.searchText)\"")
                     .fontWeight(.semibold)
@@ -100,9 +108,10 @@ struct NookListView: View {
     
     private func handleSearchSubmit() {
         if !viewModel.searchText.isEmpty && viewModel.filteredNooks.isEmpty {
-            viewModel.createNook(named: viewModel.searchText)
+            let newNook = viewModel.createNook(named: viewModel.searchText)
+            nookToNavigate = newNook
         } else if let firstResult = viewModel.filteredNooks.first {
-            nookToEdit = firstResult
+            nookToNavigate = firstResult
         }
     }
 }
