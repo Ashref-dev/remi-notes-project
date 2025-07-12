@@ -101,7 +101,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         // 2. Apply styles
         
         // Headings
-        let headingRegex = try! NSRegularExpression(pattern: "^(#+)\s*(.*)$", options: [.anchorsMatchLines])
+        let headingRegex = try! NSRegularExpression(pattern: "^(#+)\\s*(.*)$", options: [.anchorsMatchLines])
         headingRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
             guard let match = match, match.numberOfRanges == 3 else { return }
             
@@ -122,7 +122,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         }
 
         // Bold
-        let boldRegex = try! NSRegularExpression(pattern: "(\*\*|__)(.*?)\1", options: [])
+        let boldRegex = try! NSRegularExpression(pattern: "(\\*\\*|__)(.*?)\\1", options: [])
         boldRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
             guard let match = match, match.numberOfRanges == 3 else { return }
             let syntaxRange = match.range(at: 1)
@@ -136,7 +136,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         }
 
         // Italic
-        let italicRegex = try! NSRegularExpression(pattern: "(\*|_)(?!\s)(.*?)(?<!\s)\1", options: [])
+        let italicRegex = try! NSRegularExpression(pattern: "(\\*|_)(?!\\s)(.*?)(?<!\\s)\\1", options: [])
         italicRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
             guard let match = match, match.numberOfRanges == 3 else { return }
             let syntaxRange = match.range(at: 1)

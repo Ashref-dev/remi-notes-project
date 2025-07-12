@@ -18,6 +18,8 @@ struct TaskEditorView: View {
         Themed { theme in
             ZStack(alignment: .bottom) {
                 VStack(spacing: 0) {
+                    TopBar(theme: theme)
+
                     // Main editor view
                     ZStack(alignment: .center) {
                         LiveMarkdownEditor(text: $viewModel.taskContent, theme: theme, textViewBinding: { self.textView = $0 })
@@ -37,13 +39,11 @@ struct TaskEditorView: View {
                 if isAIInputVisible {
                     AIInputView(isVisible: $isAIInputVisible, onSend: handleAIInput)
                         .frame(maxWidth: .infinity)
-                        .padding(AppTheme.Spacing.large)
+                        .padding(.bottom, 60)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .background(theme.background)
-            .navigationTitle(viewModel.nook.name)
-            .navigationBarBackButtonHidden(true) // Hide default back button
             .onAppear {
                 viewModel.undoManager = self.undoManager
             }
@@ -52,18 +52,39 @@ struct TaskEditorView: View {
     }
     
     // MARK: - Subviews
-    
+
     @ViewBuilder
-    private func BottomBar(theme: Theme) -> some View {
-        HStack(spacing: AppTheme.Spacing.medium) {
-            // Back button
+    private func TopBar(theme: Theme) -> some View {
+        HStack {
             Button(action: { dismiss() }) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 22, weight: .semibold))
             }
             .buttonStyle(.plain)
             .foregroundColor(theme.textSecondary)
 
+            Spacer()
+
+            Text(viewModel.nook.name)
+                .font(.headline)
+                .foregroundColor(theme.textPrimary)
+
+            Spacer()
+
+            Button(action: { isAIInputVisible.toggle() }) {
+                Image(systemName: "sparkles")
+                    .font(.title2)
+                    .foregroundColor(theme.accent)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding()
+        .background(theme.backgroundSecondary)
+    }
+    
+    @ViewBuilder
+    private func BottomBar(theme: Theme) -> some View {
+        HStack(spacing: AppTheme.Spacing.medium) {
             // Formatting buttons
             Group {
                 Button(action: { applyMarkdown("**", to: textView) }) { Image(systemName: "bold") }
@@ -75,14 +96,6 @@ struct TaskEditorView: View {
             .foregroundColor(theme.textSecondary)
             
             Spacer()
-            
-            // AI Sparkle button
-            Button(action: { isAIInputVisible.toggle() }) {
-                Image(systemName: "sparkles")
-                    .font(.title2)
-                    .foregroundColor(theme.accent)
-            }
-            .buttonStyle(.plain)
         }
         .padding(AppTheme.Spacing.medium)
         .background(theme.backgroundSecondary)

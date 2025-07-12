@@ -2,12 +2,13 @@ import SwiftUI
 import HotKey
 
 struct HotkeyRecorderView: View {
-    @Binding var hotkey: HotKey
+    @Binding var key: Key
+    @Binding var modifiers: NSEvent.ModifierFlags
     @State private var isRecording = false
 
     var body: some View {
         HStack {
-            Text(hotkey.description)
+            Text(verbatim: "\(modifiers.description) \(key.description)")
                 .padding(8)
                 .background(isRecording ? Color.secondary.opacity(0.3) : Color.secondary.opacity(0.1))
                 .cornerRadius(8)
@@ -25,8 +26,8 @@ struct HotkeyRecorderView: View {
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 if isRecording {
                     if let key = Key(carbonKeyCode: UInt32(event.keyCode)) {
-                        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-                        self.hotkey = HotKey(key: key, modifiers: modifiers)
+                        self.key = key
+                        self.modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
                     }
                     isRecording = false
                     return nil // Consume the event

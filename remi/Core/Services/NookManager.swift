@@ -20,19 +20,17 @@ class NookManager {
             do {
                 try fileManager.createDirectory(at: nooksDirectory, withIntermediateDirectories: true, attributes: nil)
                 // Create a default Nook
-                createNook(named: "Welcome") { nook in
-                    if let nook = nook {
-                        let initialContent = """
-                        # Welcome to Remi!
+                if let nook = createNook(named: "Welcome") {
+                    let initialContent = """
+                    # Welcome to Remi!
 
-                        This is your first Nook. A Nook is a simple folder containing a `tasks.md` file.
+                    This is your first Nook. A Nook is a simple folder containing a `tasks.md` file.
 
-                        - You can write tasks here using Markdown.
-                        - Use the input field below to add new tasks.
-                        - You can also ask the AI assistant for help.
-                        """
-                        self.saveTasks(for: nook, content: initialContent)
-                    }
+                    - You can write tasks here using Markdown.
+                    - Use the input field below to add new tasks.
+                    - You can also ask the AI assistant for help.
+                    """
+                    self.saveTasks(for: nook, content: initialContent)
                 }
             } catch {
                 print("Error creating Nooks directory: \(error)")
@@ -55,7 +53,7 @@ class NookManager {
         return nooks.sorted { $0.name < $1.name }
     }
 
-    func createNook(named name: String, completion: (Nook?) -> Void) {
+    func createNook(named name: String) -> Nook? {
         let newNookURL = nooksDirectory.appendingPathComponent(name)
         if !fileManager.fileExists(atPath: newNookURL.path) {
             do {
@@ -63,28 +61,28 @@ class NookManager {
                 let tasksFileURL = newNookURL.appendingPathComponent("tasks.md")
                 fileManager.createFile(atPath: tasksFileURL.path, contents: "".data(using: .utf8), attributes: nil)
                 let newNook = Nook(name: name, url: newNookURL)
-                completion(newNook)
+                return newNook
             } catch {
                 print("Error creating nook: \(error)")
-                completion(nil)
+                return nil
             }
         } else {
             print("Nook already exists.")
-            completion(nil)
+            return fetchNooks().first { $0.name == name }
         }
     }
 
-    func renameNook(_ nook: Nook, to newName: String, completion: (Nook?) -> Void) {
+    func renameNook(_ nook: Nook, to newName: String) -> Nook? {
         let newURL = nooksDirectory.appendingPathComponent(newName)
         do {
             try fileManager.moveItem(at: nook.url, to: newURL)
             var updatedNook = nook
             updatedNook.name = newName
             updatedNook.url = newURL
-            completion(updatedNook)
+            return updatedNook
         } catch {
             print("Error renaming nook: \(error)")
-            completion(nil)
+            return nil
         }
     }
 

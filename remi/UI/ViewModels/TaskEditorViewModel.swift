@@ -63,9 +63,8 @@ class TaskEditorViewModel: ObservableObject {
             for try await chunk in stream {
                 accumulatedResponse += chunk
             }
-            // Once the stream is complete, filter and update the actual task content
-            let filteredContent = accumulatedResponse.replacingOccurrences(of: "<thinking>.*?</thinking>", with: "", options: .regularExpression)
-            setTaskContent(filteredContent)
+            // The response is the full, updated content.
+            setTaskContent(accumulatedResponse)
         } catch {
             let errorMessage = (error as? LocalizedError)?.errorDescription ?? "An unexpected error occurred."
             ErrorHandlingService.shared.showError(message: errorMessage)

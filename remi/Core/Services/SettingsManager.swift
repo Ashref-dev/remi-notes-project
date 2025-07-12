@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import LaunchAtLogin
 import HotKey
+import AppKit
 
 class SettingsManager: ObservableObject {
     static let shared = SettingsManager()
@@ -30,7 +31,13 @@ class SettingsManager: ObservableObject {
         }
     }
     
-    @Published var hotkey: HotKey {
+    @Published var hotkeyKey: Key {
+        didSet {
+            saveHotkey()
+        }
+    }
+    
+    @Published var hotkeyModifiers: NSEvent.ModifierFlags {
         didSet {
             saveHotkey()
         }
@@ -41,30 +48,33 @@ class SettingsManager: ObservableObject {
         self.launchAtLogin = LaunchAtLogin.isEnabled
         self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         self.aboutMeContext = UserDefaults.standard.string(forKey: "aboutMeContext") ?? ""
-        self.hotkey = Self.loadHotkey()
+        
+        let (key, modifiers) = Self.loadHotkey()
+        self.hotkeyKey = key
+        self.hotkeyModifiers = modifiers
     }
     
-    private static func loadHotkey() -> HotKey {
+    private static func loadHotkey() -> (Key, NSEvent.ModifierFlags) {
         let keyString = UserDefaults.standard.string(forKey: "globalHotkeyKey") ?? "R"
         let modifiersRawValue = UserDefaults.standard.integer(forKey: "globalHotkeyModifiers")
         
         let key = Key(string: keyString) ?? .r
-        let modifiers = NSEvent.ModifierFlags(rawValue: UInt(modifiersRawValue)).intersection(.deviceIndependentFlagsMask)
         
-        // Default to Cmd+Option+R if nothing is saved
         if modifiersRawValue == 0 {
-            return HotKey(key: .r, modifiers: [.command, .option])
+            return (key, [.command, .option])
         }
         
-        return HotKey(key: key, modifiers: modifiers)
+        let modifiers = NSEvent.ModifierFlags(rawValue: UInt(modifiersRawValue))
+        
+        return (key, modifiers)
     }
     
     private func saveHotkey() {
-        UserDefaults.standard.set(hotkey.key.description, forKey: "globalHotkeyKey")
-        UserDefaults.standard.set(hotkey.modifiers.rawValue, forKey: "globalHotkeyModifiers")
+        UserDefaults.standard.set(hotkeyKey.description, forKey: "globalHotkeyKey")
+        UserDefaults.standard.set(hotkeyModifiers.rawValue, forKey: "globalHotkeyModifiers")
         
-        // Re-register the hotkey
-        HotkeyManager.shared.update(hotkey: hotkey)
+        let newHotkey = HotKey(key: hotkeyKey, modifiers: hotkeyModifiers)
+        HotkeyManager.shared.update(hotkey: newHotkey)
     }
     
     func lastViewedNookURL() -> URL? {

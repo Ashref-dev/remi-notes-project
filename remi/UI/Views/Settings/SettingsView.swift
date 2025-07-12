@@ -25,7 +25,7 @@ struct SettingsView: View {
                         HStack {
                             Text("Global Hotkey")
                             Spacer()
-                            HotkeyRecorderView(hotkey: $settings.hotkey)
+                            HotkeyRecorderView(key: $settings.hotkeyKey, modifiers: $settings.hotkeyModifiers)
                         }
                     }
                     

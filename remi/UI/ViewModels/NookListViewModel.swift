@@ -27,21 +27,21 @@ class NookListViewModel: ObservableObject {
         self.allNooks = nookManager.fetchNooks().sorted(by: { $0.name < $1.name })
     }
 
-    func createNook(named name: String) {
+    func createNook(named name: String) -> Nook? {
         // Prevent creating duplicate nooks
-        guard !allNooks.contains(where: { $0.name.lowercased() == name.lowercased() }) else {
+        if let existingNook = allNooks.first(where: { $0.name.lowercased() == name.lowercased() }) {
             // Optionally, select the existing nook
-            self.selectedNook = allNooks.first(where: { $0.name.lowercased() == name.lowercased() })
-            return
+            self.selectedNook = existingNook
+            return existingNook
         }
         
-        nookManager.createNook(named: name) { [weak self] nook in
-            if let nook = nook {
-                self?.fetchNooks()
-                self?.selectedNook = nook
-                self?.searchText = "" // Clear search text after creation
-            }
+        let newNook = nookManager.createNook(named: name)
+        if let newNook = newNook {
+            self.fetchNooks()
+            self.selectedNook = newNook
+            self.searchText = "" // Clear search text after creation
         }
+        return newNook
     }
 
     func deleteNook(_ nook: Nook) {
@@ -53,12 +53,10 @@ class NookListViewModel: ObservableObject {
     }
     
     func renameNook(_ nook: Nook, to newName: String) {
-        nookManager.renameNook(nook, to: newName) { [weak self] updatedNook in
-            if let updatedNook = updatedNook {
-                self?.fetchNooks()
-                // Re-select the nook after renaming
-                self?.selectedNook = updatedNook
-            }
+        if let updatedNook = nookManager.renameNook(nook, to: newName) {
+            self.fetchNooks()
+            // Re-select the nook after renaming
+            self.selectedNook = updatedNook
         }
     }
 }

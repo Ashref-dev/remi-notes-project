@@ -22,7 +22,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.popover.contentViewController = NSHostingController(rootView: ContentView())
 
         // Register the global hotkey from SettingsManager
-        hotkeyManager.register(hotkey: settingsManager.hotkey) { [weak self] in
+        let hotkey = HotKey(key: settingsManager.hotkeyKey, modifiers: settingsManager.hotkeyModifiers)
+        hotkeyManager.register(hotkey: hotkey) { [weak self] in
             self?.togglePopover()
         }
     }
