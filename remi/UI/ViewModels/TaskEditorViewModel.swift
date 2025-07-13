@@ -59,15 +59,48 @@ class TaskEditorViewModel: ObservableObject {
         let initialContent = self.taskContent
         
         do {
-            let stream = groqService.streamQuery(prompt: prompt, context: initialContent)
-            for try await chunk in stream {
-                accumulatedResponse += chunk
+            // Use retry service for network operations
+            try await RetryService.shared.execute(
+                maxRetries: 3,
+                baseDelay: 1.0,
+                maxDelay: 10.0,
+                retryCondition: RetryService.shouldRetryGroqError
+            ) {
+                let stream = groqService.streamQuery(prompt: prompt, context: initialContent)
+                var tempResponse = ""
+                
+                for try await chunk in stream {
+                    tempResponse += chunk
+                }
+                
+                accumulatedResponse = tempResponse
             }
+            
             // The response is the full, updated content.
             setTaskContent(accumulatedResponse)
+            
+            // Show success feedback for critical operations
+            if let groqError = accumulatedResponse.isEmpty ? GroqError.decodingError(NSError(domain: "EmptyResponse", code: 0)) : nil {
+                throw groqError
+            }
+            
         } catch {
-            let errorMessage = (error as? LocalizedError)?.errorDescription ?? "An unexpected error occurred."
-            ErrorHandlingService.shared.showError(message: errorMessage)
+            let groqError = error as? GroqError
+            let errorMessage = groqError?.errorDescription ?? "An unexpected error occurred."
+            let canRetry = groqError?.canRetry ?? false
+            let severity = groqError?.severity ?? .error
+            
+            ErrorHandlingService.shared.showError(
+                message: errorMessage,
+                severity: severity,
+                canRetry: canRetry,
+                retryAction: canRetry ? { [weak self] in
+                    Task {
+                        await self?.sendQuery(prompt: prompt)
+                    }
+                } : nil
+            )
+            
             // Restore original content on error
             setTaskContent(initialContent)
         }

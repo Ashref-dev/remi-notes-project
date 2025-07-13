@@ -17,6 +17,7 @@ struct ContentView: View {
                 .background(theme.background)
             }
         }
+        .errorBanner() // Add error banner support
     }
 }
 

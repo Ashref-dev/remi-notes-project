@@ -5,6 +5,43 @@ import HotKey
 struct SettingsView: View {
     @StateObject private var settings = SettingsManager.shared
     @Environment(\.dismiss) private var dismiss
+    
+    @State private var apiKeyValidationState: APIKeyValidationState = .unknown
+    @State private var validationTask: Task<Void, Never>?
+    
+    enum APIKeyValidationState {
+        case unknown
+        case validating
+        case valid
+        case invalid(String)
+        
+        var color: Color {
+            switch self {
+            case .unknown: return .gray
+            case .validating: return .blue
+            case .valid: return .green
+            case .invalid: return .red
+            }
+        }
+        
+        var icon: String {
+            switch self {
+            case .unknown: return "questionmark.circle"
+            case .validating: return "clock.circle"
+            case .valid: return "checkmark.circle.fill"
+            case .invalid: return "exclamationmark.circle.fill"
+            }
+        }
+        
+        var message: String? {
+            switch self {
+            case .unknown: return nil
+            case .validating: return "Validating..."
+            case .valid: return "API key is valid"
+            case .invalid(let message): return message
+            }
+        }
+    }
 
     var body: some View {
         Themed { theme in
@@ -14,9 +51,47 @@ struct SettingsView: View {
                 Divider()
                 
                 Form {
+                    Section(header: Text("System Status").font(.headline)) {
+                        SystemStatusView()
+                            .frame(height: 200)
+                    }
+                    
                     Section(header: Text("API Configuration").font(.headline)) {
-                        SecureField("Groq API Key", text: $settings.groqAPIKey)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                SecureField("Groq API Key", text: $settings.groqAPIKey)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .onChange(of: settings.groqAPIKey) { _ in
+                                        validateAPIKey()
+                                    }
+                                
+                                // Validation indicator
+                                if !settings.groqAPIKey.isEmpty {
+                                    Image(systemName: apiKeyValidationState.icon)
+                                        .foregroundColor(apiKeyValidationState.color)
+                                        .font(.system(size: 16))
+                                }
+                            }
+                            
+                            // Validation message
+                            if let message = apiKeyValidationState.message {
+                                HStack {
+                                    Text(message)
+                                        .font(.caption)
+                                        .foregroundColor(apiKeyValidationState.color)
+                                    
+                                    if case .validating = apiKeyValidationState {
+                                        ProgressView()
+                                            .scaleEffect(0.6)
+                                    }
+                                }
+                            }
+                            
+                            // Help text
+                            Text("Get your API key from [groq.com](https://console.groq.com/keys)")
+                                .font(.caption)
+                                .foregroundColor(theme.textSecondary)
+                        }
                     }
                     
                     Section(header: Text("General").font(.headline)) {
@@ -49,6 +124,68 @@ struct SettingsView: View {
             }
             .frame(width: 550, height: 550)
         }
+        .onAppear {
+            validateAPIKey()
+        }
+        .onDisappear {
+            validationTask?.cancel()
+        }
+    }
+    
+    private func validateAPIKey() {
+        validationTask?.cancel()
+        
+        let apiKey = settings.groqAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !apiKey.isEmpty else {
+            apiKeyValidationState = .unknown
+            return
+        }
+        
+        // Basic format validation
+        guard apiKey.starts(with: "gsk_") && apiKey.count > 20 else {
+            apiKeyValidationState = .invalid("Invalid API key format")
+            return
+        }
+        
+        // Set validating state
+        apiKeyValidationState = .validating
+        
+        // Test the API key with a minimal request
+        validationTask = Task {
+            do {
+                try await testAPIKey(apiKey)
+                await MainActor.run {
+                    if !Task.isCancelled {
+                        apiKeyValidationState = .valid
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    if !Task.isCancelled {
+                        if let groqError = error as? GroqError {
+                            switch groqError {
+                            case .requestFailed(let statusCode, _):
+                                if statusCode == 401 {
+                                    apiKeyValidationState = .invalid("Invalid API key")
+                                } else {
+                                    apiKeyValidationState = .invalid("API key validation failed")
+                                }
+                            default:
+                                apiKeyValidationState = .invalid("Unable to validate (network error)")
+                            }
+                        } else {
+                            apiKeyValidationState = .invalid("Unable to validate")
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private func testAPIKey(_ apiKey: String) async throws {
+        // Use the GroqService test method for consistency
+        try await GroqService.shared.testAPIKey()
     }
     
     @ViewBuilder

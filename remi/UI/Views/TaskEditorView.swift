@@ -31,6 +31,26 @@ struct TaskEditorView: View {
 
                     Divider()
 
+                    // Smart suggestions bar
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("Quick Actions")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(theme.secondaryText)
+                            Spacer()
+                        }
+                        .padding(.horizontal, AppTheme.Spacing.medium)
+                        .padding(.top, 8)
+                        
+                        SmartSuggestionsView { suggestion in
+                            handleAIInput(prompt: suggestion)
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    .background(theme.background)
+                    
+                    Divider()
+
                     // Bottom toolbar
                     BottomBar(theme: theme)
                 }
@@ -96,6 +116,26 @@ struct TaskEditorView: View {
             .foregroundColor(theme.textSecondary)
             
             Spacer()
+            
+            // Status indicators
+            HStack(spacing: 8) {
+                ConnectionStatusIndicator()
+                
+                // Word count (if content is not empty)
+                if !viewModel.taskContent.isEmpty {
+                    let wordCount = viewModel.taskContent.components(separatedBy: .whitespacesAndNewlines)
+                        .filter { !$0.isEmpty }.count
+                    Text("\(wordCount) words")
+                        .font(.system(size: 11))
+                        .foregroundColor(theme.secondaryText)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(theme.background.opacity(0.5))
+                        )
+                }
+            }
         }
         .padding(AppTheme.Spacing.medium)
         .background(theme.backgroundSecondary)
