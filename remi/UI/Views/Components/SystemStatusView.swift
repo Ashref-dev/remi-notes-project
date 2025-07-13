@@ -15,7 +15,7 @@ struct SystemStatusView: View {
                 HStack {
                     Text("System Status")
                         .font(.headline)
-                        .foregroundColor(theme.primaryText)
+                        .foregroundColor(theme.textPrimary)
                     
                     Spacer()
                     
@@ -95,7 +95,7 @@ struct SystemStatusView: View {
                     HStack {
                         Text("Last updated: \(timeAgoString(from: lastCheck))")
                             .font(.caption)
-                            .foregroundColor(theme.secondaryText)
+                            .foregroundColor(theme.textSecondary)
                         Spacer()
                     }
                 }
@@ -170,7 +170,7 @@ struct StatusCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(theme.primaryText)
+                    .foregroundColor(theme.textPrimary)
                 
                 Text(status)
                     .font(.system(size: 13, weight: .medium))
@@ -178,7 +178,7 @@ struct StatusCard: View {
                 
                 Text(description)
                     .font(.system(size: 12))
-                    .foregroundColor(theme.secondaryText)
+                    .foregroundColor(theme.textSecondary)
                     .lineLimit(2)
             }
             
@@ -224,7 +224,7 @@ struct StatusRow: View {
                     HStack {
                         Text(title)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(theme.primaryText)
+                            .foregroundColor(theme.textPrimary)
                         
                         Spacer()
                         
@@ -235,14 +235,14 @@ struct StatusRow: View {
                     
                     Text(detail)
                         .font(.system(size: 11))
-                        .foregroundColor(theme.secondaryText)
+                        .foregroundColor(theme.textSecondary)
                         .lineLimit(1)
                 }
                 
                 if action != nil {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(theme.secondaryText)
+                        .foregroundColor(theme.textSecondary)
                 }
             }
             .padding(.vertical, 8)

@@ -104,12 +104,12 @@ struct SuggestionCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(suggestion.title)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(theme.primaryText)
+                        .foregroundColor(theme.textPrimary)
                         .lineLimit(1)
                     
                     Text(suggestion.description)
                         .font(.system(size: 11))
-                        .foregroundColor(theme.secondaryText)
+                        .foregroundColor(theme.textSecondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }

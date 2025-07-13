@@ -48,7 +48,7 @@ struct ConnectionStatusIndicator: View {
                 
                 Text(statusMessage)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(theme.secondaryText)
+                    .foregroundColor(theme.textSecondary)
                     .lineLimit(1)
             }
             .padding(.horizontal, 8)

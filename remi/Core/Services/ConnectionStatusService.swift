@@ -17,7 +17,8 @@ class ConnectionStatusService: ObservableObject {
     }
     
     deinit {
-        stopMonitoring()
+        // Note: deinit is not MainActor isolated, so we can call monitor.cancel() directly
+        monitor.cancel()
     }
     
     private func startMonitoring() {
@@ -28,10 +29,6 @@ class ConnectionStatusService: ObservableObject {
             }
         }
         monitor.start(queue: monitorQueue)
-    }
-    
-    private func stopMonitoring() {
-        monitor.cancel()
     }
     
     var connectionDescription: String {

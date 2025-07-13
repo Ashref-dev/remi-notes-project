@@ -36,7 +36,7 @@ struct TaskEditorView: View {
                         HStack {
                             Text("Quick Actions")
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(theme.secondaryText)
+                                .foregroundColor(theme.textSecondary)
                             Spacer()
                         }
                         .padding(.horizontal, AppTheme.Spacing.medium)
@@ -127,7 +127,7 @@ struct TaskEditorView: View {
                         .filter { !$0.isEmpty }.count
                     Text("\(wordCount) words")
                         .font(.system(size: 11))
-                        .foregroundColor(theme.secondaryText)
+                        .foregroundColor(theme.textSecondary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(

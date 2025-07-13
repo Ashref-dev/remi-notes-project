@@ -64,7 +64,7 @@ class RetryService {
         }
         
         // Handle NSURLError cases
-        if let nsError = error as NSError, nsError.domain == NSURLErrorDomain {
+        if let nsError = error as NSError?, nsError.domain == NSURLErrorDomain {
             switch nsError.code {
             case NSURLErrorTimedOut,
                  NSURLErrorCannotConnectToHost,

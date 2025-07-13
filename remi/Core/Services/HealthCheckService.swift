@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftUI
 
 @MainActor
 class HealthCheckService: ObservableObject {
@@ -21,10 +22,10 @@ class HealthCheckService: ObservableObject {
         
         var color: Color {
             switch self {
-            case .unknown: return .gray
-            case .healthy: return .green
-            case .degraded: return .orange
-            case .unhealthy: return .red
+            case .unknown: return Color.gray
+            case .healthy: return Color.green
+            case .degraded: return Color.orange
+            case .unhealthy: return Color.red
             }
         }
         
@@ -43,7 +44,8 @@ class HealthCheckService: ObservableObject {
     }
     
     deinit {
-        stopPeriodicHealthChecks()
+        // Note: deinit is not MainActor isolated, so we can stop the timer directly
+        healthCheckTimer?.invalidate()
     }
     
     private func startPeriodicHealthChecks() {

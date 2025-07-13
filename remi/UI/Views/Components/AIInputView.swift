@@ -28,7 +28,7 @@ struct AIInputView: View {
                             
                             Text("Set your Groq API key in Settings to use AI features")
                                 .font(.caption)
-                                .foregroundColor(theme.secondaryText)
+                                .foregroundColor(theme.textSecondary)
                             
                             Spacer()
                             

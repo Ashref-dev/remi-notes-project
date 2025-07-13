@@ -19,7 +19,7 @@ struct ErrorBannerView: View {
                     // Error Message
                     Text(error.message)
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(theme.primaryText)
+                        .foregroundColor(theme.textPrimary)
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
                     
@@ -27,7 +27,7 @@ struct ErrorBannerView: View {
                     if error.severity == .info || error.severity == .warning {
                         Text(timeAgoString)
                             .font(.system(size: 11))
-                            .foregroundColor(theme.secondaryText)
+                            .foregroundColor(theme.textSecondary)
                     }
                 }
                 
@@ -59,7 +59,7 @@ struct ErrorBannerView: View {
                     Button(action: onDismiss) {
                         Image(systemName: "xmark")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(theme.secondaryText)
+                            .foregroundColor(theme.textSecondary)
                     }
                     .buttonStyle(.plain)
                     .keyboardShortcut(.escape, modifiers: [])

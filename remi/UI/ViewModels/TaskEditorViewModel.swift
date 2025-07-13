@@ -66,7 +66,7 @@ class TaskEditorViewModel: ObservableObject {
                 maxDelay: 10.0,
                 retryCondition: RetryService.shouldRetryGroqError
             ) {
-                let stream = groqService.streamQuery(prompt: prompt, context: initialContent)
+                let stream = self.groqService.streamQuery(prompt: prompt, context: initialContent)
                 var tempResponse = ""
                 
                 for try await chunk in stream {
