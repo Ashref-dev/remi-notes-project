@@ -1,23 +1,24 @@
 
 import SwiftUI
+import AppKit
 
 struct ColorPalette {
-    // MARK: - Base Colors
-    static let background = Color(hex: "#1C1C1E")
-    static let backgroundSecondary = Color(hex: "#2C2C2E")
+    // MARK: - Native System Colors
+    static let background = Color(NSColor.windowBackgroundColor)
+    static let backgroundSecondary = Color(NSColor.controlBackgroundColor)
     
-    // MARK: - Text Colors
-    static let textPrimary = Color(hex: "#E5E5E7")
-    static let textSecondary = Color(hex: "#8E8E93")
+    // MARK: - Text Colors  
+    static let textPrimary = Color(NSColor.labelColor)
+    static let textSecondary = Color(NSColor.secondaryLabelColor)
     
     // MARK: - Card Colors
-    static let cardBackground = Color(hex: "#2C2C2E")
-    static let cardBackgroundHover = Color(hex: "#3A3A3C")
-    static let cardBackgroundSelected = Color.accentColor.opacity(0.3)
+    static let cardBackground = Color(NSColor.controlBackgroundColor)
+    static let cardBackgroundHover = Color(NSColor.selectedControlColor)
+    static let cardBackgroundSelected = Color(NSColor.controlAccentColor).opacity(0.3)
     
     // MARK: - Accent & Utility
-    static let accent = Color.accentColor
-    static let border = Color.primary.opacity(0.1)
+    static let accent = Color(NSColor.controlAccentColor)
+    static let border = Color(NSColor.separatorColor)
 }
 
 extension Color {

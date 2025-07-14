@@ -29,14 +29,33 @@ class GroqService {
     }
 
     private func filterThinking(from text: String) -> String {
-        let pattern = "<thinking>.*?</thinking>"
-        do {
-            let regex = try NSRegularExpression(pattern: pattern, options: .dotMatchesLineSeparators)
-            let range = NSRange(text.startIndex..., in: text)
-            return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "")
-        } catch {
-            return text
+        // More robust thinking tag removal
+        var filtered = text
+        
+        // Handle various thinking tag formats with better regex
+        let patterns = [
+            "(?s)<thinking>.*?</thinking>",  // Case sensitive with dotall
+            "(?s)(?i)<thinking>.*?</thinking>",  // Case insensitive with dotall
+            "(?s)<thinking[^>]*>.*?</thinking>",  // With attributes
+            "(?s)(?i)<thinking[^>]*>.*?</thinking>"  // Case insensitive with attributes
+        ]
+        
+        for pattern in patterns {
+            do {
+                let regex = try NSRegularExpression(pattern: pattern, options: [])
+                let range = NSRange(filtered.startIndex..., in: filtered)
+                filtered = regex.stringByReplacingMatches(in: filtered, options: [], range: range, withTemplate: "")
+            } catch {
+                // Fallback to simple string replacement if regex fails
+                if pattern.contains("(?i)") {
+                    filtered = filtered.replacingOccurrences(of: "<thinking>", with: "", options: .caseInsensitive)
+                    filtered = filtered.replacingOccurrences(of: "</thinking>", with: "", options: .caseInsensitive)
+                }
+                continue
+            }
         }
+        
+        return filtered.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func streamQuery(prompt: String, context: String) -> AsyncThrowingStream<String, Error> {
@@ -72,12 +91,14 @@ class GroqService {
             """
             
             let systemMessage = """
-            You are a silent, efficient document editor. Your purpose is to take a document and a user request, and then return the complete, updated document as plain text.
+            You are an intelligent Markdown document assistant.
 
-            RULES:
-            1.  **Analyze the Request:** Understand the user's request in the context of the current document.
-            2.  **Think Step-by-Step:** Before writing the response, use `<thinking>` tags to outline your plan. This is for your internal process and will be filtered out by the application. For example: `<thinking>The user wants to add a new task. I will append it to the end of the list.</thinking>`.
-            3.  **Return the ENTIRE Document:** Your final output must be ONLY the complete, updated plain text of the document. Do NOT use Markdown. Do NOT include any commentary, explanations, or apologies.
+            CRITICAL RULES:
+            1. Use <thinking></thinking> tags to plan your approach
+            2. Return ONLY the complete updated Markdown document
+            3. Support tasks: - [ ] incomplete, - [x] complete
+            4. No explanations outside the document
+            5. Preserve existing structure and formatting
             """
 
             let messages = [
@@ -109,10 +130,11 @@ class GroqService {
                                 if let data = chunk.data(using: .utf8) {
                                     do {
                                         let decoded = try JSONDecoder().decode(ChatCompletionChunk.self, from: data)
-                                        if var content = decoded.choices.first?.delta.content {
-                                            content = self.filterThinking(from: content)
-                                            if !content.isEmpty {
-                                                continuation.yield(content)
+                                        if let content = decoded.choices.first?.delta.content {
+                                            // Apply thinking filter to each chunk
+                                            let filteredContent = self.filterThinking(from: content)
+                                            if !filteredContent.isEmpty {
+                                                continuation.yield(filteredContent)
                                             }
                                         }
                                     } catch {

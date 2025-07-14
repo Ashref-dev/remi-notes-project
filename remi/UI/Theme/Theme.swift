@@ -1,5 +1,6 @@
 import CoreFoundation
 import AppKit
+import SwiftUI
 
 
 // Defines spacing, corner radius, and other layout constants for the Remi app.
@@ -18,11 +19,16 @@ struct AppTheme {
     }
 
     struct Fonts {
-        static let editor: NSFont = .monospacedSystemFont(ofSize: 16, weight: .regular)
+        static let editor: NSFont = .systemFont(ofSize: 16, weight: .regular)
+        static let title: SwiftUI.Font = .title.weight(.bold)
+        static let title2: SwiftUI.Font = .title2.weight(.bold)
+        static let title3: SwiftUI.Font = .title3.weight(.semibold)
+        static let body: SwiftUI.Font = .body
+        static let caption: SwiftUI.Font = .caption
     }
     
     struct Popover {
-        static let width: CGFloat = 600
-        static let height: CGFloat = 680
+        static let width: CGFloat = 900
+        static let height: CGFloat = 720
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 // MARK: - Theme Protocol
 protocol Theme {
@@ -15,28 +16,28 @@ protocol Theme {
 
 // MARK: - Light Theme
 struct LightTheme: Theme {
-    let background = Color(hex: "#F2F2F7")
-    let backgroundSecondary = Color(hex: "#FFFFFF")
-    let textPrimary = Color(hex: "#000000")
-    let textSecondary = Color(hex: "#6E6E73")
-    let cardBackground = Color(hex: "#FFFFFF")
-    let cardBackgroundHover = Color(hex: "#E5E5E7")
-    let cardBackgroundSelected = Color.accentColor.opacity(0.2)
-    let accent = Color.accentColor
-    let border = Color(hex: "#D1D1D6")
+    let background = Color(NSColor.windowBackgroundColor)
+    let backgroundSecondary = Color(NSColor.controlBackgroundColor)
+    let textPrimary = Color(NSColor.labelColor)
+    let textSecondary = Color(NSColor.secondaryLabelColor)
+    let cardBackground = Color(NSColor.controlBackgroundColor)
+    let cardBackgroundHover = Color(NSColor.selectedControlColor)
+    let cardBackgroundSelected = Color(NSColor.controlAccentColor).opacity(0.2)
+    let accent = Color(NSColor.controlAccentColor)
+    let border = Color(NSColor.separatorColor)
 }
 
 // MARK: - Dark Theme
 struct DarkTheme: Theme {
-    let background = Color(hex: "#1C1C1E")
-    let backgroundSecondary = Color(hex: "#2C2C2E")
-    let textPrimary = Color(hex: "#E5E5E7")
-    let textSecondary = Color(hex: "#8E8E93")
-    let cardBackground = Color(hex: "#2C2C2E")
-    let cardBackgroundHover = Color(hex: "#3A3A3C")
-    let cardBackgroundSelected = Color.accentColor.opacity(0.3)
-    let accent = Color.accentColor
-    let border = Color(hex: "#38383A")
+    let background = Color(NSColor.windowBackgroundColor)
+    let backgroundSecondary = Color(NSColor.controlBackgroundColor)
+    let textPrimary = Color(NSColor.labelColor)
+    let textSecondary = Color(NSColor.secondaryLabelColor)
+    let cardBackground = Color(NSColor.controlBackgroundColor)
+    let cardBackgroundHover = Color(NSColor.selectedControlColor)
+    let cardBackgroundSelected = Color(NSColor.controlAccentColor).opacity(0.3)
+    let accent = Color(NSColor.controlAccentColor)
+    let border = Color(NSColor.separatorColor)
 }
 
 // MARK: - ThemeManager

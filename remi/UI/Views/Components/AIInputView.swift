@@ -15,75 +15,74 @@ struct AIInputView: View {
     
     var body: some View {
         Themed { theme in
-            VStack {
-                Spacer()
-                
-                VStack(spacing: 12) {
-                    // API Key Status Indicator
+            VStack(spacing: 0) {
+                // Compact AI Input Container - sized to content
+                VStack(spacing: 8) {
+                    // API Key Status Indicator (if needed) - more compact
                     if !isAPIKeyConfigured {
-                        HStack {
+                        HStack(spacing: 6) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundColor(.orange)
-                                .font(.system(size: 14))
+                                .font(.system(size: 10))
                             
-                            Text("Set your Groq API key in Settings to use AI features")
-                                .font(.caption)
+                            Text("Configure API key in Settings")
+                                .font(.system(size: 10))
                                 .foregroundColor(theme.textSecondary)
                             
                             Spacer()
-                            
-                            Button("Settings") {
-                                // Open settings - you'll need to implement this based on your navigation
-                                NotificationCenter.default.post(name: .openSettings, object: nil)
-                            }
-                            .font(.caption)
-                            .foregroundColor(theme.accent)
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
                         .background(
-                            RoundedRectangle(cornerRadius: 6)
+                            RoundedRectangle(cornerRadius: 4)
                                 .fill(Color.orange.opacity(0.1))
-                                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                                .stroke(Color.orange.opacity(0.3), lineWidth: 0.5)
                         )
                     }
                     
-                    // Input Field
-                    HStack {
+                    // Compact Input Field - perfectly sized
+                    HStack(spacing: 8) {
                         TextField(
                             isAPIKeyConfigured ? "Ask AI to edit or generate..." : "Configure API key first...",
                             text: $inputText
                         )
                         .textFieldStyle(.plain)
+                        .font(.system(size: 13))
                         .focused($isFocused)
                         .onSubmit { send() }
                         .disabled(!isAPIKeyConfigured)
                         
                         Button(action: { send() }) {
                             Image(systemName: "arrow.up.circle.fill")
-                                .font(.title2)
+                                .font(.system(size: 16))
                                 .foregroundColor(isAPIKeyConfigured && !inputText.isEmpty ? theme.accent : theme.accent.opacity(0.3))
                         }
                         .buttonStyle(.plain)
                         .disabled(!isAPIKeyConfigured || inputText.isEmpty)
                     }
-                    .padding()
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
                     .background(theme.backgroundSecondary)
-                    .cornerRadius(AppTheme.CornerRadius.medium)
+                    .cornerRadius(8)
                     .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
-                            .stroke(isAPIKeyConfigured ? Color.clear : Color.orange.opacity(0.3), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(isFocused ? theme.accent.opacity(0.5) : theme.border, lineWidth: 1)
                     )
+                    .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 2)
                 }
-                .shadow(radius: 10)
-                .padding()
+                .padding(12) // Tight padding around the input
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(theme.background)
+                        .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: 6)
+                )
             }
             .onAppear { 
                 if isAPIKeyConfigured {
                     isFocused = true 
                 }
             }
-            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .transition(.scale(scale: 0.95).combined(with: .opacity))
         }
     }
     
