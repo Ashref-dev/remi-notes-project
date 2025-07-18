@@ -23,9 +23,33 @@ struct TaskEditorView: View {
                     // Main editor view
                     ZStack(alignment: .center) {
                         LiveMarkdownEditor(text: $viewModel.taskContent, theme: theme, textViewBinding: { self.textView = $0 })
+                            .opacity(viewModel.isSendingQuery ? 0.3 : (viewModel.isReceivingResponse ? 0.6 : 1.0))
+                            .animation(.easeInOut(duration: 0.2), value: viewModel.isSendingQuery)
+                            .animation(.easeInOut(duration: 0.2), value: viewModel.isReceivingResponse)
                         
-                        if viewModel.isSendingQuery {
-                            ElegantProgressView()
+                        if viewModel.isSendingQuery || viewModel.isReceivingResponse {
+                            AILoadingView(
+                                isLoading: viewModel.isSendingQuery,
+                                isReceiving: viewModel.isReceivingResponse,
+                                streamingContent: viewModel.streamingContent,
+                                theme: theme
+                            )
+                            .transition(.scale(scale: 0.8).combined(with: .opacity))
+                            .zIndex(2)
+                        }
+                        
+                        // Show streaming preview if receiving
+                        if viewModel.isReceivingResponse && !viewModel.streamingContent.isEmpty {
+                            VStack {
+                                Spacer()
+                                StreamingTextPreview(
+                                    content: viewModel.streamingContent,
+                                    theme: theme
+                                )
+                                .padding(.bottom, 160) // Account for bottom toolbar
+                            }
+                            .zIndex(1)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                     }
 

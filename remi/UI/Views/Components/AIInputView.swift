@@ -5,6 +5,7 @@ struct AIInputView: View {
     var onSend: (String) -> Void
     
     @State private var inputText: String = ""
+    @State private var isProcessing: Bool = false
     @FocusState private var isFocused: Bool
     @ObservedObject private var settingsManager = SettingsManager.shared
     
@@ -53,12 +54,21 @@ struct AIInputView: View {
                         .disabled(!isAPIKeyConfigured)
                         
                         Button(action: { send() }) {
-                            Image(systemName: "arrow.up.circle.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(isAPIKeyConfigured && !inputText.isEmpty ? theme.accent : theme.accent.opacity(0.3))
+                            if isProcessing {
+                                // Subtle loading animation
+                                Image(systemName: "arrow.circlepath")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(theme.accent)
+                                    .rotationEffect(.degrees(isProcessing ? 360 : 0))
+                                    .animation(.linear(duration: 1.0).repeatForever(autoreverses: false), value: isProcessing)
+                            } else {
+                                Image(systemName: "arrow.up.circle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(isAPIKeyConfigured && !inputText.isEmpty ? theme.accent : theme.accent.opacity(0.3))
+                            }
                         }
                         .buttonStyle(.plain)
-                        .disabled(!isAPIKeyConfigured || inputText.isEmpty)
+                        .disabled(!isAPIKeyConfigured || inputText.isEmpty || isProcessing)
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -87,10 +97,18 @@ struct AIInputView: View {
     }
     
     private func send() {
-        if !inputText.isEmpty && isAPIKeyConfigured {
+        if !inputText.isEmpty && isAPIKeyConfigured && !isProcessing {
+            isProcessing = true
             onSend(inputText)
             inputText = ""
-            withAnimation { isVisible = false }
+            
+            // Reset processing state after a delay (will be managed by the parent view in practice)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    isProcessing = false
+                    isVisible = false
+                }
+            }
         }
     }
 }

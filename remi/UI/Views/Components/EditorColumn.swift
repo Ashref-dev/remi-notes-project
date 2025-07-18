@@ -183,52 +183,34 @@ struct EditorColumn: View {
             )
             .padding(isEditorFocused ? AppTheme.Spacing.xlarge : AppTheme.Spacing.large)
             .animation(.easeInOut(duration: 0.3), value: isEditorFocused)
-            .opacity(viewModel.isSendingQuery ? 0.3 : 1.0)
+            .opacity(viewModel.isSendingQuery ? 0.3 : (viewModel.isReceivingResponse ? 0.6 : 1.0))
             .animation(.easeInOut(duration: 0.2), value: viewModel.isSendingQuery)
+            .animation(.easeInOut(duration: 0.2), value: viewModel.isReceivingResponse)
             
             // Modern Loading Overlay with enhanced animation
-            if viewModel.isSendingQuery {
-                VStack(spacing: 20) {
-                    // Enhanced animated thinking indicator
-                    HStack(spacing: 6) {
-                        ForEach(0..<3) { index in
-                            Circle()
-                                .fill(theme.accent)
-                                .frame(width: 6, height: 6)
-                                .scaleEffect(viewModel.isSendingQuery ? 1.2 : 0.8)
-                                .animation(
-                                    .easeInOut(duration: 0.6)
-                                    .repeatForever(autoreverses: true)
-                                    .delay(Double(index) * 0.15),
-                                    value: viewModel.isSendingQuery
-                                )
-                        }
-                    }
-                    
-                    VStack(spacing: 8) {
-                        Text("AI is thinking...")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(theme.textPrimary)
-                        
-                        Text("Processing your request")
-                            .font(.system(size: 12))
-                            .foregroundColor(theme.textSecondary)
-                    }
-                }
-                .padding(24)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(theme.backgroundSecondary)
-                        .shadow(color: Color.black.opacity(0.12), radius: 16, x: 0, y: 8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(theme.accent.opacity(0.1), lineWidth: 1)
-                        )
+            if viewModel.isSendingQuery || viewModel.isReceivingResponse {
+                AILoadingView(
+                    isLoading: viewModel.isSendingQuery,
+                    isReceiving: viewModel.isReceivingResponse,
+                    streamingContent: viewModel.streamingContent,
+                    theme: theme
                 )
-                .scaleEffect(viewModel.isSendingQuery ? 1.0 : 0.9)
-                .opacity(viewModel.isSendingQuery ? 1.0 : 0.0)
-                .animation(.spring(response: 0.5, dampingFraction: 0.8), value: viewModel.isSendingQuery)
+                .transition(.scale(scale: 0.8).combined(with: .opacity))
                 .zIndex(2)
+                
+                // Show streaming preview if receiving
+                if viewModel.isReceivingResponse && !viewModel.streamingContent.isEmpty {
+                    VStack {
+                        Spacer()
+                        StreamingTextPreview(
+                            content: viewModel.streamingContent,
+                            theme: theme
+                        )
+                        .padding(.bottom, 100)
+                    }
+                    .zIndex(1)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
         }
     }

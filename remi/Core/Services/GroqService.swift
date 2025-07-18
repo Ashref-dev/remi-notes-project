@@ -55,7 +55,7 @@ class GroqService {
             }
         }
         
-        return filtered.trimmingCharacters(in: .whitespacesAndNewlines)
+        return filtered  // Don't trim to preserve formatting
     }
 
     func streamQuery(prompt: String, context: String) -> AsyncThrowingStream<String, Error> {
@@ -99,6 +99,11 @@ class GroqService {
             3. Support tasks: - [ ] incomplete, - [x] complete
             4. No explanations outside the document
             5. Preserve existing structure and formatting
+            6. Maintain proper Markdown spacing and line breaks
+            7. Use proper heading hierarchy (# ## ### etc.)
+            8. Keep consistent formatting for lists and tasks
+            9. Preserve code blocks and inline code formatting
+            10. Ensure proper paragraph spacing
             """
 
             let messages = [

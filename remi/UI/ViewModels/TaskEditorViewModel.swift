@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Combine
 
 @MainActor
@@ -6,6 +7,8 @@ class TaskEditorViewModel: ObservableObject {
     @Published var nook: Nook
     @Published var taskContent: String = ""
     @Published var isSendingQuery: Bool = false
+    @Published var isReceivingResponse: Bool = false
+    @Published var streamingContent: String = ""
     
     private var thinkingText: String = ""
     private let nookManager = NookManager.shared
@@ -54,7 +57,8 @@ class TaskEditorViewModel: ObservableObject {
     
     func sendQuery(prompt: String) async {
         isSendingQuery = true
-        var accumulatedResponse = ""
+        isReceivingResponse = false
+        streamingContent = ""
         
         let initialContent = self.taskContent
         
@@ -67,21 +71,27 @@ class TaskEditorViewModel: ObservableObject {
                 retryCondition: RetryService.shouldRetryGroqError
             ) {
                 let stream = self.groqService.streamQuery(prompt: prompt, context: initialContent)
-                var tempResponse = ""
+                var accumulatedResponse = ""
                 
-                for try await chunk in stream {
-                    tempResponse += chunk
+                // Start receiving response - show different loading state
+                await MainActor.run {
+                    self.isSendingQuery = false
+                    self.isReceivingResponse = true
                 }
                 
-                accumulatedResponse = tempResponse
-            }
-            
-            // The response is the full, updated content.
-            setTaskContent(accumulatedResponse)
-            
-            // Show success feedback for critical operations
-            if let groqError = accumulatedResponse.isEmpty ? GroqError.decodingError(NSError(domain: "EmptyResponse", code: 0)) : nil {
-                throw groqError
+                for try await chunk in stream {
+                    accumulatedResponse += chunk
+                    
+                    // Update streaming content for real-time preview
+                    await MainActor.run {
+                        self.streamingContent = accumulatedResponse
+                    }
+                }
+                
+                // Apply the final content with smooth animation
+                await MainActor.run {
+                    self.applyFinalContent(accumulatedResponse)
+                }
             }
             
         } catch {
@@ -102,9 +112,76 @@ class TaskEditorViewModel: ObservableObject {
             )
             
             // Restore original content on error
-            setTaskContent(initialContent)
+            await MainActor.run {
+                self.setTaskContent(initialContent)
+                self.resetStreamingState()
+            }
+        }
+    }
+    
+    private func applyFinalContent(_ content: String) {
+        // Ensure proper formatting is preserved
+        let formattedContent = preserveMarkdownFormatting(content)
+        
+        // Apply content with modern, smooth animation sequence
+        withAnimation(.easeOut(duration: 0.5)) {
+            // Clear streaming content with fade out
+            streamingContent = ""
+            isReceivingResponse = false
         }
         
+        // Brief pause for visual clarity, then apply the formatted content with elegant spring animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation(.spring(response: 0.7, dampingFraction: 0.9, blendDuration: 0.4)) {
+                self.setTaskContent(formattedContent)
+            }
+            
+            // Complete the process with a smooth fade out of the loading state
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    self.isSendingQuery = false
+                }
+            }
+        }
+    }
+    
+    private func resetStreamingState() {
         isSendingQuery = false
+        isReceivingResponse = false
+        streamingContent = ""
+    }
+    
+    private func preserveMarkdownFormatting(_ content: String) -> String {
+        // Ensure proper line breaks and spacing for Markdown
+        var formatted = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Fix common formatting issues while preserving intentional structure
+        
+        // 1. Remove excessive blank lines (more than 2 consecutive)
+        formatted = formatted.replacingOccurrences(of: "\n{3,}", with: "\n\n", options: .regularExpression)
+        
+        // 2. Ensure headers have proper spacing (blank line before headers)
+        formatted = formatted.replacingOccurrences(of: "([^\n])\n(#{1,6}\\s)", with: "$1\n\n$2", options: .regularExpression)
+        
+        // 3. Ensure lists have proper spacing (blank line before lists)
+        formatted = formatted.replacingOccurrences(of: "([^\n])\n(-\\s|\\*\\s|\\+\\s|\\d+\\.\\s)", with: "$1\n\n$2", options: .regularExpression)
+        
+        // 4. Ensure task lists have proper spacing
+        formatted = formatted.replacingOccurrences(of: "([^\n])\n(-\\s\\[[\\sx]\\])", with: "$1\n\n$2", options: .regularExpression)
+        
+        // 5. Ensure code blocks have proper spacing
+        formatted = formatted.replacingOccurrences(of: "([^\n])\n(```)", with: "$1\n\n$2", options: .regularExpression)
+        formatted = formatted.replacingOccurrences(of: "(```[^\n]*)\n([^\n`])", with: "$1\n\n$2", options: .regularExpression)
+        
+        // 6. Fix spacing after code blocks
+        formatted = formatted.replacingOccurrences(of: "(```)\n([^\n])", with: "$1\n\n$2", options: .regularExpression)
+        
+        // 7. Preserve blockquotes spacing
+        formatted = formatted.replacingOccurrences(of: "([^\n])\n(>\\s)", with: "$1\n\n$2", options: .regularExpression)
+        
+        // 8. Ensure paragraphs are properly separated
+        formatted = formatted.replacingOccurrences(of: "([.!?])([A-Z])", with: "$1\n\n$2", options: [])
+        
+        return formatted
     }
 }
