@@ -5,6 +5,7 @@ import SwiftUI
 struct SidebarView: View {
     @Binding var selectedNook: Nook?
     @Binding var showingSettings: Bool
+    let onCollapse: () -> Void
     @StateObject private var viewModel = NookListViewModel()
     @FocusState private var isSearchFocused: Bool
 
@@ -12,7 +13,7 @@ struct SidebarView: View {
         Themed { theme in
             VStack(spacing: 0) {
                 // Header
-                SidebarHeaderView(theme: theme)
+                SidebarHeaderView(theme: theme, onCollapse: onCollapse)
                 
                 // Search Bar
                 SidebarSearchBarView(
@@ -82,6 +83,8 @@ struct SidebarView: View {
 
 private struct SidebarHeaderView: View {
     let theme: Theme
+    let onCollapse: () -> Void
+    @State private var isHoveringCollapse = false
     
     var body: some View {
         HStack {
@@ -91,7 +94,26 @@ private struct SidebarHeaderView: View {
             Text("Remi")
                 .font(AppTheme.Fonts.title2)
                 .foregroundColor(theme.textPrimary)
+            
             Spacer()
+            
+            Button(action: onCollapse) {
+                Image(systemName: "sidebar.left")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(isHoveringCollapse ? theme.accent : theme.textSecondary)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        Circle()
+                            .fill(isHoveringCollapse ? theme.accent.opacity(0.1) : Color.clear)
+                    )
+                    .scaleEffect(isHoveringCollapse ? 1.05 : 1.0)
+                    .animation(.easeInOut(duration: 0.2), value: isHoveringCollapse)
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                isHoveringCollapse = hovering
+            }
+            .accessibilityLabel("Collapse sidebar")
         }
         .padding(AppTheme.Spacing.large)
     }
@@ -453,7 +475,8 @@ struct SidebarView_Previews: PreviewProvider {
     static var previews: some View {
         SidebarView(
             selectedNook: .constant(nil),
-            showingSettings: .constant(false)
+            showingSettings: .constant(false),
+            onCollapse: {}
         )
         .frame(width: 300, height: 600)
     }
