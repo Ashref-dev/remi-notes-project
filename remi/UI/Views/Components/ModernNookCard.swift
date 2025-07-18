@@ -4,10 +4,21 @@ struct ModernNookCard: View {
     let nook: Nook
     let isSelected: Bool
     let onTap: () -> Void
+    let onEdit: ((Nook) -> Void)?
     
     @State private var isHovering = false
     @State private var scale: CGFloat = 1.0
     @State private var glowOpacity: Double = 0.0
+    @State private var showingEditSheet = false
+    @State private var editableNook: Nook
+    
+    init(nook: Nook, isSelected: Bool, onTap: @escaping () -> Void, onEdit: ((Nook) -> Void)? = nil) {
+        self.nook = nook
+        self.isSelected = isSelected
+        self.onTap = onTap
+        self.onEdit = onEdit
+        self._editableNook = State(initialValue: nook)
+    }
     
     private func preview(for nook: Nook) -> String {
         let content = NookManager.shared.fetchTasks(for: nook)
@@ -24,15 +35,15 @@ struct ModernNookCard: View {
         Themed { theme in
             Button(action: onTap) {
                 HStack(alignment: .top, spacing: AppTheme.Spacing.medium) {
-                    // Icon with subtle animation
+                    // Icon with subtle animation and custom color
                     ZStack {
                         Circle()
-                            .fill(isSelected ? theme.accent.opacity(0.2) : theme.textSecondary.opacity(0.1))
+                            .fill(isSelected ? nook.iconColor.color.opacity(0.3) : nook.iconColor.color.opacity(0.15))
                             .frame(width: 32, height: 32)
                         
-                        Image(systemName: "doc.text.fill")
+                        Image(systemName: nook.iconName)
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(isSelected ? theme.accent : theme.textSecondary)
+                            .foregroundColor(isSelected ? nook.iconColor.color : nook.iconColor.color.opacity(0.8))
                     }
                     .scaleEffect(isHovering ? 1.1 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isHovering)
@@ -41,21 +52,38 @@ struct ModernNookCard: View {
                         HStack {
                             Text(nook.name)
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(isSelected ? theme.accent : theme.textPrimary)
+                                .foregroundColor(isSelected ? nook.iconColor.color : theme.textPrimary)
                                 .lineLimit(1)
                             
                             Spacer()
+                            
+                            // Edit button (visible on hover)
+                            if isHovering && onEdit != nil {
+                                Button(action: { showingEditSheet = true }) {
+                                    Image(systemName: "pencil")
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(theme.textSecondary)
+                                        .padding(4)
+                                        .background(
+                                            Circle()
+                                                .fill(theme.backgroundSecondary)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                                .transition(.scale.combined(with: .opacity))
+                                .accessibilityLabel("Edit nook")
+                            }
                             
                             // Task count badge
                             if taskCount > 0 {
                                 Text("\(taskCount)")
                                     .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(isSelected ? theme.accent : theme.textSecondary)
+                                    .foregroundColor(isSelected ? nook.iconColor.color : theme.textSecondary)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
                                     .background(
                                         Capsule()
-                                            .fill(isSelected ? theme.accent.opacity(0.2) : theme.textSecondary.opacity(0.15))
+                                            .fill(isSelected ? nook.iconColor.color.opacity(0.2) : theme.textSecondary.opacity(0.15))
                                     )
                             }
                         }
@@ -84,12 +112,12 @@ struct ModernNookCard: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
                         .stroke(
-                            isSelected ? theme.accent.opacity(0.5) : Color.clear,
+                            isSelected ? nook.iconColor.color.opacity(0.5) : Color.clear,
                             lineWidth: 1
                         )
                 )
                 .shadow(
-                    color: theme.accent.opacity(glowOpacity),
+                    color: nook.iconColor.color.opacity(glowOpacity),
                     radius: isSelected ? 12 : 6,
                     x: 0,
                     y: isSelected ? 4 : 2
@@ -100,14 +128,28 @@ struct ModernNookCard: View {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isHovering = hovering
                     scale = hovering ? 1.02 : 1.0
-                    glowOpacity = hovering ? 0.3 : (isSelected ? 0.2 : 0.0)
+                    glowOpacity = hovering ? 0.3 : 0.0
                 }
             }
-            .animation(.easeInOut(duration: 0.15), value: isSelected)
-            .onAppear {
-                if isSelected {
-                    glowOpacity = 0.2
+            .onChange(of: isSelected) { selected in
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    glowOpacity = selected && !isHovering ? 0.15 : glowOpacity
                 }
+            }
+            .onAppear {
+                glowOpacity = isSelected ? 0.15 : 0.0
+                editableNook = nook
+            }
+            .onChange(of: nook) { newNook in
+                editableNook = newNook
+            }
+            .sheet(isPresented: $showingEditSheet) {
+                NookEditorSheet(nook: $editableNook, isPresented: $showingEditSheet)
+                    .onDisappear {
+                        if editableNook != nook {
+                            onEdit?(editableNook)
+                        }
+                    }
             }
         }
     }

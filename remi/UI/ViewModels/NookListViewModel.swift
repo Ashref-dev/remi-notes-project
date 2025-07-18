@@ -59,4 +59,18 @@ class NookListViewModel: ObservableObject {
             self.selectedNook = updatedNook
         }
     }
+    
+    func updateNook(_ nook: Nook) {
+        if let updatedNook = nookManager.updateNook(nook) {
+            // Update the nook in our local array
+            if let index = allNooks.firstIndex(where: { $0.id == nook.id }) {
+                allNooks[index] = updatedNook
+            }
+            
+            // Update selected nook if it's the one being edited
+            if selectedNook?.id == nook.id {
+                selectedNook = updatedNook
+            }
+        }
+    }
 }

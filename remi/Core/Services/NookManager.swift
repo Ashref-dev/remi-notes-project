@@ -1,5 +1,25 @@
 import Foundation
 
+// MARK: - Nook Metadata Structure
+
+private struct NookMetadata: Codable {
+    let iconName: String
+    let iconColor: String
+    let lastModified: Date
+    
+    init(iconName: String = "doc.text.fill", iconColor: NookIconColor = .blue) {
+        self.iconName = iconName
+        self.iconColor = iconColor.rawValue
+        self.lastModified = Date()
+    }
+    
+    init(from nook: Nook) {
+        self.iconName = nook.iconName
+        self.iconColor = nook.iconColor.rawValue
+        self.lastModified = Date()
+    }
+}
+
 class NookManager {
     static let shared = NookManager()
 
@@ -31,6 +51,11 @@ class NookManager {
                     - You can also ask the AI assistant for help.
                     """
                     self.saveTasks(for: nook, content: initialContent)
+                    // Set a custom icon for the welcome nook
+                    var welcomeNook = nook
+                    welcomeNook.iconName = "heart.fill"
+                    welcomeNook.iconColor = .pink
+                    self.updateNookMetadata(welcomeNook)
                 }
             } catch {
                 print("Error creating Nooks directory: \(error)")
@@ -44,7 +69,14 @@ class NookManager {
             let nookURLs = try fileManager.contentsOfDirectory(at: nooksDirectory, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
             for url in nookURLs where url.hasDirectoryPath {
                 let name = url.lastPathComponent
-                let nook = Nook(name: name, url: url)
+                let metadata = loadNookMetadata(at: url)
+                let iconColor = NookIconColor(rawValue: metadata.iconColor) ?? .blue
+                let nook = Nook(
+                    name: name,
+                    url: url,
+                    iconName: metadata.iconName,
+                    iconColor: iconColor
+                )
                 nooks.append(nook)
             }
         } catch {
@@ -111,5 +143,46 @@ class NookManager {
         } catch {
             print("Error saving tasks: \(error)")
         }
+    }
+    
+    // MARK: - Metadata Management
+    
+    private func loadNookMetadata(at url: URL) -> NookMetadata {
+        let metadataURL = url.appendingPathComponent(".nook-metadata.json")
+        do {
+            let data = try Data(contentsOf: metadataURL)
+            return try JSONDecoder().decode(NookMetadata.self, from: data)
+        } catch {
+            // Return default metadata if file doesn't exist or can't be decoded
+            return NookMetadata()
+        }
+    }
+    
+    func updateNookMetadata(_ nook: Nook) {
+        let metadata = NookMetadata(from: nook)
+        saveNookMetadata(metadata, at: nook.url)
+    }
+    
+    private func saveNookMetadata(_ metadata: NookMetadata, at url: URL) {
+        let metadataURL = url.appendingPathComponent(".nook-metadata.json")
+        do {
+            let data = try JSONEncoder().encode(metadata)
+            try data.write(to: metadataURL)
+        } catch {
+            print("Error saving nook metadata: \(error)")
+        }
+    }
+    
+    func updateNook(_ nook: Nook) -> Nook? {
+        // Update metadata
+        updateNookMetadata(nook)
+        
+        // If name changed, rename the directory
+        let currentName = nook.url.lastPathComponent
+        if nook.name != currentName {
+            return renameNook(nook, to: nook.name)
+        }
+        
+        return nook
     }
 }
