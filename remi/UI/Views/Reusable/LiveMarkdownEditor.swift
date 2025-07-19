@@ -5,7 +5,8 @@ struct LiveMarkdownEditor: NSViewRepresentable {
     @Binding var text: String
     let theme: Theme // Use the theme passed from the parent
     var isEditable: Bool = true
-    var font: NSFont = AppTheme.Fonts.editor
+    var isMarkdownPreviewEnabled: Bool = true
+    var font: NSFont = .systemFont(ofSize: 16, weight: .regular)
     
     // Callback to provide the NSTextView instance
     var textViewBinding: ((NSTextView) -> Void)? = nil
@@ -19,14 +20,20 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         textView.isRichText = false
         textView.allowsUndo = true
         textView.font = font
-        textView.textContainerInset = NSSize(width: 25, height: 25) // More spacious padding
+        textView.textContainerInset = NSSize(width: 28, height: 28) // More spacious padding
         
         textView.importsGraphics = false
         textView.drawsBackground = true
 
-        // Style the background and insertion point
+        // Style the background and insertion point with modern colors
         textView.backgroundColor = NSColor(theme.background)
         textView.insertionPointColor = NSColor(theme.accent)
+        
+        // Better line height and spacing
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = 4
+        paragraphStyle.paragraphSpacing = 8
+        textView.defaultParagraphStyle = paragraphStyle
 
         // Enable smart substitutions
         textView.isAutomaticQuoteSubstitutionEnabled = true
@@ -51,7 +58,14 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         if textView.string != text {
             let selectedRange = textView.selectedRange
             textView.string = text
-            applyMarkdownStyling(to: textView, theme: theme)
+            
+            // Only apply markdown styling if preview is enabled
+            if isMarkdownPreviewEnabled {
+                applyMarkdownStyling(to: textView, theme: theme)
+            } else {
+                applyPlainTextStyling(to: textView, theme: theme)
+            }
+            
             textView.setSelectedRange(selectedRange)
         }
         textView.isEditable = isEditable
@@ -74,33 +88,81 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             
             if textView.string != parent.text {
                 parent.text = textView.string
-                // Pass the correct theme from the parent struct
-                parent.applyMarkdownStyling(to: textView, theme: parent.theme)
+                
+                // Only apply styling if preview is enabled
+                if parent.isMarkdownPreviewEnabled {
+                    parent.applyMarkdownStyling(to: textView, theme: parent.theme)
+                } else {
+                    parent.applyPlainTextStyling(to: textView, theme: parent.theme)
+                }
             }
         }
     }
     
+    // MARK: - Plain Text Styling
+    private func applyPlainTextStyling(to textView: NSTextView, theme: Theme) {
+        guard let textStorage = textView.textStorage else { return }
+        
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+        let attributedString = NSMutableAttributedString(attributedString: textStorage)
+        
+        // Reset all formatting and apply clean, modern plain text style
+        attributedString.removeAttribute(.font, range: fullRange)
+        attributedString.removeAttribute(.foregroundColor, range: fullRange)
+        attributedString.removeAttribute(.backgroundColor, range: fullRange)
+        
+        // Apply consistent, beautiful font
+        let plainFont = NSFont.systemFont(ofSize: 16, weight: .regular)
+        attributedString.addAttribute(.font, value: plainFont, range: fullRange)
+        attributedString.addAttribute(.foregroundColor, value: NSColor(theme.textPrimary), range: fullRange)
+        
+        // Apply paragraph styling for better readability
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = 4
+        paragraphStyle.paragraphSpacing = 8
+        attributedString.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
+        
+        // Apply the plain text styling
+        let selectedRange = textView.selectedRange
+        textStorage.beginEditing()
+        textStorage.setAttributedString(attributedString)
+        textStorage.endEditing()
+        textView.setSelectedRange(selectedRange)
+    }
+    
+    // MARK: - Enhanced Markdown Styling
+    // MARK: - Enhanced Markdown Styling
     private func applyMarkdownStyling(to textView: NSTextView, theme: Theme) {
         guard let textStorage = textView.textStorage else { return }
         
         let fullRange = NSRange(location: 0, length: textStorage.length)
         let attributedString = NSMutableAttributedString(attributedString: textStorage)
         
-        // 1. Reset styles
+        // 1. Reset styles with better base formatting
         attributedString.removeAttribute(.font, range: fullRange)
         attributedString.removeAttribute(.foregroundColor, range: fullRange)
-        attributedString.addAttribute(.font, value: font, range: fullRange)
+        attributedString.removeAttribute(.backgroundColor, range: fullRange)
+        
+        // Apply base font with better typography
+        let baseFont = NSFont.systemFont(ofSize: 16, weight: .regular)
+        attributedString.addAttribute(.font, value: baseFont, range: fullRange)
         attributedString.addAttribute(.foregroundColor, value: NSColor(theme.textPrimary), range: fullRange)
+        
+        // Better paragraph styling
+        let baseParagraphStyle = NSMutableParagraphStyle()
+        baseParagraphStyle.lineSpacing = 4
+        baseParagraphStyle.paragraphSpacing = 8
+        attributedString.addAttribute(.paragraphStyle, value: baseParagraphStyle, range: fullRange)
 
-        // Define a "hidden" style for Markdown syntax characters
+        // Define a more subtle "hidden" style for Markdown syntax characters
         let hiddenAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 0.1),
-            .foregroundColor: NSColor.clear
+            .font: NSFont.systemFont(ofSize: 12, weight: .ultraLight),
+            .foregroundColor: NSColor(theme.textSecondary).withAlphaComponent(0.4)
         ]
 
-        // 2. Apply styles
+        // 2. Apply enhanced styles with better typography
         
-        // Headings
+        // Headings with improved hierarchy
         let headingRegex = try! NSRegularExpression(pattern: "^(#+)\\s*(.*)$", options: [.anchorsMatchLines])
         headingRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
             guard let match = match, match.numberOfRanges == 3 else { return }
@@ -110,18 +172,36 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             
             let level = syntaxRange.length
             var headingFont: NSFont
+            var headingColor: NSColor
+            
             switch level {
-            case 1: headingFont = .boldSystemFont(ofSize: 28)
-            case 2: headingFont = .boldSystemFont(ofSize: 24)
-            case 3: headingFont = .boldSystemFont(ofSize: 20)
-            default: headingFont = .boldSystemFont(ofSize: 18)
+            case 1: 
+                headingFont = .systemFont(ofSize: 28, weight: .bold)
+                headingColor = NSColor(theme.textPrimary)
+            case 2: 
+                headingFont = .systemFont(ofSize: 24, weight: .semibold)
+                headingColor = NSColor(theme.textPrimary)
+            case 3: 
+                headingFont = .systemFont(ofSize: 20, weight: .medium)
+                headingColor = NSColor(theme.textPrimary)
+            default: 
+                headingFont = .systemFont(ofSize: 18, weight: .medium)
+                headingColor = NSColor(theme.textPrimary)
             }
             
             attributedString.addAttribute(.font, value: headingFont, range: contentRange)
+            attributedString.addAttribute(.foregroundColor, value: headingColor, range: contentRange)
             attributedString.addAttributes(hiddenAttributes, range: syntaxRange)
+            
+            // Add spacing after headings
+            let headingParagraphStyle = NSMutableParagraphStyle()
+            headingParagraphStyle.lineSpacing = 6
+            headingParagraphStyle.paragraphSpacingBefore = 16
+            headingParagraphStyle.paragraphSpacing = 12
+            attributedString.addAttribute(.paragraphStyle, value: headingParagraphStyle, range: match.range)
         }
 
-        // Bold
+        // Bold text with improved styling
         let boldRegex = try! NSRegularExpression(pattern: "(\\*\\*|__)(.*?)\\1", options: [])
         boldRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
             guard let match = match, match.numberOfRanges == 3 else { return }
@@ -129,13 +209,15 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             let contentRange = match.range(at: 2)
             let trailingSyntaxStart = match.range.location + match.range.length - syntaxRange.length
             let trailingSyntaxRange = NSRange(location: trailingSyntaxStart, length: syntaxRange.length)
-            let boldFont = NSFont.boldSystemFont(ofSize: font.pointSize)
+            
+            let boldFont = NSFont.systemFont(ofSize: 16, weight: .semibold)
             attributedString.addAttribute(.font, value: boldFont, range: contentRange)
+            attributedString.addAttribute(.foregroundColor, value: NSColor(theme.textPrimary), range: contentRange)
             attributedString.addAttributes(hiddenAttributes, range: syntaxRange)
             attributedString.addAttributes(hiddenAttributes, range: trailingSyntaxRange)
         }
 
-        // Italic
+        // Italic text with improved styling
         let italicRegex = try! NSRegularExpression(pattern: "(\\*|_)(?!\\s)(.*?)(?<!\\s)\\1", options: [])
         italicRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
             guard let match = match, match.numberOfRanges == 3 else { return }
@@ -143,18 +225,45 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             let contentRange = match.range(at: 2)
             let trailingSyntaxStart = match.range.location + match.range.length - syntaxRange.length
             let trailingSyntaxRange = NSRange(location: trailingSyntaxStart, length: syntaxRange.length)
-            let fontManager = NSFontManager.shared
-            let italicFont = fontManager.font(withFamily: font.familyName ?? "", traits: .italicFontMask, weight: 5, size: font.pointSize) ?? font
+            
+            let italicFont = NSFont.systemFont(ofSize: 16, weight: .regular).withTraits(.italicFontMask)
             attributedString.addAttribute(.font, value: italicFont, range: contentRange)
+            attributedString.addAttribute(.foregroundColor, value: NSColor(theme.textSecondary), range: contentRange)
             attributedString.addAttributes(hiddenAttributes, range: syntaxRange)
             attributedString.addAttributes(hiddenAttributes, range: trailingSyntaxRange)
         }
         
-        // 3. Apply the final attributed string
+        // Code blocks with modern styling
+        let codeRegex = try! NSRegularExpression(pattern: "`([^`]+)`", options: [])
+        codeRegex.enumerateMatches(in: attributedString.string, options: [], range: fullRange) { match, _, _ in
+            guard let match = match, match.numberOfRanges == 2 else { return }
+            let fullRange = match.range(at: 0)
+            let contentRange = match.range(at: 1)
+            
+            let codeFont = NSFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+            attributedString.addAttribute(.font, value: codeFont, range: contentRange)
+            attributedString.addAttribute(.foregroundColor, value: NSColor(theme.accent), range: contentRange)
+            attributedString.addAttribute(.backgroundColor, value: NSColor(theme.backgroundSecondary), range: fullRange)
+        }
+        
+        // 3. Apply the final attributed string with smooth transition
         let selectedRange = textView.selectedRange
         textStorage.beginEditing()
         textStorage.setAttributedString(attributedString)
         textStorage.endEditing()
         textView.setSelectedRange(selectedRange)
+    }
+}
+
+// MARK: - NSFont Extension for Better Typography
+extension NSFont {
+    func withTraits(_ traits: NSFontTraitMask) -> NSFont {
+        let fontManager = NSFontManager.shared
+        return fontManager.font(
+            withFamily: familyName ?? "SF Pro",
+            traits: traits,
+            weight: 5,
+            size: pointSize
+        ) ?? self
     }
 }

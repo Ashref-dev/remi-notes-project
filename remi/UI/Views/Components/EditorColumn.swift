@@ -3,10 +3,8 @@ import SwiftUI
 struct EditorColumn: View {
     let selectedNook: Nook?
     @State private var taskContent = ""
-    @State private var isEditorFocused = false
     @State private var isAIInputVisible = false
     @State private var viewModel: TaskEditorViewModel?
-    @State private var focusOpacity: Double = 0.85
     
     init(selectedNook: Nook?) {
         self.selectedNook = selectedNook
@@ -15,7 +13,7 @@ struct EditorColumn: View {
     var body: some View {
         Themed { theme in
             VStack(spacing: 0) {
-                // Editor Header with Focus Mode Indicator
+                // Editor Header
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         if let nook = selectedNook {
@@ -33,41 +31,12 @@ struct EditorColumn: View {
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(theme.textSecondary)
                         }
-                        
-                        // Focus mode indicator
-                        if isEditorFocused && selectedNook != nil {
-                            HStack(spacing: 4) {
-                                Circle()
-                                    .fill(theme.accent)
-                                    .frame(width: 4, height: 4)
-                                    .opacity(0.8)
-                                    .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isEditorFocused)
-                                
-                                Text("Focus Mode")
-                                    .font(.system(size: 9, weight: .medium))
-                                    .foregroundColor(theme.accent.opacity(0.8))
-                            }
-                        }
                     }
                     
                     Spacer()
                     
                     if selectedNook != nil {
                         HStack(spacing: AppTheme.Spacing.medium) {
-                            // Focus toggle button
-                            Button(action: { 
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    isEditorFocused.toggle()
-                                    focusOpacity = isEditorFocused ? 1.0 : 0.85
-                                }
-                            }) {
-                                Image(systemName: isEditorFocused ? "eye.fill" : "eye")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(isEditorFocused ? theme.accent : theme.textSecondary)
-                            }
-                            .buttonStyle(.plain)
-                            .help("Toggle Focus Mode")
-                            
                             // AI input button
                             Button(action: { 
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -85,32 +54,27 @@ struct EditorColumn: View {
                     }
                 }
                 .padding(AppTheme.Spacing.large)
-                .background(theme.backgroundSecondary.opacity(isEditorFocused ? 0.5 : 1.0))
-                .animation(.easeInOut(duration: 0.3), value: isEditorFocused)
+                .background(theme.backgroundSecondary)
                 
                 Divider()
-                    .opacity(isEditorFocused ? 0.3 : 1.0)
-                    .animation(.easeInOut(duration: 0.3), value: isEditorFocused)
                 
-                // Editor Content with Focus Effects
+                // Editor Content
                 ZStack {
                         if selectedNook != nil, let vm = viewModel {
                         VStack(spacing: 0) {
-                            // Main Editor with Focus Enhancement
+                            // Main Editor
                             editorView(theme: theme, viewModel: vm)
                                 .background(
                                     Rectangle()
-                                        .fill(isEditorFocused ? theme.background : theme.background.opacity(0.98))
-                                        .animation(.easeInOut(duration: 0.3), value: isEditorFocused)
+                                        .fill(theme.background)
                                 )
                                 .overlay(
-                                    // Focus border
                                     Rectangle()
                                         .stroke(
-                                            isEditorFocused ? theme.accent.opacity(0.3) : Color.clear,
+                                            Color.clear,
                                             lineWidth: 2
                                         )
-                                        .animation(.easeInOut(duration: 0.3), value: isEditorFocused)
+                                        .animation(.easeInOut(duration: 0.3), value: isAIInputVisible)
                                 )
                             
                             // AI Input Overlay with perfect sizing
@@ -148,8 +112,6 @@ struct EditorColumn: View {
                     }
                 }
                 .background(theme.background)
-                .opacity(focusOpacity)
-                .animation(.easeInOut(duration: 0.3), value: focusOpacity)
             }
         }
         .onChange(of: selectedNook) { _, newNook in
@@ -158,7 +120,6 @@ struct EditorColumn: View {
                 loadContent()
             } else {
                 viewModel = nil
-                isEditorFocused = false
                 isAIInputVisible = false
             }
         }
@@ -181,8 +142,8 @@ struct EditorColumn: View {
                 theme: theme,
                 textViewBinding: { _ in }
             )
-            .padding(isEditorFocused ? AppTheme.Spacing.xlarge : AppTheme.Spacing.large)
-            .animation(.easeInOut(duration: 0.3), value: isEditorFocused)
+            .padding(AppTheme.Spacing.large)
+            .animation(.easeInOut(duration: 0.3), value: isAIInputVisible)
             .opacity(viewModel.isSendingQuery ? 0.3 : (viewModel.isReceivingResponse ? 0.6 : 1.0))
             .animation(.easeInOut(duration: 0.2), value: viewModel.isSendingQuery)
             .animation(.easeInOut(duration: 0.2), value: viewModel.isReceivingResponse)
@@ -262,17 +223,5 @@ struct EditorColumn: View {
         Task {
             await viewModel.sendQuery(prompt: prompt)
         }
-    }
-}
-
-// Custom FocusState for binding
-private struct FocusedBinding {
-    @FocusState static var isEditorFocused: Bool
-}
-
-// Extension to add focus binding to LiveMarkdownEditor
-extension LiveMarkdownEditor {
-    func focused(_ binding: FocusState<Bool>.Binding) -> some View {
-        self // Return self for now, we'll implement proper focus handling later
     }
 }
