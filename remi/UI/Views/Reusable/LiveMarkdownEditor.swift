@@ -55,19 +55,21 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         textView.textColor = NSColor(theme.textPrimary)
         textView.insertionPointColor = NSColor(theme.accent)
         
+        // Always reapply styling when the view updates (important for toggle responsiveness)
+        let selectedRange = textView.selectedRange
+        
         if textView.string != text {
-            let selectedRange = textView.selectedRange
             textView.string = text
-            
-            // Only apply markdown styling if preview is enabled
-            if isMarkdownPreviewEnabled {
-                applyMarkdownStyling(to: textView, theme: theme)
-            } else {
-                applyPlainTextStyling(to: textView, theme: theme)
-            }
-            
-            textView.setSelectedRange(selectedRange)
         }
+        
+        // Apply styling based on current mode
+        if isMarkdownPreviewEnabled {
+            applyMarkdownStyling(to: textView, theme: theme)
+        } else {
+            applyPlainTextStyling(to: textView, theme: theme)
+        }
+        
+        textView.setSelectedRange(selectedRange)
         textView.isEditable = isEditable
     }
 
@@ -89,11 +91,13 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             if textView.string != parent.text {
                 parent.text = textView.string
                 
-                // Only apply styling if preview is enabled
-                if parent.isMarkdownPreviewEnabled {
-                    parent.applyMarkdownStyling(to: textView, theme: parent.theme)
-                } else {
-                    parent.applyPlainTextStyling(to: textView, theme: parent.theme)
+                // Apply styling based on current mode - with slight delay to avoid conflicts
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    if self.parent.isMarkdownPreviewEnabled {
+                        self.parent.applyMarkdownStyling(to: textView, theme: self.parent.theme)
+                    } else {
+                        self.parent.applyPlainTextStyling(to: textView, theme: self.parent.theme)
+                    }
                 }
             }
         }
@@ -104,30 +108,31 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         guard let textStorage = textView.textStorage else { return }
         
         let fullRange = NSRange(location: 0, length: textStorage.length)
-        let attributedString = NSMutableAttributedString(attributedString: textStorage)
         
-        // Reset all formatting and apply clean, modern plain text style
-        attributedString.removeAttribute(.font, range: fullRange)
-        attributedString.removeAttribute(.foregroundColor, range: fullRange)
-        attributedString.removeAttribute(.backgroundColor, range: fullRange)
+        // Remove ALL formatting attributes to ensure clean plain text
+        let attributesToRemove: [NSAttributedString.Key] = [
+            .font, .foregroundColor, .backgroundColor, .underlineStyle, 
+            .strikethroughStyle, .kern, .paragraphStyle, .baselineOffset
+        ]
         
-        // Apply consistent, beautiful font
-        let plainFont = NSFont.systemFont(ofSize: 16, weight: .regular)
-        attributedString.addAttribute(.font, value: plainFont, range: fullRange)
-        attributedString.addAttribute(.foregroundColor, value: NSColor(theme.textPrimary), range: fullRange)
-        
-        // Apply paragraph styling for better readability
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.lineSpacing = 4
-        paragraphStyle.paragraphSpacing = 8
-        attributedString.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
-        
-        // Apply the plain text styling
-        let selectedRange = textView.selectedRange
         textStorage.beginEditing()
-        textStorage.setAttributedString(attributedString)
+        
+        for attribute in attributesToRemove {
+            textStorage.removeAttribute(attribute, range: fullRange)
+        }
+        
+        // Apply clean, modern plain text styling
+        let plainFont = NSFont.systemFont(ofSize: 16, weight: .regular)
+        textStorage.addAttribute(.font, value: plainFont, range: fullRange)
+        textStorage.addAttribute(.foregroundColor, value: NSColor(theme.textPrimary), range: fullRange)
+        
+        // Apply subtle paragraph styling for readability
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = 2
+        paragraphStyle.paragraphSpacing = 6
+        textStorage.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
+        
         textStorage.endEditing()
-        textView.setSelectedRange(selectedRange)
     }
     
     // MARK: - Enhanced Markdown Styling

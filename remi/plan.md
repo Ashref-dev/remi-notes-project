@@ -33,6 +33,17 @@
   - Smooth animations and transitions
 - **Status**: ✅ OPTIMIZED
 
+### Markdown/Plain Text Toggle Enhancement ✅
+- **Issue**: Toggle between markdown preview and plain text wasn't working correctly
+- **Solution**: Enhanced toggle responsiveness and immediate view updates
+- **Changes**:
+  - Improved button labels: "Markdown" vs "Plain Text"
+  - Added view ID-based forcing for immediate updates
+  - Enhanced plain text styling with complete formatting removal
+  - Optimized LiveMarkdownEditor to respond immediately to mode changes
+  - Added smooth animations for toggle state transitions
+- **Status**: ✅ ENHANCED
+
 ## Previously Completed Tasks:
 
 ### 1. Settings Button Fix ✅
@@ -67,6 +78,9 @@
 - [x] Thinking tags are properly removed from responses
 - [x] Error handling works correctly
 - [x] System status displays properly
+- [x] Markdown/Plain text toggle works immediately and updates view correctly
+- [x] Plain text mode removes all markdown formatting completely
+- [x] Toggle button shows correct states ("Markdown" vs "Plain Text")
 
 ## Summary:
 Complete overhaul of the AI service with focus on simplicity, reliability, and elegant user experience. The app now features:

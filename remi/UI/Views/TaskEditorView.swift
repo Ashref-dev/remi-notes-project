@@ -29,6 +29,7 @@ struct TaskEditorView: View {
                             isMarkdownPreviewEnabled: isMarkdownPreviewEnabled,
                             textViewBinding: { self.textView = $0 }
                         )
+                        .id("editor-\(isMarkdownPreviewEnabled ? "markdown" : "plain")")
                         .opacity(viewModel.isProcessingAI ? 0.6 : 1.0)
                         .animation(.easeInOut(duration: 0.2), value: viewModel.isProcessingAI)
                         
@@ -171,17 +172,23 @@ struct TaskEditorView: View {
                 Divider()
                     .frame(height: 20)
                 
-                // Markdown Preview Toggle
+                // Markdown Preview Toggle - Enhanced responsiveness
                 Button(action: { 
                     withAnimation(.easeInOut(duration: 0.3)) {
                         isMarkdownPreviewEnabled.toggle()
+                        // Force immediate update of the text view
+                        if let textView = textView {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                textView.needsDisplay = true
+                            }
+                        }
                     }
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: isMarkdownPreviewEnabled ? "doc.richtext" : "doc.plaintext")
                             .font(.system(size: 14, weight: .medium))
                         
-                        Text(isMarkdownPreviewEnabled ? "Preview" : "Plain")
+                        Text(isMarkdownPreviewEnabled ? "Markdown" : "Plain Text")
                             .font(.system(size: 12, weight: .medium))
                     }
                     .foregroundColor(isMarkdownPreviewEnabled ? theme.accent : theme.textSecondary)
@@ -197,7 +204,7 @@ struct TaskEditorView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .help(isMarkdownPreviewEnabled ? "Switch to Plain Text" : "Switch to Markdown Preview")
+                .help(isMarkdownPreviewEnabled ? "Switch to Plain Text View" : "Switch to Markdown Preview")
                 
                 // AI Assistant Button - Enhanced with gradient
                 Button(action: { 
