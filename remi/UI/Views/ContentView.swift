@@ -69,8 +69,23 @@ struct ThreeColumnWorkspace: View {
                 Divider()
                 
                 // Column 2: Editor (Full width for focus)
-                EditorColumn(selectedNook: selectedNook)
+                if let nook = selectedNook {
+                    TaskEditorView(nook: nook)
+                        .background(theme.background)
+                } else {
+                    // Empty state
+                    VStack(spacing: 16) {
+                        Image(systemName: "doc.text")
+                            .font(.system(size: 48))
+                            .foregroundColor(theme.textSecondary.opacity(0.3))
+                        
+                        Text("Select a nook to start editing")
+                            .font(.system(size: 16))
+                            .foregroundColor(theme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(theme.background)
+                }
             }
         }
     }
@@ -161,7 +176,7 @@ struct CollapsedSidebarView: View {
             viewModel.fetchNooks()
         }
         .sheet(isPresented: $showingSettings) {
-            IntegratedSettingsView(showingSettings: $showingSettings)
+            SettingsView()
         }
     }
 }

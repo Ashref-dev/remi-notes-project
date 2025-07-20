@@ -10,99 +10,101 @@ struct SystemStatusView: View {
     
     var body: some View {
         Themed { theme in
-            VStack(alignment: .leading, spacing: 16) {
-                // Header
-                HStack {
-                    Text("System Status")
-                        .font(.headline)
-                        .foregroundColor(theme.textPrimary)
-                    
-                    Spacer()
-                    
-                    Button(action: refreshStatus) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(theme.accent)
-                            .rotationEffect(.degrees(isRefreshing ? 360 : 0))
-                            .animation(.linear(duration: 1).repeatCount(isRefreshing ? 5 : 0, autoreverses: false), value: isRefreshing)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Header
+                    HStack {
+                        Text("System Status")
+                            .font(.headline)
+                            .foregroundColor(theme.textPrimary)
+                        
+                        Spacer()
+                        
+                        Button(action: refreshStatus) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(theme.accent)
+                                .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                                .animation(.linear(duration: 1).repeatCount(isRefreshing ? 5 : 0, autoreverses: false), value: isRefreshing)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isRefreshing)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(isRefreshing)
-                }
-                
-                // Overall Status
-                StatusCard(
-                    title: "Overall Health",
-                    status: healthService.overallHealth.description,
-                    statusColor: healthService.overallHealth.color,
-                    description: healthService.healthSummary,
-                    icon: "heart.fill",
-                    theme: theme
-                )
-                
-                // Individual Components
-                VStack(spacing: 8) {
-                    // Network Status
-                    StatusRow(
-                        title: "Network Connection",
-                        status: connectionService.isConnected ? "Connected" : "Disconnected",
-                        statusColor: connectionService.isConnected ? .green : .red,
-                        detail: connectionService.connectionDescription,
-                        icon: connectionService.isConnected ? "wifi" : "wifi.slash",
+                    
+                    // Overall Status
+                    StatusCard(
+                        title: "Overall Health",
+                        status: healthService.overallHealth.description,
+                        statusColor: healthService.overallHealth.color,
+                        description: healthService.healthSummary,
+                        icon: "heart.fill",
                         theme: theme
                     )
                     
-                    // API Configuration
-                    StatusRow(
-                        title: "API Configuration",
-                        status: isAPIKeyConfigured ? "Configured" : "Not Configured",
-                        statusColor: isAPIKeyConfigured ? .green : .orange,
-                        detail: isAPIKeyConfigured ? "Groq API key is set" : "API key required for AI features",
-                        icon: isAPIKeyConfigured ? "key.fill" : "key.slash",
-                        theme: theme
-                    )
-                    
-                    // API Health
-                    if isAPIKeyConfigured {
+                    // Individual Components
+                    VStack(spacing: 8) {
+                        // Network Status
                         StatusRow(
-                            title: "API Service",
-                            status: healthService.apiHealth.description,
-                            statusColor: healthService.apiHealth.color,
-                            detail: apiHealthDetail,
-                            icon: "server.rack",
+                            title: "Network Connection",
+                            status: connectionService.isConnected ? "Connected" : "Disconnected",
+                            statusColor: connectionService.isConnected ? .green : .red,
+                            detail: connectionService.connectionDescription,
+                            icon: connectionService.isConnected ? "wifi" : "wifi.slash",
                             theme: theme
                         )
+                        
+                        // API Configuration
+                        StatusRow(
+                            title: "API Configuration",
+                            status: isAPIKeyConfigured ? "Configured" : "Not Configured",
+                            statusColor: isAPIKeyConfigured ? .green : .orange,
+                            detail: isAPIKeyConfigured ? "Groq API key is set" : "API key required for AI features",
+                            icon: isAPIKeyConfigured ? "key.fill" : "key.slash",
+                            theme: theme
+                        )
+                        
+                        // API Health
+                        if isAPIKeyConfigured {
+                            StatusRow(
+                                title: "API Service",
+                                status: healthService.apiHealth.description,
+                                statusColor: healthService.apiHealth.color,
+                                detail: apiHealthDetail,
+                                icon: "server.rack",
+                                theme: theme
+                            )
+                        }
+                        
+                        // Error History
+                        if !errorService.errorHistory.isEmpty {
+                            StatusRow(
+                                title: "Recent Issues",
+                                status: "\(errorService.errorHistory.count) errors",
+                                statusColor: .orange,
+                                detail: "Tap to view error history",
+                                icon: "exclamationmark.triangle",
+                                theme: theme,
+                                action: {
+                                    // Could expand to show error history
+                                }
+                            )
+                        }
                     }
                     
-                    // Error History
-                    if !errorService.errorHistory.isEmpty {
-                        StatusRow(
-                            title: "Recent Issues",
-                            status: "\(errorService.errorHistory.count) errors",
-                            statusColor: .orange,
-                            detail: "Tap to view error history",
-                            icon: "exclamationmark.triangle",
-                            theme: theme,
-                            action: {
-                                // Could expand to show error history
-                            }
-                        )
+                    // Last Updated
+                    if let lastCheck = healthService.lastHealthCheck {
+                        HStack {
+                            Text("Last updated: \(timeAgoString(from: lastCheck))")
+                                .font(.caption)
+                                .foregroundColor(theme.textSecondary)
+                            Spacer()
+                        }
                     }
+                    
+                    Spacer()
                 }
-                
-                // Last Updated
-                if let lastCheck = healthService.lastHealthCheck {
-                    HStack {
-                        Text("Last updated: \(timeAgoString(from: lastCheck))")
-                            .font(.caption)
-                            .foregroundColor(theme.textSecondary)
-                        Spacer()
-                    }
-                }
-                
-                Spacer()
+                .padding()
             }
-            .padding()
         }
         .onAppear {
             Task {

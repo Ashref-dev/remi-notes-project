@@ -29,33 +29,29 @@ struct TaskEditorView: View {
                             isMarkdownPreviewEnabled: isMarkdownPreviewEnabled,
                             textViewBinding: { self.textView = $0 }
                         )
-                        .opacity(viewModel.isSendingQuery ? 0.3 : (viewModel.isReceivingResponse ? 0.6 : 1.0))
-                        .animation(.easeInOut(duration: 0.2), value: viewModel.isSendingQuery)
-                        .animation(.easeInOut(duration: 0.2), value: viewModel.isReceivingResponse)
+                        .opacity(viewModel.isProcessingAI ? 0.6 : 1.0)
+                        .animation(.easeInOut(duration: 0.2), value: viewModel.isProcessingAI)
                         
-                        if viewModel.isSendingQuery || viewModel.isReceivingResponse {
-                            AILoadingView(
-                                isLoading: viewModel.isSendingQuery,
-                                isReceiving: viewModel.isReceivingResponse,
-                                streamingContent: viewModel.streamingContent,
-                                theme: theme
+                        // Simple loading indicator
+                        if viewModel.isProcessingAI {
+                            VStack {
+                                ProgressView()
+                                    .scaleEffect(1.2)
+                                    .tint(theme.accent)
+                                
+                                Text("AI is improving your notes...")
+                                    .font(.caption)
+                                    .foregroundColor(theme.textSecondary)
+                                    .padding(.top, 8)
+                            }
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(theme.background)
+                                    .shadow(color: Color.black.opacity(0.1), radius: 8)
                             )
                             .transition(.scale(scale: 0.8).combined(with: .opacity))
                             .zIndex(2)
-                        }
-                        
-                        // Show streaming preview if receiving
-                        if viewModel.isReceivingResponse && !viewModel.streamingContent.isEmpty {
-                            VStack {
-                                Spacer()
-                                StreamingTextPreview(
-                                    content: viewModel.streamingContent,
-                                    theme: theme
-                                )
-                                .padding(.bottom, 160) // Account for bottom toolbar
-                            }
-                            .zIndex(1)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                     }
 
@@ -98,6 +94,13 @@ struct TaskEditorView: View {
                 viewModel.undoManager = self.undoManager
             }
             .animation(.easeInOut, value: isAIInputVisible)
+            // Add keyboard shortcuts for undo/redo
+            .onReceive(NotificationCenter.default.publisher(for: .init("UndoRequest"))) { _ in
+                undoManager?.undo()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .init("RedoRequest"))) { _ in
+                undoManager?.redo()
+            }
         }
     }
     
@@ -122,6 +125,52 @@ struct TaskEditorView: View {
             Spacer()
             
             HStack(spacing: 12) {
+                // Undo/Redo buttons
+                HStack(spacing: 8) {
+                    Button(action: { undoManager?.undo() }) {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(undoManager?.canUndo == true ? theme.accent : theme.textSecondary.opacity(0.4))
+                            .frame(width: 32, height: 32)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(undoManager?.canUndo == true ? theme.accent.opacity(0.1) : theme.backgroundSecondary.opacity(0.3))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(undoManager?.canUndo == true ? theme.accent.opacity(0.3) : Color.clear, lineWidth: 1)
+                            )
+                            .scaleEffect(undoManager?.canUndo == true ? 1.0 : 0.95)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(undoManager?.canUndo != true)
+                    .help("Undo (⌘Z)")
+                    .animation(.easeInOut(duration: 0.2), value: undoManager?.canUndo)
+                    
+                    Button(action: { undoManager?.redo() }) {
+                        Image(systemName: "arrow.uturn.forward")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(undoManager?.canRedo == true ? theme.accent : theme.textSecondary.opacity(0.4))
+                            .frame(width: 32, height: 32)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(undoManager?.canRedo == true ? theme.accent.opacity(0.1) : theme.backgroundSecondary.opacity(0.3))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(undoManager?.canRedo == true ? theme.accent.opacity(0.3) : Color.clear, lineWidth: 1)
+                            )
+                            .scaleEffect(undoManager?.canRedo == true ? 1.0 : 0.95)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(undoManager?.canRedo != true)
+                    .help("Redo (⌘⇧Z)")
+                    .animation(.easeInOut(duration: 0.2), value: undoManager?.canRedo)
+                }
+                
+                Divider()
+                    .frame(height: 20)
+                
                 // Markdown Preview Toggle
                 Button(action: { 
                     withAnimation(.easeInOut(duration: 0.3)) {
@@ -192,6 +241,52 @@ struct TaskEditorView: View {
     @ViewBuilder
     private func BottomBar(theme: Theme) -> some View {
         HStack(spacing: 16) {
+            // Undo/Redo buttons
+            HStack(spacing: 8) {
+                Button(action: { undoManager?.undo() }) {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(undoManager?.canUndo == true ? theme.accent : theme.textSecondary.opacity(0.4))
+                        .frame(width: 28, height: 28)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(undoManager?.canUndo == true ? theme.accent.opacity(0.1) : theme.background.opacity(0.3))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(undoManager?.canUndo == true ? theme.accent.opacity(0.3) : theme.border.opacity(0.2), lineWidth: 0.5)
+                        )
+                        .scaleEffect(undoManager?.canUndo == true ? 1.0 : 0.95)
+                }
+                .buttonStyle(.plain)
+                .disabled(undoManager?.canUndo != true)
+                .help("Undo")
+                .animation(.easeInOut(duration: 0.2), value: undoManager?.canUndo)
+                
+                Button(action: { undoManager?.redo() }) {
+                    Image(systemName: "arrow.uturn.forward")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(undoManager?.canRedo == true ? theme.accent : theme.textSecondary.opacity(0.4))
+                        .frame(width: 28, height: 28)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(undoManager?.canRedo == true ? theme.accent.opacity(0.1) : theme.background.opacity(0.3))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(undoManager?.canRedo == true ? theme.accent.opacity(0.3) : theme.border.opacity(0.2), lineWidth: 0.5)
+                        )
+                        .scaleEffect(undoManager?.canRedo == true ? 1.0 : 0.95)
+                }
+                .buttonStyle(.plain)
+                .disabled(undoManager?.canRedo != true)
+                .help("Redo")
+                .animation(.easeInOut(duration: 0.2), value: undoManager?.canRedo)
+            }
+            
+            Divider()
+                .frame(height: 20)
+
             // Formatting buttons with improved styling
             HStack(spacing: 12) {
                 FormatButton(icon: "bold", action: { applyMarkdown("**", to: textView) }, theme: theme)
@@ -258,16 +353,19 @@ struct TaskEditorView: View {
         switch icon {
         case "bold": return "Bold (Cmd+B)"
         case "italic": return "Italic (Cmd+I)"  
+        case "strikethrough": return "Strikethrough"
+        case "list.bullet": return "Bullet List"
+        case "list.number": return "Numbered List"
         case "h.square": return "Heading"
+        case "arrow.uturn.backward": return "Undo (Cmd+Z)"
+        case "arrow.uturn.forward": return "Redo (Cmd+Shift+Z)"
         default: return ""
         }
-    }
-    
-    // MARK: - Private Methods
+    }    // MARK: - Private Methods
     
     private func handleAIInput(prompt: String) {
         Task {
-            await viewModel.sendQuery(prompt: prompt)
+            await viewModel.processAIQuery(prompt: prompt)
         }
     }
     
