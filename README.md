@@ -49,7 +49,8 @@ Remi transforms your macOS menu bar into a **supercharged knowledge management s
 ### 🧠 **AI-Powered Intelligence**
 - **Smart editing** with Groq AI integration
 - **Content enhancement** - improve clarity and organization
-- **Context-aware suggestions** based on your workflow
+- **Context-aware suggestions** with modern, compact Quick Actions panel
+- **Crash-safe operations** with robust error handling
 
 ### 📁 **Nooks System**
 Organize your knowledge into focused "**Nooks**" - think of them as smart, AI-enhanced notepads:
@@ -66,9 +67,10 @@ Organize your knowledge into focused "**Nooks**" - think of them as smart, AI-en
 
 ### 🎨 **Beautiful, Native Design**
 - **macOS-native interface** that feels right at home
-- **Dark/Light mode support** 
+- **Dark/Light mode support** with persistent user preferences
 - **Elegant typography** and spacing
-- **Smooth animations** and transitions
+- **Smooth animations** and modern hover effects
+- **Modern card-based UI** with gradient backgrounds and subtle shadows
 
 ---
 
@@ -140,13 +142,46 @@ ping -c 4 8.8.8.8              # Test connectivity
 1. **Create your first Nook** - click the "+" button
 2. **Add your content** - paste in your most-used commands or notes
 3. **Use the hotkey** to access instantly from anywhere
-4. **Optional: Add Groq API key** for AI features
+4. ### **Optional: Add Groq API key** for AI features
+
+---
+
+## 🎯 Latest Features & Improvements
+
+### **🛡️ Crash-Safe Operations**
+Remi now includes robust error handling and null-safe operations:
+- **Guard statements** prevent crashes during undo/redo operations
+- **Graceful error handling** for network issues and API failures
+- **Safe state management** with proper validation
+
+### **🎨 Modern AI Quick Actions Panel**
+The AI assistance has been completely redesigned:
+- **Compact grid layout** - 2-column design for better space utilization
+- **Elegant hover effects** - Smooth animations and visual feedback
+- **Modern card design** - Gradient backgrounds and subtle shadows
+- **Collapsible interface** - Clean, unobtrusive when not needed
+
+### **💾 Persistent User Preferences**
+Your settings are now remembered across sessions:
+- **Markdown/Plain text mode** preference saved automatically
+- **UI state persistence** for Quick Actions panel
+- **Theme preferences** maintained between app launches
+
+### **⚡ Native Performance**
+Streamlined architecture for better performance:
+- **Native URLSession** replaces third-party networking
+- **Optimized animations** with SwiftUI best practices
+- **Efficient memory usage** with proper state management
+
+---
 
 ### **Pro Tips**
 - Use **descriptive nook names** like "Docker Commands" or "AI Prompts"
 - **Organize by context** rather than by type
 - **Keep frequently used items** at the top of each nook
-- **Use the AI assistant** to improve and organize your content
+- **Use the AI Quick Actions** for instant content improvement
+- **Enable markdown preview** for rich text formatting
+- **Leverage undo/redo** (⌘Z/⌘⇧Z) for safe editing
 
 ---
 
@@ -170,23 +205,45 @@ Enable in Settings to have Remi ready when you start your Mac.
 
 ## 🏗️ Technical Architecture
 
-Remi is built with modern macOS development practices:
+Remi is built with modern macOS development practices and focuses on native performance:
 
 ```
 🏛️ Architecture Overview
-├── 🎯 SwiftUI Interface       # Native, responsive UI
-├── 🧠 AI Integration         # Groq-powered intelligence  
+├── 🎯 SwiftUI Interface       # Native, responsive UI with modern components
+├── 🧠 AI Integration         # Native URLSession + Groq API
 ├── 📁 File-based Storage     # Simple, portable nooks
 ├── ⚡ Global Hotkey System   # System-wide accessibility
-├── 🎨 Theme Management       # Dark/Light mode support
-└── 🛡️ Error Handling        # Robust, user-friendly errors
+├── 🎨 Theme Management       # Dark/Light mode with persistence
+├── 🛡️ Error Handling        # Robust, crash-safe operations
+└── 🔄 Undo/Redo System      # Native UndoManager integration
+```
+
+### **Project Structure**
+```
+remi/
+├── App/                     # App lifecycle and configuration
+│   ├── AppDelegate.swift    # Menu bar setup and app coordination
+│   └── remiApp.swift       # SwiftUI app entry point
+├── Core/                    # Business logic and data management
+│   ├── Models/             # Data models (Nook)
+│   └── Services/           # Core services (AI, networking, settings)
+├── UI/                     # User interface components
+│   ├── Theme/              # Theme system and color management
+│   ├── ViewModels/         # MVVM architecture
+│   └── Views/              # SwiftUI views and components
+│       ├── Components/     # Reusable UI components
+│       ├── Reusable/       # Generic reusable views
+│       └── Settings/       # Settings and configuration views
+└── Utils/                  # Utilities and helpers
 ```
 
 ### **Core Technologies**
 - **SwiftUI** - Modern, declarative UI framework
-- **Alamofire** - Reliable networking for AI features
+- **Native URLSession** - Reliable, lightweight networking
 - **HotKey** - Global keyboard shortcut management
 - **Groq AI** - Fast, efficient language model integration
+- **UserDefaults** - Persistent user preferences
+- **NSUndoManager** - Native undo/redo functionality
 
 ---
 
@@ -224,6 +281,15 @@ open remi.xcodeproj
 - [ ] 🏷️ **Tags and smart filtering**
 - [ ] 📊 **Usage analytics** and insights
 - [ ] 🔗 **Integration with popular tools** (Notion, Obsidian)
+- [ ] 🎯 **Enhanced AI workflows** with custom prompts
+
+### **Recent Improvements** ✅
+- [x] 🛡️ **Crash-safe undo/redo** operations
+- [x] 🎨 **Modern AI Quick Actions** panel with grid layout
+- [x] ⚡ **Native networking** (removed Alamofire dependency)
+- [x] 💾 **Persistent user preferences** for UI state
+- [x] 🖱️ **Enhanced hover effects** and smooth animations
+- [x] 📝 **Improved markdown/plaintext** toggle with persistence
 
 ### **Future Vision**
 - [ ] 🤖 **Advanced AI workflows**
@@ -251,9 +317,11 @@ Remi is open source software licensed under the **MIT License**. See [LICENSE](L
 
 Built with ❤️ using:
 - [Groq](https://groq.com) - Lightning-fast AI inference
-- [Alamofire](https://github.com/Alamofire/Alamofire) - Swift networking
 - [HotKey](https://github.com/soffes/HotKey) - Global shortcuts
 - [Swift](https://swift.org) & [SwiftUI](https://developer.apple.com/swiftui/) - Apple's modern development stack
+- [LaunchAtLogin](https://github.com/sindresorhus/LaunchAtLogin) - Launch at login functionality
+
+**Special thanks to the Swift community** for excellent libraries and continuous innovation in macOS development.
 
 ---
 
