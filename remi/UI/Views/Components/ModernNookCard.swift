@@ -78,34 +78,21 @@ struct ModernNookCard: View {
                             
                             Spacer()
                             
-                            // Edit button (always reserve space to prevent shifting)
+                            // Edit button moved to rightmost position for better visibility
                             if onEdit != nil {
                                 Button(action: { showingEditSheet = true }) {
                                     Image(systemName: "pencil")
-                                        .font(.system(size: 10, weight: .medium))
+                                        .font(.system(size: 11, weight: .medium))
                                         .foregroundColor(theme.textSecondary)
-                                        .padding(4)
+                                        .padding(6)
                                         .background(
                                             Circle()
-                                                .fill(theme.backgroundSecondary)
+                                                .fill(theme.backgroundSecondary.opacity(0.8))
                                         )
                                 }
                                 .buttonStyle(.plain)
                                 .opacity(isHovering ? 1.0 : 0.0)
                                 .accessibilityLabel("Edit nook")
-                            }
-                            
-                            // Task count badge
-                            if taskCount > 0 {
-                                Text("\(taskCount)")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(theme.textSecondary)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(
-                                        Capsule()
-                                            .fill(theme.textSecondary.opacity(0.15))
-                                    )
                             }
                         }
                         

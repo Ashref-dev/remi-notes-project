@@ -122,6 +122,21 @@ struct SettingsView: View {
                                     SettingsRow(theme: theme, title: "Global Hotkey", subtitle: "Keyboard shortcut to show/hide Remi") {
                                         HotkeyRecorderView(key: $settings.hotkeyKey, modifiers: $settings.hotkeyModifiers)
                                     }
+                                    
+                                    Divider()
+                                        .background(theme.textSecondary.opacity(0.2))
+                                    
+                                    SettingsRow(theme: theme, title: "Nook Hotkeys", subtitle: "Quick access to nooks using number keys") {
+                                        Toggle("", isOn: $settings.enableNookHotkeys)
+                                            .toggleStyle(SwitchToggleStyle())
+                                    }
+                                    
+                                    if settings.enableNookHotkeys {
+                                        SettingsRow(theme: theme, title: "Nook Hotkey Modifiers", subtitle: "Modifiers + 1-9 to select nooks") {
+                                            HotkeyRecorderView(key: .constant(.one), modifiers: $settings.nookHotkeyModifiers)
+                                                .help("Example: ⌘⇧1 to select first nook")
+                                        }
+                                    }
                                 }
                             }
                             

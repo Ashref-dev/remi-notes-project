@@ -4,6 +4,10 @@ import LaunchAtLogin
 import HotKey
 import AppKit
 
+extension Notification.Name {
+    static let selectNookByIndex = Notification.Name("selectNookByIndex")
+}
+
 class SettingsManager: ObservableObject {
     static let shared = SettingsManager()
 
@@ -42,6 +46,24 @@ class SettingsManager: ObservableObject {
             saveHotkey()
         }
     }
+    
+    @Published var nookHotkeyModifiers: NSEvent.ModifierFlags {
+        didSet {
+            UserDefaults.standard.set(nookHotkeyModifiers.rawValue, forKey: "nookHotkeyModifiers")
+            saveNookHotkeys()
+        }
+    }
+    
+    @Published var enableNookHotkeys: Bool {
+        didSet {
+            UserDefaults.standard.set(enableNookHotkeys, forKey: "enableNookHotkeys")
+            if enableNookHotkeys {
+                saveNookHotkeys()
+            } else {
+                HotkeyManager.shared.unregisterNookHotkeys()
+            }
+        }
+    }
 
     private init() {
         self.groqAPIKey = UserDefaults.standard.string(forKey: "groqAPIKey") ?? ""
@@ -52,6 +74,11 @@ class SettingsManager: ObservableObject {
         let (key, modifiers) = Self.loadHotkey()
         self.hotkeyKey = key
         self.hotkeyModifiers = modifiers
+        
+        // Load nook hotkey settings
+        let nookModifiersRawValue = UserDefaults.standard.integer(forKey: "nookHotkeyModifiers")
+        self.nookHotkeyModifiers = nookModifiersRawValue == 0 ? [.command, .shift] : NSEvent.ModifierFlags(rawValue: UInt(nookModifiersRawValue))
+        self.enableNookHotkeys = UserDefaults.standard.bool(forKey: "enableNookHotkeys")
     }
     
     private static func loadHotkey() -> (Key, NSEvent.ModifierFlags) {
@@ -75,6 +102,14 @@ class SettingsManager: ObservableObject {
         
         let newHotkey = HotKey(key: hotkeyKey, modifiers: hotkeyModifiers)
         HotkeyManager.shared.update(hotkey: newHotkey)
+    }
+    
+    private func saveNookHotkeys() {
+        if enableNookHotkeys {
+            HotkeyManager.shared.registerCustomNookHotkeys(modifiers: nookHotkeyModifiers) { nookIndex in
+                NotificationCenter.default.post(name: .selectNookByIndex, object: nookIndex)
+            }
+        }
     }
     
     func lastViewedNookURL() -> URL? {

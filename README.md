@@ -43,6 +43,8 @@ Remi transforms your macOS menu bar into a **supercharged knowledge management s
 
 ### 🚀 **Instant Access**
 - **Global hotkey** (⌘+Shift+R) - summon Remi from anywhere
+- **Nook hotkeys** (⌘+Shift+1-9) - instantly jump to any nook
+- **Tab navigation** - cycle through nooks with Tab/Shift+Tab
 - **Menu bar integration** - always one click away
 - **Lightning-fast search** through all your nooks
 
@@ -179,6 +181,8 @@ Streamlined architecture for better performance:
 - Use **descriptive nook names** like "Docker Commands" or "AI Prompts"
 - **Organize by context** rather than by type
 - **Keep frequently used items** at the top of each nook
+- **Use nook hotkeys** (⌘+Shift+1-9) for instant access to your top 9 nooks
+- **Tab through nooks** to quickly browse your collection
 - **Use the AI Quick Actions** for instant content improvement
 - **Enable markdown preview** for rich text formatting
 - **Leverage undo/redo** (⌘Z/⌘⇧Z) for safe editing
@@ -191,6 +195,12 @@ Streamlined architecture for better performance:
 Customize your hotkey in Settings:
 - Default: `⌘ + Shift + R`
 - Choose any combination that works for your workflow
+
+### **Nook Hotkeys**
+Quick access to your first 9 nooks:
+- Default: `⌘ + Shift + [1-9]`
+- Customizable modifiers in Settings
+- Tab/Shift+Tab to cycle through nooks when app is focused
 
 ### **AI Integration**
 Add your Groq API key for intelligent features:
@@ -284,7 +294,11 @@ open remi.xcodeproj
 - [ ] 🎯 **Enhanced AI workflows** with custom prompts
 
 ### **Recent Improvements** ✅
-- [x] 🛡️ **Crash-safe undo/redo** operations
+- [x] � **Nook hotkeys** (⌘+Shift+1-9) for instant access to specific nooks
+- [x] ⌨️ **Tab navigation** through nooks with Tab/Shift+Tab
+- [x] 🎨 **Improved nook cards** with better visibility and simplified design
+- [x] ✏️ **Repositioned edit button** for better accessibility
+- [x] �🛡️ **Crash-safe undo/redo** operations
 - [x] 🎨 **Modern AI Quick Actions** panel with grid layout
 - [x] ⚡ **Native networking** (removed Alamofire dependency)
 - [x] 💾 **Persistent user preferences** for UI state

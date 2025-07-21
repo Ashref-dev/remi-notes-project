@@ -65,6 +65,32 @@ struct SidebarView: View {
                 isSearchFocused = true
             }
         }
+        .onChange(of: viewModel.selectedNook) { newValue in
+            selectedNook = newValue
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .selectNookByIndex)) { notification in
+            if let index = notification.object as? Int {
+                viewModel.selectNookByIndex(index)
+            }
+        }
+        .focusable()
+        .focusEffectDisabled()
+        .onKeyPress { keyPress in
+            if isSearchFocused {
+                return .ignored
+            }
+            
+            if keyPress.key == .tab {
+                if keyPress.modifiers.contains(.shift) {
+                    viewModel.selectPreviousNook()
+                } else {
+                    viewModel.selectNextNook()
+                }
+                return .handled
+            }
+            
+            return .ignored
+        }
     }
     
     private func handleSearchSubmit() {
@@ -448,21 +474,21 @@ private struct SettingsButtonView: View {
             }
             .padding(AppTheme.Spacing.medium)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
+                    .fill(isHovering ? theme.backgroundSecondary.opacity(0.5) : Color.clear)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
+                            .stroke(
+                                isHovering ? theme.border.opacity(0.8) : theme.border.opacity(0.5),
+                                lineWidth: 1
+                            )
+                    )
+            )
             .animation(.easeInOut(duration: 0.2), value: isHovering)
         }
         .buttonStyle(.plain)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
-                .fill(isHovering ? theme.backgroundSecondary.opacity(0.5) : Color.clear)
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
-                        .stroke(
-                            isHovering ? theme.border.opacity(0.8) : theme.border.opacity(0.5),
-                            lineWidth: 1
-                        )
-                )
-                .animation(.easeInOut(duration: 0.2), value: isHovering)
-        )
+        .focusable(false)
         .padding(.horizontal, AppTheme.Spacing.large)
         .padding(.top, AppTheme.Spacing.medium)
         .padding(.bottom, AppTheme.Spacing.large)
