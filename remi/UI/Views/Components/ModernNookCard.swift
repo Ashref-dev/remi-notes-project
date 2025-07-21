@@ -7,7 +7,6 @@ struct ModernNookCard: View {
     let onEdit: ((Nook) -> Void)?
     
     @State private var isHovering = false
-    @State private var scale: CGFloat = 1.0
     @State private var glowOpacity: Double = 0.0
     @State private var showingEditSheet = false
     @State private var editableNook: Nook
@@ -45,8 +44,6 @@ struct ModernNookCard: View {
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(isSelected ? nook.iconColor.color : nook.iconColor.color.opacity(0.8))
                     }
-                    .scaleEffect(isHovering ? 1.1 : 1.0)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isHovering)
 
                     VStack(alignment: .leading, spacing: AppTheme.Spacing.xsmall) {
                         HStack {
@@ -108,7 +105,6 @@ struct ModernNookCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(cardBackgroundColor(theme: theme))
                 .cornerRadius(AppTheme.CornerRadius.medium)
-                .scaleEffect(scale)
                 .overlay(
                     RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
                         .stroke(
@@ -127,7 +123,6 @@ struct ModernNookCard: View {
             .onHover { hovering in
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isHovering = hovering
-                    scale = hovering ? 1.02 : 1.0
                     glowOpacity = hovering ? 0.3 : 0.0
                 }
             }

@@ -71,16 +71,18 @@ struct SmartSuggestionsView: View {
     
     var body: some View {
         Themed { theme in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(suggestions) { suggestion in
-                        SuggestionCard(suggestion: suggestion, theme: theme) {
-                            onSuggestionTap(suggestion.action)
-                        }
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 8),
+                GridItem(.flexible(), spacing: 8)
+            ], spacing: 8) {
+                ForEach(suggestions) { suggestion in
+                    SuggestionCard(suggestion: suggestion, theme: theme) {
+                        onSuggestionTap(suggestion.action)
                     }
                 }
-                .padding(.horizontal, 16)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
     }
 }
@@ -89,44 +91,79 @@ struct SuggestionCard: View {
     let suggestion: SmartSuggestion
     let theme: Theme
     let onTap: () -> Void
+    @State private var isHovered = false
     
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Image(systemName: suggestion.icon)
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(suggestion.color)
+            HStack(spacing: 10) {
+                // Icon with gradient background
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    suggestion.color.opacity(0.1),
+                                    suggestion.color.opacity(0.05)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 32, height: 32)
                     
-                    Spacer()
+                    Image(systemName: suggestion.icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(suggestion.color)
                 }
                 
-                VStack(alignment: .leading, spacing: 4) {
+                // Content
+                VStack(alignment: .leading, spacing: 2) {
                     Text(suggestion.title)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(theme.textPrimary)
                         .lineLimit(1)
                     
                     Text(suggestion.description)
-                        .font(.system(size: 11))
+                        .font(.system(size: 10))
                         .foregroundColor(theme.textSecondary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
+                        .lineLimit(1)
                 }
                 
                 Spacer()
+                
+                // Subtle arrow indicator
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(theme.textSecondary.opacity(0.5))
+                    .scaleEffect(isHovered ? 1.1 : 1.0)
+                    .animation(.easeInOut(duration: 0.2), value: isHovered)
             }
-            .padding(12)
-            .frame(width: 140, height: 80)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 8)
                     .fill(theme.backgroundSecondary)
-                    .stroke(suggestion.color.opacity(0.2), lineWidth: 1)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(
+                                isHovered ? suggestion.color.opacity(0.3) : theme.border.opacity(0.1),
+                                lineWidth: 1
+                            )
+                    )
+                    .shadow(
+                        color: isHovered ? suggestion.color.opacity(0.1) : .clear,
+                        radius: isHovered ? 4 : 0,
+                        x: 0,
+                        y: 2
+                    )
             )
         }
         .buttonStyle(.plain)
-        .scaleEffect(1.0)
-        .animation(.easeInOut(duration: 0.1), value: suggestion.id)
+        .scaleEffect(isHovered ? 1.02 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isHovered)
+        .onHover { hovering in
+            isHovered = hovering
+        }
     }
 }
 

@@ -4,14 +4,18 @@ struct TaskEditorView: View {
     @StateObject private var viewModel: TaskEditorViewModel
     @FocusState private var isInputFocused: Bool
     @State private var textView: NSTextView?
-    @State private var isMarkdownPreviewEnabled = true
+    @State private var isMarkdownPreviewEnabled = UserDefaults.standard.bool(forKey: "isMarkdownPreviewEnabled")
+    @State private var isQuickActionsVisible = false // Quick Actions closed by default
     
     @Environment(\.undoManager) private var undoManager
     @Environment(\.dismiss) private var dismiss
     
     @State private var isAIInputVisible = false
+    
+    let nook: Nook // Keep reference to current nook
 
     init(nook: Nook) {
+        self.nook = nook
         _viewModel = StateObject(wrappedValue: TaskEditorViewModel(nook: nook))
     }
 
@@ -58,23 +62,77 @@ struct TaskEditorView: View {
 
                     Divider()
 
-                    // Smart suggestions bar
+                    // Smart suggestions bar - Modern and Compact
                     VStack(spacing: 0) {
+                        // Header with elegant toggle button
                         HStack {
-                            Text("Quick Actions")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(theme.textSecondary)
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    isQuickActionsVisible.toggle()
+                                }
+                            }) {
+                                HStack(spacing: 8) {
+                                    // Modern icon with subtle background
+                                    ZStack {
+                                        Circle()
+                                            .fill(theme.accent.opacity(0.08))
+                                            .frame(width: 20, height: 20)
+                                        
+                                        Image(systemName: isQuickActionsVisible ? "chevron.down" : "chevron.right")
+                                            .font(.system(size: 9, weight: .semibold))
+                                            .foregroundColor(theme.accent)
+                                    }
+                                    
+                                    Text("AI Quick Actions")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(theme.textPrimary)
+                                    
+                                    // Status indicator
+                                    if isQuickActionsVisible {
+                                        Text("•")
+                                            .font(.system(size: 8))
+                                            .foregroundColor(theme.accent)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .help(isQuickActionsVisible ? "Hide AI Quick Actions" : "Show AI Quick Actions")
+                            
                             Spacer()
+                            
+                            // Subtle count indicator when collapsed
+                            if !isQuickActionsVisible {
+                                Text("4")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(theme.textSecondary.opacity(0.6))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        Capsule()
+                                            .fill(theme.backgroundSecondary)
+                                    )
+                            }
                         }
                         .padding(.horizontal, AppTheme.Spacing.medium)
-                        .padding(.top, 8)
+                        .padding(.vertical, 10)
                         
-                        SmartSuggestionsView { suggestion in
-                            handleAIInput(prompt: suggestion)
+                        // Collapsible content with smooth animations
+                        if isQuickActionsVisible {
+                            SmartSuggestionsView { suggestion in
+                                handleAIInput(prompt: suggestion)
+                            }
+                            .padding(.horizontal, 4)
+                            .padding(.bottom, 12)
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)).combined(with: .offset(y: -10)),
+                                removal: .opacity.combined(with: .scale(scale: 0.95, anchor: .top))
+                            ))
                         }
-                        .padding(.vertical, 8)
                     }
-                    .background(theme.background)
+                    .background(
+                        RoundedRectangle(cornerRadius: 0)
+                            .fill(theme.background)
+                    )
                     
                     Divider()
 
@@ -95,12 +153,20 @@ struct TaskEditorView: View {
                 viewModel.undoManager = self.undoManager
             }
             .animation(.easeInOut, value: isAIInputVisible)
-            // Add keyboard shortcuts for undo/redo
+            // Enhanced keyboard shortcuts and state monitoring for undo/redo
             .onReceive(NotificationCenter.default.publisher(for: .init("UndoRequest"))) { _ in
-                undoManager?.undo()
+                if undoManager?.canUndo == true {
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        undoManager?.undo()
+                    }
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: .init("RedoRequest"))) { _ in
-                undoManager?.redo()
+                if undoManager?.canRedo == true {
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        undoManager?.redo()
+                    }
+                }
             }
         }
     }
@@ -126,49 +192,6 @@ struct TaskEditorView: View {
             Spacer()
             
             HStack(spacing: 12) {
-                // Undo/Redo buttons
-                HStack(spacing: 8) {
-                    Button(action: { undoManager?.undo() }) {
-                        Image(systemName: "arrow.uturn.backward")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(undoManager?.canUndo == true ? theme.accent : theme.textSecondary.opacity(0.4))
-                            .frame(width: 32, height: 32)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(undoManager?.canUndo == true ? theme.accent.opacity(0.1) : theme.backgroundSecondary.opacity(0.3))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(undoManager?.canUndo == true ? theme.accent.opacity(0.3) : Color.clear, lineWidth: 1)
-                            )
-                            .scaleEffect(undoManager?.canUndo == true ? 1.0 : 0.95)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(undoManager?.canUndo != true)
-                    .help("Undo (⌘Z)")
-                    .animation(.easeInOut(duration: 0.2), value: undoManager?.canUndo)
-                    
-                    Button(action: { undoManager?.redo() }) {
-                        Image(systemName: "arrow.uturn.forward")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(undoManager?.canRedo == true ? theme.accent : theme.textSecondary.opacity(0.4))
-                            .frame(width: 32, height: 32)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(undoManager?.canRedo == true ? theme.accent.opacity(0.1) : theme.backgroundSecondary.opacity(0.3))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(undoManager?.canRedo == true ? theme.accent.opacity(0.3) : Color.clear, lineWidth: 1)
-                            )
-                            .scaleEffect(undoManager?.canRedo == true ? 1.0 : 0.95)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(undoManager?.canRedo != true)
-                    .help("Redo (⌘⇧Z)")
-                    .animation(.easeInOut(duration: 0.2), value: undoManager?.canRedo)
-                }
-                
                 Divider()
                     .frame(height: 20)
                 
@@ -176,6 +199,8 @@ struct TaskEditorView: View {
                 Button(action: { 
                     withAnimation(.easeInOut(duration: 0.3)) {
                         isMarkdownPreviewEnabled.toggle()
+                        // Save preference to UserDefaults
+                        UserDefaults.standard.set(isMarkdownPreviewEnabled, forKey: "isMarkdownPreviewEnabled")
                         // Force immediate update of the text view
                         if let textView = textView {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -248,9 +273,14 @@ struct TaskEditorView: View {
     @ViewBuilder
     private func BottomBar(theme: Theme) -> some View {
         HStack(spacing: 16) {
-            // Undo/Redo buttons
+            // Undo/Redo buttons - Enhanced and crash-safe
             HStack(spacing: 8) {
-                Button(action: { undoManager?.undo() }) {
+                Button(action: { 
+                    guard let undoManager = undoManager, undoManager.canUndo else { return }
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        undoManager.undo()
+                    }
+                }) {
                     Image(systemName: "arrow.uturn.backward")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(undoManager?.canUndo == true ? theme.accent : theme.textSecondary.opacity(0.4))
@@ -267,10 +297,15 @@ struct TaskEditorView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(undoManager?.canUndo != true)
-                .help("Undo")
+                .help("Undo (⌘Z)")
                 .animation(.easeInOut(duration: 0.2), value: undoManager?.canUndo)
                 
-                Button(action: { undoManager?.redo() }) {
+                Button(action: { 
+                    guard let undoManager = undoManager, undoManager.canRedo else { return }
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        undoManager.redo()
+                    }
+                }) {
                     Image(systemName: "arrow.uturn.forward")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(undoManager?.canRedo == true ? theme.accent : theme.textSecondary.opacity(0.4))
@@ -287,7 +322,7 @@ struct TaskEditorView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(undoManager?.canRedo != true)
-                .help("Redo")
+                .help("Redo (⌘⇧Z)")
                 .animation(.easeInOut(duration: 0.2), value: undoManager?.canRedo)
             }
             

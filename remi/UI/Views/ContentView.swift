@@ -71,6 +71,7 @@ struct ThreeColumnWorkspace: View {
                 // Column 2: Editor (Full width for focus)
                 if let nook = selectedNook {
                     TaskEditorView(nook: nook)
+                        .id(nook.id) // Force view recreation when nook changes
                         .background(theme.background)
                 } else {
                     // Empty state

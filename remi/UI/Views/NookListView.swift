@@ -73,8 +73,10 @@ struct NookListView: View {
     private func emptyStateView(theme: Theme) -> some View {
         VStack(spacing: AppTheme.Spacing.medium) {
             Spacer()
-            Image(systemName: "moon.stars.fill")
-                .font(.system(size: 50))
+            Image("AppLogo")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 80, height: 80)
                 .foregroundColor(theme.accent)
             Text("A Quiet Place for Your Thoughts")
                 .font(.title2.weight(.bold))

@@ -9,9 +9,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create the status bar item
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "r.circle.fill", accessibilityDescription: "Remi")
+            button.image = NSImage(named: "MenubarIcon")
+            button.image?.isTemplate = true // Enables automatic dark/light mode tinting
             button.action = #selector(togglePopover)
         }
 

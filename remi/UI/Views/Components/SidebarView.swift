@@ -88,8 +88,10 @@ private struct SidebarHeaderView: View {
     
     var body: some View {
         HStack {
-            Image(systemName: "moon.stars.fill")
-                .font(.title2)
+            Image("AppLogo")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 32, height: 32)
                 .foregroundColor(theme.accent)
             Text("Remi")
                 .font(AppTheme.Fonts.title2)
@@ -336,8 +338,10 @@ private struct EmptyStateView: View {
         VStack(spacing: AppTheme.Spacing.medium) {
             Spacer()
             
-            Image(systemName: "moon.stars.fill")
-                .font(.system(size: 40))
+            Image("AppLogo")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 64, height: 64)
                 .foregroundColor(theme.accent)
                 .scaleEffect(iconScale)
                 .onAppear {
@@ -443,6 +447,7 @@ private struct SettingsButtonView: View {
                     .foregroundColor(theme.textSecondary.opacity(isHovering ? 0.8 : 0.6))
             }
             .padding(AppTheme.Spacing.medium)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .animation(.easeInOut(duration: 0.2), value: isHovering)
         }
         .buttonStyle(.plain)
@@ -459,6 +464,7 @@ private struct SettingsButtonView: View {
                 .animation(.easeInOut(duration: 0.2), value: isHovering)
         )
         .padding(.horizontal, AppTheme.Spacing.large)
+        .padding(.top, AppTheme.Spacing.medium)
         .padding(.bottom, AppTheme.Spacing.large)
         .onHover { hovering in
             isHovering = hovering
