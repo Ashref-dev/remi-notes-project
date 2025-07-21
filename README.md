@@ -37,9 +37,9 @@ Remi transforms your macOS menu bar into a **supercharged knowledge management s
   <em>Your knowledge, instantly accessible from anywhere on macOS</em>
 </p>
 
----
+--- 
 
-## ✨ Key Features
+## ✨ Key Features 
 
 ### 🚀 **Instant Access**
 - **Global hotkey** (⌘+Shift+R) - summon Remi from anywhere
@@ -317,7 +317,7 @@ open remi.xcodeproj
 
 - **GitHub Issues**: [Report bugs or request features](https://github.com/Ashref-dev/remi-notes-project/issues)
 - **Discussions**: [Join the community](https://github.com/Ashref-dev/remi-notes-project/discussions)
-- **Email**: Send feedback to `support@remi-app.com`
+- **Email**: Send feedback to `ashrefbenabdallah@icloud.com`
 
 ---
 
