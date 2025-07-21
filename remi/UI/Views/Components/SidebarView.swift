@@ -204,7 +204,7 @@ private struct AddNookButtonView: View {
                         .foregroundColor(theme.accent)
                         .scaleEffect(isHovering ? 1.1 : 1.0)
                 }
-                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovering)
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isHovering)
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Add New Nook")
@@ -220,22 +220,22 @@ private struct AddNookButtonView: View {
                 Image(systemName: "arrow.right")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(theme.textSecondary.opacity(isHovering ? 0.8 : 0.6))
-                    .animation(.easeInOut(duration: 0.2), value: isHovering)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isHovering)
             }
             .padding(AppTheme.Spacing.medium)
             .scaleEffect(scale)
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
-                    .fill(isHovering ? theme.backgroundSecondary : theme.background)
+                    .fill(isHovering ? Color(NSColor.controlBackgroundColor).opacity(0.8) : Color.white)
                     .overlay(
                         RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
                             .stroke(theme.accent.opacity(isHovering ? 0.3 : 0.2), lineWidth: 1)
                     )
                     .shadow(
-                        color: theme.accent.opacity(isHovering ? 0.1 : 0),
-                        radius: isHovering ? 8 : 0,
+                        color: theme.accent.opacity(isHovering ? 0.15 : 0.05),
+                        radius: isHovering ? 8 : 4,
                         x: 0,
-                        y: isHovering ? 2 : 0
+                        y: isHovering ? 3 : 2
                     )
             )
         }
@@ -243,7 +243,7 @@ private struct AddNookButtonView: View {
         .padding(.horizontal, AppTheme.Spacing.large)
         .padding(.top, AppTheme.Spacing.medium)
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 isHovering = hovering
                 scale = hovering ? 1.02 : 1.0
             }

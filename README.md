@@ -1,7 +1,7 @@
-# ⚡ Remi - Your AI-Powered Knowledge Hub
+#  Remi - Your AI-Powered Knowledge Hub
 
 <p align="center">
-  <img src="Documentation/logo_placeholder.png" alt="Remi App Icon" width="120"/>
+  <img src="cover.png" alt="Remi App Icon" />
 </p>
 
 <p align="center">
