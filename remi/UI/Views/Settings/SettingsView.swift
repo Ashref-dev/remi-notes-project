@@ -50,12 +50,42 @@ struct SettingsView: View {
                     Header(theme: theme)
                     
                     ScrollView {
-                        VStack(spacing: 24) {
+                        VStack(spacing: 20) {
                             // System Status Card
-                            SettingsCard(theme: theme, title: "System Status", icon: "chart.line.uptrend.xyaxis") {
+                            VStack(alignment: .leading, spacing: 16) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "chart.line.uptrend.xyaxis")
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(theme.accent)
+                                        .frame(width: 24, height: 24)
+                                    
+                                    Text("System Status")
+                                        .font(.title3)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(theme.textPrimary)
+                                    
+                                    Spacer()
+                                    
+                                    Button(action: {
+                                        Task {
+                                            await HealthCheckService.shared.performHealthCheck()
+                                        }
+                                    }) {
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(theme.accent)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("Refresh Status")
+                                }
+                                
                                 SystemStatusView()
-                                    .frame(height: 200)
+                                    .frame(maxWidth: .infinity)
                             }
+                            .padding(24)
+                            .background(theme.backgroundSecondary)
+                            .cornerRadius(16)
+                            .shadow(color: Color.black.opacity(0.03), radius: 12, x: 0, y: 4)
                             
                             // API Configuration Card
                             SettingsCard(theme: theme, title: "API Configuration", icon: "key.fill") {
@@ -110,7 +140,7 @@ struct SettingsView: View {
                             
                             // General Settings Card
                             SettingsCard(theme: theme, title: "General", icon: "gearshape.fill") {
-                                VStack(spacing: 20) {
+                                VStack(spacing: 16) {
                                     SettingsRow(theme: theme, title: "Launch at Login", subtitle: "Start Remi automatically when you log in") {
                                         Toggle("", isOn: $settings.launchAtLogin)
                                             .toggleStyle(SwitchToggleStyle())
@@ -142,16 +172,18 @@ struct SettingsView: View {
                             
                             // AI Personalization Card
                             SettingsCard(theme: theme, title: "AI Personalization", icon: "brain.head.profile") {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text("About You")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(theme.textPrimary)
-                                    
-                                    Text("Provide context about yourself for more tailored AI responses.")
-                                        .font(.caption)
-                                        .foregroundColor(theme.textSecondary)
-                                        .fixedSize(horizontal: false, vertical: true)
+                                VStack(alignment: .leading, spacing: 16) {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("About You")
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(theme.textPrimary)
+                                        
+                                        Text("Provide context about yourself for more tailored AI responses.")
+                                            .font(.caption)
+                                            .foregroundColor(theme.textSecondary)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
                                     
                                     ZStack(alignment: .topLeading) {
                                         if settings.aboutMeContext.isEmpty {
@@ -177,63 +209,80 @@ struct SettingsView: View {
                             
                             // About Section
                             SettingsCard(theme: theme, title: "About Remi", icon: "heart.fill") {
-                                VStack(alignment: .leading, spacing: 16) {
+                                VStack(alignment: .leading, spacing: 20) {
                                     // App Information
-                                    VStack(alignment: .leading, spacing: 8) {
+                                    VStack(alignment: .leading, spacing: 12) {
                                         Text("App Information")
                                             .font(.subheadline)
-                                            .fontWeight(.medium)
+                                            .fontWeight(.semibold)
                                             .foregroundColor(theme.textPrimary)
                                         
-                                        HStack {
-                                            Text("Version:")
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            HStack {
+                                                Text("Version:")
+                                                    .font(.body)
+                                                    .foregroundColor(theme.textSecondary)
+                                                Spacer()
+                                                Text("1.0.1")
+                                                    .font(.body)
+                                                    .fontWeight(.semibold)
+                                                    .foregroundColor(theme.textPrimary)
+                                            }
+                                            
+                                            Text("A simple, elegant note-taking app designed for organizing your thoughts and ideas with the power of AI.")
                                                 .font(.body)
                                                 .foregroundColor(theme.textSecondary)
-                                            Text("1.0.1")
-                                                .font(.body)
-                                                .fontWeight(.medium)
-                                                .foregroundColor(theme.textPrimary)
+                                                .fixedSize(horizontal: false, vertical: true)
                                         }
-                                        
-                                        Text("A simple, elegant note-taking app designed for organizing your thoughts and ideas.")
-                                            .font(.caption)
-                                            .foregroundColor(theme.textSecondary)
-                                            .fixedSize(horizontal: false, vertical: true)
                                     }
                                     
                                     Divider()
                                         .background(theme.textSecondary.opacity(0.2))
                                     
                                     // Developer Credit
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        HStack(spacing: 8) {
-                                            Image(systemName: "heart.fill")
-                                                .font(.system(size: 16))
-                                                .foregroundColor(.red)
-                                            
-                                            Text("Made by ashref.tn with ❤️ from Tunisia")
-                                                .font(.body)
-                                                .fontWeight(.medium)
-                                                .foregroundColor(theme.textPrimary)
-                                        }
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        Text("Made with ❤️")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(theme.textPrimary)
                                         
-                                        // Website Link
-                                        Button(action: {
-                                            if let url = URL(string: "https://ashref.tn") {
-                                                NSWorkspace.shared.open(url)
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            HStack(spacing: 12) {
+                                                Image(systemName: "heart.fill")
+                                                    .font(.system(size: 16))
+                                                    .foregroundColor(.red)
+                                                
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text("Created by ashref.tn")
+                                                        .font(.body)
+                                                        .fontWeight(.medium)
+                                                        .foregroundColor(theme.textPrimary)
+                                                    
+                                                    Text("With love from Tunisia 🇹🇳")
+                                                        .font(.subheadline)
+                                                        .foregroundColor(theme.textSecondary)
+                                                }
                                             }
-                                        }) {
-                                            HStack(spacing: 6) {
-                                                Image(systemName: "link")
-                                                    .font(.system(size: 12))
-                                                Text("Visit ashref.tn")
-                                                    .font(.caption)
-                                                    .underline()
+                                            
+                                            // Website Link
+                                            Button(action: {
+                                                if let url = URL(string: "https://ashref.tn") {
+                                                    NSWorkspace.shared.open(url)
+                                                }
+                                            }) {
+                                                HStack(spacing: 8) {
+                                                    Image(systemName: "globe")
+                                                        .font(.system(size: 14))
+                                                    Text("Visit ashref.tn")
+                                                        .font(.body)
+                                                        .underline()
+                                                }
+                                                .foregroundColor(theme.accent)
+                                                .padding(.top, 4)
                                             }
-                                            .foregroundColor(theme.accent)
+                                            .buttonStyle(.plain)
+                                            .help("Open developer website")
                                         }
-                                        .buttonStyle(.plain)
-                                        .help("Open developer website")
                                     }
                                 }
                             }
@@ -243,9 +292,9 @@ struct SettingsView: View {
                     }
                     .background(theme.background)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+               
             }
-            .frame(width: 650, height: 750)
+           
         }
         .onAppear {
             validateAPIKey()
@@ -267,30 +316,30 @@ struct SettingsView: View {
                     .frame(width: 24, height: 24)
                 
                 Text(title)
-                    .font(.headline)
+                    .font(.title3)
                     .fontWeight(.semibold)
                     .foregroundColor(theme.textPrimary)
             }
             
             content()
         }
-        .padding(20)
+        .padding(24)
         .background(theme.backgroundSecondary)
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.03), radius: 12, x: 0, y: 4)
     }
     
     @ViewBuilder
     private func SettingsRow<Content: View>(theme: Theme, title: String, subtitle: String, @ViewBuilder content: () -> Content) -> some View {
         HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.subheadline)
+                    .font(.body)
                     .fontWeight(.medium)
                     .foregroundColor(theme.textPrimary)
                 
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundColor(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -299,6 +348,7 @@ struct SettingsView: View {
             
             content()
         }
+        .padding(.vertical, 2)
     }
     
     private func validateAPIKey() {

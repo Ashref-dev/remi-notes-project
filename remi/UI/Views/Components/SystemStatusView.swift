@@ -10,39 +10,19 @@ struct SystemStatusView: View {
     
     var body: some View {
         Themed { theme in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Header
-                    HStack {
-                        Text("System Status")
-                            .font(.headline)
-                            .foregroundColor(theme.textPrimary)
-                        
-                        Spacer()
-                        
-                        Button(action: refreshStatus) {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(theme.accent)
-                                .rotationEffect(.degrees(isRefreshing ? 360 : 0))
-                                .animation(.linear(duration: 1).repeatCount(isRefreshing ? 5 : 0, autoreverses: false), value: isRefreshing)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isRefreshing)
-                    }
-                    
-                    // Overall Status
-                    StatusCard(
-                        title: "Overall Health",
-                        status: healthService.overallHealth.description,
-                        statusColor: healthService.overallHealth.color,
-                        description: healthService.healthSummary,
-                        icon: "heart.fill",
-                        theme: theme
-                    )
-                    
-                    // Individual Components
-                    VStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 16) {
+                // Overall Status
+                StatusCard(
+                    title: "Overall Health",
+                    status: healthService.overallHealth.description,
+                    statusColor: healthService.overallHealth.color,
+                    description: healthService.healthSummary,
+                    icon: "heart.fill",
+                    theme: theme
+                )
+                
+                // Individual Components
+                VStack(spacing: 8) {
                         // Network Status
                         StatusRow(
                             title: "Network Connection",
@@ -100,10 +80,6 @@ struct SystemStatusView: View {
                             Spacer()
                         }
                     }
-                    
-                    Spacer()
-                }
-                .padding()
             }
         }
         .onAppear {
@@ -136,7 +112,9 @@ struct SystemStatusView: View {
         Task {
             await healthService.performHealthCheck()
             try? await Task.sleep(nanoseconds: 500_000_000) // Brief delay for UX
-            isRefreshing = false
+            await MainActor.run {
+                isRefreshing = false
+            }
         }
     }
     

@@ -3,15 +3,12 @@ import SwiftUI
 struct TaskEditorView: View {
     @StateObject private var viewModel: TaskEditorViewModel
     @FocusState private var isInputFocused: Bool
-    @State private var textView: NSTextView?
     @State private var isMarkdownPreviewEnabled = UserDefaults.standard.bool(forKey: "isMarkdownPreviewEnabled")
     @State private var isQuickActionsVisible = false // Quick Actions closed by default
-    
-    @Environment(\.undoManager) private var undoManager
     @Environment(\.dismiss) private var dismiss
     
     @State private var isAIInputVisible = false
-    
+
     let nook: Nook // Keep reference to current nook
 
     init(nook: Nook) {
@@ -30,8 +27,7 @@ struct TaskEditorView: View {
                         LiveMarkdownEditor(
                             text: $viewModel.taskContent, 
                             theme: theme, 
-                            isMarkdownPreviewEnabled: isMarkdownPreviewEnabled,
-                            textViewBinding: { self.textView = $0 }
+                            isMarkdownPreviewEnabled: isMarkdownPreviewEnabled
                         )
                         .id("editor-\(isMarkdownPreviewEnabled ? "markdown" : "plain")")
                         .opacity(viewModel.isProcessingAI ? 0.6 : 1.0)
@@ -60,28 +56,30 @@ struct TaskEditorView: View {
                         }
                     }
                     .overlay(alignment: .topTrailing) {
-                        // Compact save confirmation indicator in top right
-                        if viewModel.showSaveConfirmation {
-                            HStack(spacing: 6) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.green)
-                                Text("Saved")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(theme.textPrimary)
+                        VStack(alignment: .trailing, spacing: 8) {
+                            // Compact save confirmation indicator
+                            if viewModel.showSaveConfirmation {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.green)
+                                    Text("Saved")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(theme.textPrimary)
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(theme.background)
+                                        .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
+                                )
+                                .transition(.scale(scale: 0.9).combined(with: .opacity))
                             }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(theme.background)
-                                    .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
-                            )
-                            .padding(.top, 12)
-                            .padding(.trailing, 16)
-                            .transition(.scale(scale: 0.9).combined(with: .opacity))
-                            .zIndex(4)
                         }
+                        .padding(.top, 12)
+                        .padding(.trailing, 16)
+                        .zIndex(4)
                     }
 
                     Divider()
@@ -173,29 +171,11 @@ struct TaskEditorView: View {
                 }
             }
             .background(theme.background)
-            .onAppear {
-                viewModel.undoManager = self.undoManager
-            }
             .onDisappear {
                 // Force save when view disappears
                 viewModel.forceSave()
             }
             .animation(.easeInOut, value: isAIInputVisible)
-            // Enhanced keyboard shortcuts and state monitoring for undo/redo
-            .onReceive(NotificationCenter.default.publisher(for: .init("UndoRequest"))) { _ in
-                if undoManager?.canUndo == true {
-                    withAnimation(.easeInOut(duration: 0.1)) {
-                        undoManager?.undo()
-                    }
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .init("RedoRequest"))) { _ in
-                if undoManager?.canRedo == true {
-                    withAnimation(.easeInOut(duration: 0.1)) {
-                        undoManager?.redo()
-                    }
-                }
-            }
         }
     }
     
@@ -229,12 +209,6 @@ struct TaskEditorView: View {
                         isMarkdownPreviewEnabled.toggle()
                         // Save preference to UserDefaults
                         UserDefaults.standard.set(isMarkdownPreviewEnabled, forKey: "isMarkdownPreviewEnabled")
-                        // Force immediate update of the text view
-                        if let textView = textView {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                textView.needsDisplay = true
-                            }
-                        }
                     }
                 }) {
                     HStack(spacing: 6) {
@@ -301,58 +275,36 @@ struct TaskEditorView: View {
     @ViewBuilder
     private func BottomBar(theme: Theme) -> some View {
         HStack(spacing: 16) {
-            // Undo/Redo buttons - Enhanced and crash-safe
-            HStack(spacing: 8) {
-                Button(action: { 
-                    guard let undoManager = undoManager, undoManager.canUndo else { return }
-                    withAnimation(.easeInOut(duration: 0.1)) {
-                        undoManager.undo()
-                    }
-                }) {
+            // Elegant undo/redo hints
+            HStack(spacing: 16) {
+                // Undo hint
+                HStack(spacing: 4) {
                     Image(systemName: "arrow.uturn.backward")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(undoManager?.canUndo == true ? theme.accent : theme.textSecondary.opacity(0.4))
-                        .frame(width: 28, height: 28)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(undoManager?.canUndo == true ? theme.accent.opacity(0.1) : theme.background.opacity(0.3))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(undoManager?.canUndo == true ? theme.accent.opacity(0.3) : theme.border.opacity(0.2), lineWidth: 0.5)
-                        )
-                        .scaleEffect(undoManager?.canUndo == true ? 1.0 : 0.95)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(theme.textSecondary.opacity(0.7))
+                    
+                    Text("⌘Z")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundColor(theme.textSecondary.opacity(0.8))
                 }
-                .buttonStyle(.plain)
-                .disabled(undoManager?.canUndo != true)
-                .help("Undo (⌘Z)")
-                .animation(.easeInOut(duration: 0.2), value: undoManager?.canUndo)
                 
-                Button(action: { 
-                    guard let undoManager = undoManager, undoManager.canRedo else { return }
-                    withAnimation(.easeInOut(duration: 0.1)) {
-                        undoManager.redo()
-                    }
-                }) {
+                // Redo hint
+                HStack(spacing: 4) {
                     Image(systemName: "arrow.uturn.forward")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(undoManager?.canRedo == true ? theme.accent : theme.textSecondary.opacity(0.4))
-                        .frame(width: 28, height: 28)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(undoManager?.canRedo == true ? theme.accent.opacity(0.1) : theme.background.opacity(0.3))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(undoManager?.canRedo == true ? theme.accent.opacity(0.3) : theme.border.opacity(0.2), lineWidth: 0.5)
-                        )
-                        .scaleEffect(undoManager?.canRedo == true ? 1.0 : 0.95)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(theme.textSecondary.opacity(0.7))
+                    
+                    Text("⌘⇧Z")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundColor(theme.textSecondary.opacity(0.8))
                 }
-                .buttonStyle(.plain)
-                .disabled(undoManager?.canRedo != true)
-                .help("Redo (⌘⇧Z)")
-                .animation(.easeInOut(duration: 0.2), value: undoManager?.canRedo)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(theme.backgroundSecondary.opacity(0.6))
+            )
             
             Spacer()
             

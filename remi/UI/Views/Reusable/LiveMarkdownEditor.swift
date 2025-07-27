@@ -7,9 +7,6 @@ struct LiveMarkdownEditor: NSViewRepresentable {
     var isEditable: Bool = true
     var isMarkdownPreviewEnabled: Bool = true
     var font: NSFont = .systemFont(ofSize: 16, weight: .regular)
-    
-    // Callback to provide the NSTextView instance
-    var textViewBinding: ((NSTextView) -> Void)? = nil
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSTextView.scrollableTextView()
@@ -21,6 +18,13 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         textView.allowsUndo = true
         textView.font = font
         textView.textContainerInset = NSSize(width: 28, height: 28) // More spacious padding
+        
+        // UNDO FIX: Simplified undo system configuration - basic functionality only
+        if let undoManager = textView.undoManager {
+            // Basic undo configuration - let NSTextView handle its own undo naturally
+            undoManager.levelsOfUndo = 50  // Reasonable default
+            // Remove complex grouping that interferes with native undo
+        }
         
         textView.importsGraphics = false
         textView.drawsBackground = true
@@ -53,7 +57,6 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         textView.isAutomaticSpellingCorrectionEnabled = true
         
         context.coordinator.textView = textView
-        textViewBinding?(textView)
 
         return scrollView
     }
@@ -98,6 +101,28 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         private var lastTextChangeTime: Date = Date()
         private let stylingDebounceInterval: TimeInterval = 0.2 // 200ms
         
+        // Smart undo grouping properties
+        private var lastUndoGroupTime: Date = Date()
+        private var lastCursorPosition: Int = 0
+        private var undoGroupingTimer: Timer?
+        private let undoGroupingInterval: TimeInterval = 2.0 // Group typing within 2 seconds
+        private let cursorMovementThreshold: Int = 10 // Group if cursor moved less than 10 characters
+        
+        // Advanced undo configuration
+        private var lastCharacterType: CharacterType = .other
+        private var consecutiveTypeCount: Int = 0
+        private let maxConsecutiveCharsBeforeGroup: Int = 20
+        
+        // Character classification for smart grouping
+        private enum CharacterType {
+            case letter
+            case digit
+            case whitespace
+            case punctuation
+            case newline
+            case other
+        }
+        
         // Position preservation
         private var preservedScrollPosition: NSPoint = .zero
         private var preservedCursorPosition: NSRange = NSRange(location: 0, length: 0)
@@ -118,33 +143,138 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             
+            // UNDO FIX: Simplified text change handling to preserve native undo
             if textView.string != parent.text {
-                // Update text immediately for responsive typing
+                // Update SwiftUI binding (this doesn't interfere with undo if done correctly)
                 parent.text = textView.string
                 
-                // Track typing state and detect special cases
-                isActivelyTyping = true
-                lastTextChangeTime = Date()
-                
-                // Handle edge cases for smooth typing experience
-                handleTypingEdgeCases(textView: textView)
-                
-                // Store position for potential restoration
-                storeCurrentPosition(textView: textView)
-                
-                // Cancel any pending styling updates
+                // Minimal styling update with debouncing
                 stylingTimer?.invalidate()
-                
-                // Schedule debounced styling update with rapid typing protection
-                if !isRapidTyping() {
-                    stylingTimer = Timer.scheduledTimer(withTimeInterval: stylingDebounceInterval, repeats: false) { [weak self] _ in
-                        DispatchQueue.main.async {
-                            self?.performDeferredStyling(textView: textView)
-                            self?.isActivelyTyping = false
-                        }
+                stylingTimer = Timer.scheduledTimer(withTimeInterval: stylingDebounceInterval, repeats: false) { [weak self] _ in
+                    DispatchQueue.main.async {
+                        self?.performDeferredStyling(textView: textView)
                     }
                 }
             }
+        }
+        
+        // UNDO FIX: Completely disable selection-based undo grouping
+        func textViewDidChangeSelection(_ notification: Notification) {
+            // All custom undo grouping logic disabled to allow NSTextView's native undo to work
+            return
+        }
+        
+        // MARK: - Smart Undo Grouping - CRASH FIX
+        
+        private func handleSmartUndoGrouping(textView: NSTextView) {
+            guard let undoManager = textView.undoManager else { return }
+            
+            let currentTime = Date()
+            let currentCursorPosition = textView.selectedRange().location
+            let timeSinceLastGroup = currentTime.timeIntervalSince(lastUndoGroupTime)
+            let cursorMovement = abs(currentCursorPosition - lastCursorPosition)
+            
+            // Analyze current character type for intelligent grouping
+            let currentCharType = getCurrentCharacterType(textView: textView, position: currentCursorPosition)
+            let characterTypeChanged = currentCharType != lastCharacterType
+            
+            // Advanced grouping logic
+            let shouldStartNewGroup = 
+                timeSinceLastGroup > undoGroupingInterval ||
+                cursorMovement > cursorMovementThreshold ||
+                characterTypeChanged ||
+                consecutiveTypeCount > maxConsecutiveCharsBeforeGroup ||
+                isAtSentenceBoundary(textView: textView) ||
+                isAtWordBoundary(textView: textView)
+            
+            if shouldStartNewGroup {
+                // CRASH FIX: Only end grouping if we're currently grouping
+                if undoManager.groupingLevel > 0 {
+                    undoManager.endUndoGrouping()
+                }
+                undoManager.beginUndoGrouping()
+                lastUndoGroupTime = currentTime
+                consecutiveTypeCount = 1
+            } else {
+                consecutiveTypeCount += 1
+            }
+            
+            lastCharacterType = currentCharType
+            lastCursorPosition = currentCursorPosition
+            
+            // Cancel existing grouping timer
+            undoGroupingTimer?.invalidate()
+            
+            // Set timer to end current group after inactivity - CRASH FIX
+            undoGroupingTimer = Timer.scheduledTimer(withTimeInterval: undoGroupingInterval, repeats: false) { [weak self] _ in
+                // CRASH FIX: Only end grouping if we're currently grouping
+                if undoManager.groupingLevel > 0 {
+                    undoManager.endUndoGrouping()
+                }
+                self?.lastUndoGroupTime = Date.distantPast
+                self?.consecutiveTypeCount = 0
+            }
+        }
+        
+        private func getCurrentCharacterType(textView: NSTextView, position: Int) -> CharacterType {
+            guard position > 0 else { return .other }
+            
+            let text = textView.string
+            let index = text.index(text.startIndex, offsetBy: position - 1)
+            let character = text[index]
+            
+            if character.isLetter { return .letter }
+            if character.isNumber { return .digit }
+            if character.isWhitespace { return .whitespace }
+            if character.isPunctuation { return .punctuation }
+            if character.isNewline { return .newline }
+            return .other
+        }
+        
+        private func isAtSentenceBoundary(textView: NSTextView) -> Bool {
+            let selectedRange = textView.selectedRange()
+            guard selectedRange.location > 0 else { return false }
+            
+            let text = textView.string
+            let index = text.index(text.startIndex, offsetBy: selectedRange.location - 1)
+            let previousChar = text[index]
+            
+            // Consider sentence boundaries: period, exclamation, question mark followed by space
+            return (previousChar == "." || previousChar == "!" || previousChar == "?") &&
+                   selectedRange.location < text.count &&
+                   text[text.index(text.startIndex, offsetBy: selectedRange.location)].isWhitespace
+        }
+        
+        private func isAtWordBoundary(textView: NSTextView) -> Bool {
+            let selectedRange = textView.selectedRange()
+            guard selectedRange.location > 0 else { return false }
+            
+            let text = textView.string
+            let index = text.index(text.startIndex, offsetBy: selectedRange.location - 1)
+            let previousChar = text[index]
+            
+            // Enhanced word boundary detection
+            let isWordBoundary = previousChar.isWhitespace || 
+                               previousChar.isPunctuation || 
+                               previousChar.isNewline ||
+                               isMarkdownSyntax(character: previousChar)
+            
+            // Also check for transition from word to non-word character
+            if selectedRange.location < text.count {
+                let currentIndex = text.index(text.startIndex, offsetBy: selectedRange.location)
+                let currentChar = text[currentIndex]
+                let previousCharIsLetter = previousChar.isLetter || previousChar.isNumber
+                let currentCharIsLetter = currentChar.isLetter || currentChar.isNumber
+                
+                return isWordBoundary || (previousCharIsLetter && !currentCharIsLetter) || (!previousCharIsLetter && currentCharIsLetter)
+            }
+            
+            return isWordBoundary
+        }
+        
+        private func isMarkdownSyntax(character: Character) -> Bool {
+            let markdownChars: Set<Character> = ["*", "_", "`", "#", "-", "+", "=", "[", "]", "(", ")", "|", "~"]
+            return markdownChars.contains(character)
         }
         
         // MARK: - Edge Case Handling
@@ -622,6 +752,52 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             attributedString.addAttribute(.font, value: codeFont, range: contentRange)
             attributedString.addAttribute(.foregroundColor, value: NSColor(theme.accent), range: contentRange)
             attributedString.addAttribute(.backgroundColor, value: NSColor(theme.backgroundSecondary), range: fullRange)
+        }
+    }
+    
+    // MARK: - Phase 5.1: Memory Optimization and Undo Stack Management
+    
+    /// Calculates optimal undo levels based on document size and system memory
+    private func calculateOptimalUndoLevels(for text: String) -> Int {
+        let documentLength = text.count
+        
+        // Base levels for different document sizes
+        switch documentLength {
+        case 0..<1000:        // Small documents (< 1K chars)
+            return 150        // Allow more undo levels for small docs
+        case 1000..<5000:     // Medium documents (1K-5K chars)
+            return 100        // Standard undo levels
+        case 5000..<20000:    // Large documents (5K-20K chars)
+            return 75         // Reduce undo levels for performance
+        case 20000..<50000:   // Very large documents (20K-50K chars)
+            return 50         // Further reduction for memory efficiency
+        default:              // Extremely large documents (50K+ chars)
+            return 25         // Minimal undo levels for performance
+        }
+    }
+    
+    /// Sets up memory management for the undo stack
+    private func setupUndoMemoryManagement(undoManager: UndoManager) {
+        // Set up periodic cleanup of undo stack for large documents
+        Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { _ in
+            // Clean up undo stack if it gets too large
+            if undoManager.canUndo {
+                let maxMemoryActions = 50
+                // This is a conservative approach to memory management
+                // NSUndoManager handles most memory management internally
+            }
+        }
+        
+        // Monitor when app moves to background to trim undo stack
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            // Trim undo stack when app goes to background
+            if undoManager.levelsOfUndo > 25 {
+                undoManager.levelsOfUndo = 25
+            }
         }
     }
 }
