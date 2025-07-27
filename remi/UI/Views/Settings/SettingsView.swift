@@ -174,6 +174,69 @@ struct SettingsView: View {
                                     }
                                 }
                             }
+                            
+                            // About Section
+                            SettingsCard(theme: theme, title: "About Remi", icon: "heart.fill") {
+                                VStack(alignment: .leading, spacing: 16) {
+                                    // App Information
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("App Information")
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(theme.textPrimary)
+                                        
+                                        HStack {
+                                            Text("Version:")
+                                                .font(.body)
+                                                .foregroundColor(theme.textSecondary)
+                                            Text("1.0.1")
+                                                .font(.body)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(theme.textPrimary)
+                                        }
+                                        
+                                        Text("A simple, elegant note-taking app designed for organizing your thoughts and ideas.")
+                                            .font(.caption)
+                                            .foregroundColor(theme.textSecondary)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                    
+                                    Divider()
+                                        .background(theme.textSecondary.opacity(0.2))
+                                    
+                                    // Developer Credit
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "heart.fill")
+                                                .font(.system(size: 16))
+                                                .foregroundColor(.red)
+                                            
+                                            Text("Made by ashref.tn with ❤️ from Tunisia")
+                                                .font(.body)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(theme.textPrimary)
+                                        }
+                                        
+                                        // Website Link
+                                        Button(action: {
+                                            if let url = URL(string: "https://ashref.tn") {
+                                                NSWorkspace.shared.open(url)
+                                            }
+                                        }) {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "link")
+                                                    .font(.system(size: 12))
+                                                Text("Visit ashref.tn")
+                                                    .font(.caption)
+                                                    .underline()
+                                            }
+                                            .foregroundColor(theme.accent)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .help("Open developer website")
+                                    }
+                                }
+                            }
                         }
                         .padding(.horizontal, 24)
                         .padding(.vertical, 20)

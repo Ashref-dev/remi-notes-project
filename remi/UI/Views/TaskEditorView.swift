@@ -59,6 +59,30 @@ struct TaskEditorView: View {
                             .zIndex(2)
                         }
                     }
+                    .overlay(alignment: .topTrailing) {
+                        // Compact save confirmation indicator in top right
+                        if viewModel.showSaveConfirmation {
+                            HStack(spacing: 6) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.green)
+                                Text("Saved")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(theme.textPrimary)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(theme.background)
+                                    .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
+                            )
+                            .padding(.top, 12)
+                            .padding(.trailing, 16)
+                            .transition(.scale(scale: 0.9).combined(with: .opacity))
+                            .zIndex(4)
+                        }
+                    }
 
                     Divider()
 
@@ -151,6 +175,10 @@ struct TaskEditorView: View {
             .background(theme.background)
             .onAppear {
                 viewModel.undoManager = self.undoManager
+            }
+            .onDisappear {
+                // Force save when view disappears
+                viewModel.forceSave()
             }
             .animation(.easeInOut, value: isAIInputVisible)
             // Enhanced keyboard shortcuts and state monitoring for undo/redo
@@ -326,16 +354,6 @@ struct TaskEditorView: View {
                 .animation(.easeInOut(duration: 0.2), value: undoManager?.canRedo)
             }
             
-            Divider()
-                .frame(height: 20)
-
-            // Formatting buttons with improved styling
-            HStack(spacing: 12) {
-                FormatButton(icon: "bold", action: { applyMarkdown("**", to: textView) }, theme: theme)
-                FormatButton(icon: "italic", action: { applyMarkdown("*", to: textView) }, theme: theme)
-                FormatButton(icon: "h.square", action: { applyMarkdown("# ", to: textView, prefixOnly: true) }, theme: theme)
-            }
-            
             Spacer()
             
             // Status indicators with modern styling
@@ -370,59 +388,11 @@ struct TaskEditorView: View {
         .background(theme.backgroundSecondary)
     }
     
-    // MARK: - Format Button Component
-    @ViewBuilder
-    private func FormatButton(icon: String, action: @escaping () -> Void, theme: Theme) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(theme.textSecondary)
-                .frame(width: 32, height: 32)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(theme.background.opacity(0.8))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(theme.border.opacity(0.5), lineWidth: 0.5)
-                )
-        }
-        .buttonStyle(.plain)
-        .help(getButtonHelpText(for: icon))
-    }
-    
-    private func getButtonHelpText(for icon: String) -> String {
-        switch icon {
-        case "bold": return "Bold (Cmd+B)"
-        case "italic": return "Italic (Cmd+I)"  
-        case "strikethrough": return "Strikethrough"
-        case "list.bullet": return "Bullet List"
-        case "list.number": return "Numbered List"
-        case "h.square": return "Heading"
-        case "arrow.uturn.backward": return "Undo (Cmd+Z)"
-        case "arrow.uturn.forward": return "Redo (Cmd+Shift+Z)"
-        default: return ""
-        }
-    }    // MARK: - Private Methods
+    // MARK: - Private Methods
     
     private func handleAIInput(prompt: String) {
         Task {
             await viewModel.processAIQuery(prompt: prompt)
-        }
-    }
-    
-    private func applyMarkdown(_ markdown: String, to textView: NSTextView?, prefixOnly: Bool = false) {
-        guard let textView = textView else { return }
-        
-        let selectedRange = textView.selectedRange()
-        let currentText = textView.string as NSString
-        
-        if selectedRange.length > 0 {
-            let selectedText = currentText.substring(with: selectedRange)
-            let newText = prefixOnly ? (markdown + selectedText) : (markdown + selectedText + markdown)
-            textView.insertText(newText, replacementRange: selectedRange)
-        } else {
-            textView.insertText(markdown, replacementRange: selectedRange)
         }
     }
 }

@@ -41,23 +41,26 @@ struct ConnectionStatusIndicator: View {
     
     var body: some View {
         Themed { theme in
-            HStack(spacing: 6) {
-                Image(systemName: statusIcon)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(statusColor)
-                
-                Text(statusMessage)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(theme.textSecondary)
-                    .lineLimit(1)
+            // Only show when there are issues (no connection or no API key)
+            if !connectionStatus.isConnected || !isAPIKeyConfigured {
+                HStack(spacing: 6) {
+                    Image(systemName: statusIcon)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(statusColor)
+                    
+                    Text(statusMessage)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(theme.textSecondary)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(statusColor.opacity(0.1))
+                        .stroke(statusColor.opacity(0.3), lineWidth: 0.5)
+                )
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(statusColor.opacity(0.1))
-                    .stroke(statusColor.opacity(0.3), lineWidth: 0.5)
-            )
         }
     }
 }

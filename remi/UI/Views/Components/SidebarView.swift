@@ -252,7 +252,7 @@ private struct AddNookButtonView: View {
             .scaleEffect(scale)
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
-                    .fill(isHovering ? Color(NSColor.controlBackgroundColor).opacity(0.8) : Color.white)
+                    .fill(isHovering ? theme.backgroundSecondary.opacity(0.8) : theme.background)
                     .overlay(
                         RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
                             .stroke(theme.accent.opacity(isHovering ? 0.3 : 0.2), lineWidth: 1)
