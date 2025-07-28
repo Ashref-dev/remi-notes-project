@@ -37,17 +37,26 @@ Building on the solid foundation of v1.0, Remi v1.0.1 brings significant improve
 
 ## 📦 Installation Instructions
 
-### Method 1: Simple Installation
-1. **Download** `Remi-v1.0.1-macOS.zip`
-2. **Unzip** the file to reveal `remi.app`
-3. **Drag** `remi.app` to your Applications folder
-4. **Launch** Remi from Applications or Spotlight
+### **Installing the Development Build**
+Since this is an unsigned development build, you'll need to follow these steps:
 
-### Method 2: First Launch Security
-If macOS shows a security warning:
-1. **Right-click** on `remi.app`
-2. Select **"Open"** from the context menu
-3. Click **"Open"** in the security dialog
+1. **Download** `Remi-v1.0.1-macOS.zip` from the release assets
+2. **Extract** the zip file to reveal `remi.app`
+3. **Drag** `remi.app` to your Applications folder
+4. **Install the unsigned app** (required for development builds):
+   - **Right-click** on `remi.app` in your Applications folder
+   - Select **"Open"** from the context menu
+   - Click **"Open"** in the security warning dialog that appears
+   - macOS will remember this choice for future launches
+
+> **⚠️ Important**: This is an unsigned development build, so macOS Gatekeeper will show a security warning on first launch. The right-click → Open method is the standard way to install unsigned apps on macOS and is completely safe for this application.
+
+### **Alternative Method**
+If you prefer using System Preferences:
+1. Try to open Remi normally (it will be blocked)
+2. Go to **System Preferences → Security & Privacy → General**
+3. Click **"Open Anyway"** next to the Remi notification
+4. Confirm by clicking **"Open"** in the dialog
 4. Remi will launch and be trusted for future use
 
 ### Method 3: System Settings (if blocked)

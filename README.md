@@ -136,9 +136,16 @@ ping -c 4 8.8.8.8              # Test connectivity
 
 ### **Installation**
 1. **Download** the latest release from GitHub
-2. **Drag Remi** to your Applications folder
-3. **Launch Remi** - it'll appear in your menu bar
-4. **Set your hotkey** in Preferences (default: ⌘+Shift+R)
+2. **Extract** the zip file and **drag Remi** to your Applications folder
+3. **Install the unsigned app** (since this is a development build):
+   - **Right-click** on Remi.app in Applications
+   - Select **"Open"** from the context menu
+   - Click **"Open"** in the security warning dialog
+   - macOS will remember this choice for future launches
+4. **Launch Remi** - it'll appear in your menu bar
+5. **Set your hotkey** in Preferences (default: ⌘+Shift+R)
+
+> **Note**: This is an unsigned development build. The right-click → Open method is required only for the first launch to bypass macOS Gatekeeper security.
 
 ### **Quick Setup**
 1. **Create your first Nook** - click the "+" button
