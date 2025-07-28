@@ -32,7 +32,10 @@ Remi transforms your macOS menu bar into a **supercharged knowledge management s
 **Access everything with a single hotkey.** No more hunting through files, bookmarks, or sticky notes.
 
 <p align="center">
-  <img src="Documentation/screenshot_placeholder.png" alt="Remi in action" width="700"/>
+  <video width="700" autoplay muted loop>
+    <source src="remi.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
   <br />
   <em>Your knowledge, instantly accessible from anywhere on macOS</em>
 </p>
