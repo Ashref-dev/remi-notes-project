@@ -43,9 +43,6 @@ struct NookListView: View {
                         nookToNavigate = nil
                     }
                 }
-                .sheet(isPresented: $isSettingsPresented) {
-                    SettingsView()
-                }
             }
         }
     }

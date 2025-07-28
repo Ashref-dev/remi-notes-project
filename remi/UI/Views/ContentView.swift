@@ -176,9 +176,6 @@ struct CollapsedSidebarView: View {
         .onAppear {
             viewModel.fetchNooks()
         }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
-        }
     }
 }
 

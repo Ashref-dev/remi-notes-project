@@ -52,13 +52,35 @@
 		<data>
 		AL1dh5ctObXBjoBiabSJ86M3HQs=
 		</data>
+		<key>Resources/Test-Document.md</key>
+		<data>
+		sGCDDmOOCdcXxDlo2oDYtVMNsJs=
+		</data>
 		<key>Resources/plan.md</key>
 		<data>
-		oEHJSYsPKTRRrnkvKmRqWgmOt7g=
+		2jmj7l5rSw0yVb/vlWAYkK/YBwk=
 		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
+		<key>MacOS/__preview.dylib</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			1q/RuZskkyBmjHzxJ3Q7bD/a5GI=
+			</data>
+			<key>requirement</key>
+			<string>identifier "__preview" and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: mohamedashrefbenabdallah@gmail.com (KZ839WW78D)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */</string>
+		</dict>
+		<key>MacOS/remi.debug.dylib</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Hw2Upvb/yIKoVf0pxQK2ynsbLiU=
+			</data>
+			<key>requirement</key>
+			<string>identifier "remi.debug" and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: mohamedashrefbenabdallah@gmail.com (KZ839WW78D)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */</string>
+		</dict>
 		<key>Resources/.gitignore</key>
 		<dict>
 			<key>hash2</key>
@@ -143,11 +165,18 @@
 			WpuPwM3bECAbtHzCgEs/AExyUUdmItJb/E61TtRuEIQ=
 			</data>
 		</dict>
+		<key>Resources/Test-Document.md</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			LkKqcxcbV/g+oiAA+z0ptcy3Y9HTUQt+XSfw2FymojU=
+			</data>
+		</dict>
 		<key>Resources/plan.md</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			UD4aksJ2vTzBRX4OL8xJNxxkQwnViTEiL91CfFL2nKk=
+			47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=
 			</data>
 		</dict>
 	</dict>
