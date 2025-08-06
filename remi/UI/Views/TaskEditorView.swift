@@ -76,6 +76,26 @@ struct TaskEditorView: View {
                                 )
                                 .transition(.scale(scale: 0.9).combined(with: .opacity))
                             }
+                            
+                            // Copy success confirmation indicator
+                            if viewModel.showCopySuccess {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "doc.on.clipboard.fill")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.blue)
+                                    Text("Copied!")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(theme.textPrimary)
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(theme.background)
+                                        .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
+                                )
+                                .transition(.scale(scale: 0.9).combined(with: .opacity))
+                            }
                         }
                         .padding(.top, 12)
                         .padding(.trailing, 16)
@@ -171,9 +191,18 @@ struct TaskEditorView: View {
                 }
             }
             .background(theme.background)
+            .onAppear {
+                // Register copy all hotkey
+                HotkeyManager.shared.registerCopyAllHotkey {
+                    viewModel.copyAllContent(format: .markdown)
+                }
+            }
             .onDisappear {
                 // Force save when view disappears
                 viewModel.forceSave()
+                
+                // Unregister copy hotkey
+                HotkeyManager.shared.unregisterCopyAllHotkey()
             }
             .animation(.easeInOut, value: isAIInputVisible)
         }
@@ -232,6 +261,38 @@ struct TaskEditorView: View {
                 }
                 .buttonStyle(.plain)
                 .help(isMarkdownPreviewEnabled ? "Switch to Plain Text View" : "Switch to Markdown Preview")
+                
+                // Copy All Button - Modern and Elegant
+                Menu {
+                    Button(action: { viewModel.copyAllContent(format: .markdown) }) {
+                        Label("Copy as Markdown", systemImage: "doc.text")
+                    }
+                    
+                    Button(action: { viewModel.copyAllContent(format: .plainText) }) {
+                        Label("Copy as Plain Text", systemImage: "doc.plaintext")
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "doc.on.clipboard")
+                            .font(.system(size: 14, weight: .medium))
+                        
+                        Text("Copy")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundColor(theme.textPrimary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(theme.backgroundSecondary)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(theme.textSecondary.opacity(0.2), lineWidth: 1)
+                            )
+                    )
+                }
+                .buttonStyle(.plain)
+                .help("Copy content to clipboard (⌘⇧C)")
                 
                 // AI Assistant Button - Enhanced with gradient
                 Button(action: { 
@@ -295,6 +356,17 @@ struct TaskEditorView: View {
                         .foregroundColor(theme.textSecondary.opacity(0.7))
                     
                     Text("⌘⇧Z")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundColor(theme.textSecondary.opacity(0.8))
+                }
+                
+                // Copy hint
+                HStack(spacing: 4) {
+                    Image(systemName: "doc.on.clipboard")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(theme.textSecondary.opacity(0.7))
+                    
+                    Text("⌘⇧C")
                         .font(.system(size: 11, weight: .medium, design: .monospaced))
                         .foregroundColor(theme.textSecondary.opacity(0.8))
                 }

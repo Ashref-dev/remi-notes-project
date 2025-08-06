@@ -164,10 +164,21 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             return
         }
         
-        // MARK: - Smart Undo Grouping - CRASH FIX
-        
+        // MARK: - STEP 2.2: Enhanced undo grouping with AI processing safety
         private func handleSmartUndoGrouping(textView: NSTextView) {
             guard let undoManager = textView.undoManager else { return }
+            
+            // STEP 2.2: Check if undo registration is disabled (during AI processing)
+            guard undoManager.isUndoRegistrationEnabled else { return }
+            
+            // STEP 2.2: Validate undo manager state before proceeding
+            guard undoManager.groupingLevel >= 0 && undoManager.groupingLevel < 10 else {
+                // Recover from invalid state
+                while undoManager.groupingLevel > 0 {
+                    undoManager.endUndoGrouping()
+                }
+                return
+            }
             
             let currentTime = Date()
             let currentCursorPosition = textView.selectedRange().location
@@ -188,13 +199,21 @@ struct LiveMarkdownEditor: NSViewRepresentable {
                 isAtWordBoundary(textView: textView)
             
             if shouldStartNewGroup {
-                // CRASH FIX: Only end grouping if we're currently grouping
-                if undoManager.groupingLevel > 0 {
-                    undoManager.endUndoGrouping()
+                // STEP 2.2: Safe grouping operations with error handling
+                do {
+                    if undoManager.groupingLevel > 0 {
+                        undoManager.endUndoGrouping()
+                    }
+                    undoManager.beginUndoGrouping()
+                    lastUndoGroupTime = currentTime
+                    consecutiveTypeCount = 1
+                } catch {
+                    print("⚠️ Error in undo grouping: \(error)")
+                    // Ensure clean state on error
+                    while undoManager.groupingLevel > 0 {
+                        undoManager.endUndoGrouping()
+                    }
                 }
-                undoManager.beginUndoGrouping()
-                lastUndoGroupTime = currentTime
-                consecutiveTypeCount = 1
             } else {
                 consecutiveTypeCount += 1
             }
@@ -205,12 +224,14 @@ struct LiveMarkdownEditor: NSViewRepresentable {
             // Cancel existing grouping timer
             undoGroupingTimer?.invalidate()
             
-            // Set timer to end current group after inactivity - CRASH FIX
+            // STEP 2.2: Safe timer with additional validation
             undoGroupingTimer = Timer.scheduledTimer(withTimeInterval: undoGroupingInterval, repeats: false) { [weak self] _ in
-                // CRASH FIX: Only end grouping if we're currently grouping
-                if undoManager.groupingLevel > 0 {
-                    undoManager.endUndoGrouping()
-                }
+                // Ensure undo manager is still valid and registration is enabled
+                guard let undoManager = textView.undoManager,
+                      undoManager.isUndoRegistrationEnabled,
+                      undoManager.groupingLevel > 0 else { return }
+                
+                undoManager.endUndoGrouping()
                 self?.lastUndoGroupTime = Date.distantPast
                 self?.consecutiveTypeCount = 0
             }

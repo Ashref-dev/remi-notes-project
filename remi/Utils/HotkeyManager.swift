@@ -6,8 +6,10 @@ class HotkeyManager {
     static let shared = HotkeyManager()
     private var hotKey: HotKey?
     private var nookHotkeys: [HotKey] = []
+    private var copyAllHotkey: HotKey?
     private var callback: (() -> Void)?
     private var nookCallbacks: [(Int) -> Void] = []
+    private var copyAllCallback: (() -> Void)?
 
     private init() {}
 
@@ -52,9 +54,24 @@ class HotkeyManager {
         }
     }
     
+    // Register copy all hotkey (Cmd+Shift+C)
+    func registerCopyAllHotkey(callback: @escaping () -> Void) {
+        unregisterCopyAllHotkey()
+        copyAllCallback = callback
+        
+        copyAllHotkey = HotKey(key: .c, modifiers: [.command, .shift])
+        copyAllHotkey?.keyDownHandler = callback
+    }
+    
+    func unregisterCopyAllHotkey() {
+        copyAllHotkey = nil
+        copyAllCallback = nil
+    }
+    
     func unregister() {
         hotKey = nil
         unregisterNookHotkeys()
+        unregisterCopyAllHotkey()
     }
     
     func unregisterNookHotkeys() {

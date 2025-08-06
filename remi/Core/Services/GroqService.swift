@@ -52,11 +52,10 @@ class GroqService {
         You are a helpful note-taking assistant. Improve the user's notes by:
         1. Fixing typos and grammar
         2. Improving clarity and organization
-        3. Adding proper Markdown formatting
+        3. Adding proper formatting, use plaintext unless user specifies otherwise
         4. Making content more actionable
         
         Return ONLY the complete, improved document. Do not add explanations or comments.
-        Use <thinking></thinking> tags to plan your approach, but these will be removed from the final output.
         """
         
         let userMessage = """
