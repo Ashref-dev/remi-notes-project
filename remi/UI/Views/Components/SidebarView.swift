@@ -327,7 +327,7 @@ private struct NookScrollView: View {
     let theme: Theme
     
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             LazyVStack(spacing: AppTheme.Spacing.small) {
                 ForEach(nooks) { nook in
                     ModernNookCard(
