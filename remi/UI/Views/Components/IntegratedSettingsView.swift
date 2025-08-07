@@ -7,6 +7,7 @@ struct IntegratedSettingsView: View {
     @StateObject private var settings = SettingsManager.shared
     @State private var apiKeyValidationState: APIKeyValidationState = .unknown
     @State private var validationTask: Task<Void, Never>?
+    @State private var showingModelDetails = false
     
     enum APIKeyValidationState {
         case unknown
@@ -223,6 +224,15 @@ struct IntegratedSettingsView: View {
                                             .stroke(theme.textSecondary.opacity(0.2), lineWidth: 1)
                                     )
                                 }
+                            }
+                        }
+                        
+                        // Model Selection Section
+                        VStack(alignment: .leading, spacing: 20) {
+                            SectionHeader(title: "AI Model Configuration", icon: "cpu.fill", theme: theme)
+                            
+                            ModernCard(theme: theme) {
+                                ModelSelectionView()
                             }
                         }
                         

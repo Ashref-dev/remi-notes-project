@@ -96,7 +96,7 @@ Implementation plan ordered by priority:
 #### **Step 4.4: Enhanced Model Support**
 - [ ] Add model-specific parameters (temperature, max tokens)
 - [ ] Implement model performance indicators
-- [ ] Add model switching without app restart
+- [ ] Add model switching without app restartlear
 
 ---
 

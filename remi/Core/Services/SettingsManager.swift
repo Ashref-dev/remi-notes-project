@@ -17,6 +17,18 @@ class SettingsManager: ObservableObject {
         }
     }
     
+    @Published var selectedGroqModel: String {
+        didSet {
+            UserDefaults.standard.set(selectedGroqModel, forKey: "selectedGroqModel")
+        }
+    }
+    
+    @Published var modelParameters: ModelParameters {
+        didSet {
+            saveModelParameters()
+        }
+    }
+    
     @Published var launchAtLogin: Bool {
         didSet {
             LaunchAtLogin.isEnabled = launchAtLogin
@@ -67,6 +79,8 @@ class SettingsManager: ObservableObject {
 
     private init() {
         self.groqAPIKey = UserDefaults.standard.string(forKey: "groqAPIKey") ?? ""
+        self.selectedGroqModel = UserDefaults.standard.string(forKey: "selectedGroqModel") ?? GroqModelRegistry.defaultModelId
+        self.modelParameters = Self.loadModelParameters()
         self.launchAtLogin = LaunchAtLogin.isEnabled
         self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         self.aboutMeContext = UserDefaults.standard.string(forKey: "aboutMeContext") ?? ""
@@ -96,6 +110,20 @@ class SettingsManager: ObservableObject {
         return (key, modifiers)
     }
     
+    private static func loadModelParameters() -> ModelParameters {
+        guard let data = UserDefaults.standard.data(forKey: "modelParameters"),
+              let parameters = try? JSONDecoder().decode(ModelParameters.self, from: data) else {
+            return ModelParameters.default
+        }
+        return parameters
+    }
+    
+    private func saveModelParameters() {
+        if let data = try? JSONEncoder().encode(modelParameters) {
+            UserDefaults.standard.set(data, forKey: "modelParameters")
+        }
+    }
+    
     private func saveHotkey() {
         UserDefaults.standard.set(hotkeyKey.description, forKey: "globalHotkeyKey")
         UserDefaults.standard.set(hotkeyModifiers.rawValue, forKey: "globalHotkeyModifiers")
@@ -118,5 +146,20 @@ class SettingsManager: ObservableObject {
     
     func setLastViewedNook(_ nook: Nook) {
         UserDefaults.standard.set(nook.url, forKey: "lastViewedNookURL")
+    }
+    
+    // MARK: - Model Management
+    
+    func getCurrentModel() -> GroqModel {
+        return GroqModelRegistry.model(withId: selectedGroqModel) ?? GroqModelRegistry.availableModels.first!
+    }
+    
+    func isModelValid(_ modelId: String) -> Bool {
+        return GroqModelRegistry.model(withId: modelId) != nil
+    }
+    
+    func resetToDefaultModel() {
+        selectedGroqModel = GroqModelRegistry.defaultModelId
+        modelParameters = ModelParameters.default
     }
 }
