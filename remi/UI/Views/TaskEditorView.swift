@@ -25,9 +25,15 @@ struct TaskEditorView: View {
                     // Main editor view
                     ZStack(alignment: .center) {
                         LiveMarkdownEditor(
-                            text: $viewModel.taskContent, 
-                            theme: theme, 
-                            isMarkdownPreviewEnabled: isMarkdownPreviewEnabled
+                            text: $viewModel.taskContent,
+                            theme: theme,
+                            isMarkdownPreviewEnabled: isMarkdownPreviewEnabled,
+                            autoFocus: true,
+                            onTextViewReady: { textView in
+                                // Connect NSTextView's undo manager to ViewModel for AI-safe registrations
+                                viewModel.textViewUndoManager = textView.undoManager
+                                viewModel.textView = textView
+                            }
                         )
                         .id("editor-\(isMarkdownPreviewEnabled ? "markdown" : "plain")")
                         .opacity(viewModel.isProcessingAI ? 0.6 : 1.0)

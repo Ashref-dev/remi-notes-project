@@ -7,6 +7,8 @@ struct LiveMarkdownEditor: NSViewRepresentable {
     var isEditable: Bool = true
     var isMarkdownPreviewEnabled: Bool = true
     var font: NSFont = .systemFont(ofSize: 16, weight: .regular)
+    var autoFocus: Bool = true
+    var onTextViewReady: ((NSTextView) -> Void)? = nil
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSTextView.scrollableTextView()
@@ -58,6 +60,9 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         
         context.coordinator.textView = textView
 
+        // Expose text view to parent for undo manager access or other integrations
+        onTextViewReady?(textView)
+
         return scrollView
     }
 
@@ -73,7 +78,11 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         let selectedRange = textView.selectedRange
         
         if textView.string != text {
-            textView.string = text
+            let fullRange = NSRange(location: 0, length: (textView.string as NSString).length)
+            if textView.shouldChangeText(in: fullRange, replacementString: text) {
+                textView.textStorage?.replaceCharacters(in: fullRange, with: text)
+                textView.didChangeText()
+            }
         }
         
         // Apply styling based on current mode
@@ -85,6 +94,15 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         
         textView.setSelectedRange(selectedRange)
         textView.isEditable = isEditable
+
+        // Ensure editor receives key events for undo/redo/copy
+        if autoFocus {
+            DispatchQueue.main.async {
+                if let window = nsView.window, window.firstResponder !== textView {
+                    window.makeFirstResponder(textView)
+                }
+            }
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -143,12 +161,9 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             
-            // UNDO FIX: Simplified text change handling to preserve native undo
+            // Only update binding; avoid direct mutations that may create extra undo entries
             if textView.string != parent.text {
-                // Update SwiftUI binding (this doesn't interfere with undo if done correctly)
                 parent.text = textView.string
-                
-                // Minimal styling update with debouncing
                 stylingTimer?.invalidate()
                 stylingTimer = Timer.scheduledTimer(withTimeInterval: stylingDebounceInterval, repeats: false) { [weak self] _ in
                     DispatchQueue.main.async {

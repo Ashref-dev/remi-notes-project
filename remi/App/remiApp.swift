@@ -18,8 +18,7 @@ struct remiApp: App {
             CommandGroup(replacing: .newItem) { }
             CommandGroup(replacing: .saveItem) { }
             CommandGroup(replacing: .importExport) { }
-            CommandGroup(replacing: .undoRedo) { }
-            CommandGroup(replacing: .pasteboard) { }
+            // Keep default Undo/Redo and Pasteboard groups so standard shortcuts (⌘Z, ⌘⇧Z, ⌘C, etc.) work
             
             // Add custom menu items
             CommandGroup(after: .appInfo) {

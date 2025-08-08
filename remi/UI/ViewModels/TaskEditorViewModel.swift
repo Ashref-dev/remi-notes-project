@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import AppKit
 
 @MainActor
 class TaskEditorViewModel: ObservableObject {
@@ -16,6 +17,7 @@ class TaskEditorViewModel: ObservableObject {
     
     // Reference to NSTextView's undoManager for app-level undo operations
     var textViewUndoManager: UndoManager?
+    weak var textView: NSTextView?
     
     // Note: Removed UndoManager - using NSTextView's native undo system instead
 
@@ -237,17 +239,8 @@ class TaskEditorViewModel: ObservableObject {
                 return
             }
             
-            // Register undo operation safely (with fallback if undo manager unavailable)
-            registerUndoSafely(
-                originalContent: originalContent, 
-                newContent: improvedContent, 
-                actionName: "AI Enhancement"
-            )
-            
-            // Apply the content with animation
-            withAnimation(.easeInOut(duration: 0.3)) {
-                setTaskContent(improvedContent)
-            }
+            // Apply as a single native undoable replacement
+            replaceWholeDocumentUsingNativeUndo(to: improvedContent, actionName: "AI Enhancement")
             
         } catch {
             // Show error and restore original content
@@ -266,7 +259,7 @@ class TaskEditorViewModel: ObservableObject {
             )
             
             // Restore original content on error
-            setTaskContent(originalContent)
+            replaceWholeDocumentUsingNativeUndo(to: originalContent, actionName: "AI Enhancement")
         }
         
         isProcessingAI = false
@@ -283,7 +276,7 @@ class TaskEditorViewModel: ObservableObject {
         // Simple, safe undo registration
         undoManager.registerUndo(withTarget: self) { [weak self] _ in
             Task { @MainActor in
-                self?.setTaskContent(originalContent)
+                self?.replaceWholeDocumentWithoutUndo(to: originalContent)
                 self?.registerRedoSafely(originalContent: newContent, newContent: originalContent, actionName: actionName)
             }
         }
@@ -295,11 +288,46 @@ class TaskEditorViewModel: ObservableObject {
         
         undoManager.registerUndo(withTarget: self) { [weak self] _ in
             Task { @MainActor in
-                self?.setTaskContent(newContent)
+                self?.replaceWholeDocumentWithoutUndo(to: newContent)
                 self?.registerUndoSafely(originalContent: originalContent, newContent: newContent, actionName: actionName)
             }
         }
         undoManager.setActionName("Redo " + actionName)
+    }
+
+    // MARK: - Document Replacement Helpers
+    private func replaceWholeDocumentUsingNativeUndo(to newContent: String, actionName: String) {
+        guard let textView else {
+            setTaskContent(newContent)
+            return
+        }
+        let fullRange = NSRange(location: 0, length: (textView.string as NSString).length)
+        if let undoManager = textView.undoManager {
+            undoManager.beginUndoGrouping()
+            undoManager.setActionName(actionName)
+        }
+        if textView.shouldChangeText(in: fullRange, replacementString: newContent) {
+            textView.textStorage?.replaceCharacters(in: fullRange, with: newContent)
+            textView.didChangeText()
+        }
+        textView.undoManager?.endUndoGrouping()
+        // Keep model in sync for saving and UI
+        setTaskContent(newContent)
+    }
+
+    private func replaceWholeDocumentWithoutUndo(to newContent: String) {
+        guard let textView else {
+            setTaskContent(newContent)
+            return
+        }
+        let fullRange = NSRange(location: 0, length: (textView.string as NSString).length)
+        let undoManager = textView.undoManager
+        let wasEnabled = undoManager?.isUndoRegistrationEnabled ?? true
+        undoManager?.disableUndoRegistration()
+        textView.textStorage?.replaceCharacters(in: fullRange, with: newContent)
+        textView.didChangeText()
+        if wasEnabled { undoManager?.enableUndoRegistration() }
+        setTaskContent(newContent)
     }
     
     // MARK: - Content Backup
@@ -328,37 +356,18 @@ class TaskEditorViewModel: ObservableObject {
     // MARK: - Content Operations with Safe Undo
     func replaceNookContent(with newContent: String, actionName: String = "Content Replacement") {
         createContentBackup()
-        let originalContent = taskContent
-        
-        registerUndoSafely(originalContent: originalContent, newContent: newContent, actionName: actionName)
-        
-        withAnimation(.easeInOut(duration: 0.3)) {
-            setTaskContent(newContent)
-        }
+        replaceWholeDocumentUsingNativeUndo(to: newContent, actionName: actionName)
     }
     
     func enhanceContent(with enhancement: String, actionName: String = "Content Enhancement") {
         createContentBackup()
-        let originalContent = taskContent
-        let enhancedContent = originalContent + "\n\n" + enhancement
-        
-        registerUndoSafely(originalContent: originalContent, newContent: enhancedContent, actionName: actionName)
-        
-        withAnimation(.easeInOut(duration: 0.3)) {
-            setTaskContent(enhancedContent)
-        }
+        let enhancedContent = taskContent + "\n\n" + enhancement
+        replaceWholeDocumentUsingNativeUndo(to: enhancedContent, actionName: actionName)
     }
     
     func formatContent(with formatter: (String) -> String, actionName: String) {
-        let originalContent = taskContent
-        let formattedContent = formatter(originalContent)
-        
-        guard formattedContent != originalContent else { return }
-        
-        registerUndoSafely(originalContent: originalContent, newContent: formattedContent, actionName: actionName)
-        
-        withAnimation(.easeInOut(duration: 0.3)) {
-            setTaskContent(formattedContent)
-        }
+        let formattedContent = formatter(taskContent)
+        guard formattedContent != taskContent else { return }
+        replaceWholeDocumentUsingNativeUndo(to: formattedContent, actionName: actionName)
     }
 }
