@@ -313,7 +313,7 @@ struct IntegratedSettingsView: View {
                                                     .font(.body)
                                                     .foregroundColor(theme.textSecondary)
                                                 Spacer()
-                                                Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
+                                                Text("1.1.0")
                                                     .font(.body)
                                                     .fontWeight(.semibold)
                                                     .foregroundColor(theme.textPrimary)
