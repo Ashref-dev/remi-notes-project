@@ -6,17 +6,20 @@ private struct NookMetadata: Codable {
     let iconName: String
     let iconColor: String
     let lastModified: Date
+    let order: Int
     
-    init(iconName: String = "doc.text.fill", iconColor: NookIconColor = .blue) {
+    init(iconName: String = "doc.text.fill", iconColor: NookIconColor = .blue, order: Int = 0) {
         self.iconName = iconName
         self.iconColor = iconColor.rawValue
         self.lastModified = Date()
+        self.order = order
     }
     
     init(from nook: Nook) {
         self.iconName = nook.iconName
         self.iconColor = nook.iconColor.rawValue
         self.lastModified = Date()
+        self.order = nook.order
     }
 }
 
@@ -75,14 +78,21 @@ class NookManager {
                     name: name,
                     url: url,
                     iconName: metadata.iconName,
-                    iconColor: iconColor
+                    iconColor: iconColor,
+                    order: metadata.order
                 )
                 nooks.append(nook)
             }
         } catch {
             print("Error fetching nooks: \(error)")
         }
-        return nooks.sorted { $0.name < $1.name }
+        return nooks.sorted { nook1, nook2 in
+            // Sort by order first, then by name if orders are equal
+            if nook1.order != nook2.order {
+                return nook1.order < nook2.order
+            }
+            return nook1.name < nook2.name
+        }
     }
 
     func createNook(named name: String) -> Nook? {
@@ -151,7 +161,28 @@ class NookManager {
         let metadataURL = url.appendingPathComponent(".nook-metadata.json")
         do {
             let data = try Data(contentsOf: metadataURL)
-            return try JSONDecoder().decode(NookMetadata.self, from: data)
+            let decoder = JSONDecoder()
+            
+            // Try to decode with the new structure
+            do {
+                return try decoder.decode(NookMetadata.self, from: data)
+            } catch {
+                // Migration: Try to decode old structure without order field
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let iconName = json["iconName"] as? String,
+                   let iconColor = json["iconColor"] as? String {
+                    // Create new metadata with default order and save it
+                    let migratedMetadata = NookMetadata(
+                        iconName: iconName,
+                        iconColor: NookIconColor(rawValue: iconColor) ?? .blue,
+                        order: 0
+                    )
+                    // Save the migrated metadata
+                    saveNookMetadata(migratedMetadata, at: url)
+                    return migratedMetadata
+                }
+                throw error
+            }
         } catch {
             // Return default metadata if file doesn't exist or can't be decoded
             return NookMetadata()
@@ -184,5 +215,35 @@ class NookManager {
         }
         
         return nook
+    }
+    
+    // MARK: - Nook Reordering
+    
+    func reorderNooks(_ nooks: [Nook]) {
+        // Update order for each nook
+        for (index, var nook) in nooks.enumerated() {
+            nook.order = index
+            updateNookMetadata(nook)
+        }
+    }
+    
+    func moveNook(from sourceIndex: Int, to destinationIndex: Int, in nooks: inout [Nook]) {
+        guard sourceIndex != destinationIndex,
+              sourceIndex >= 0, sourceIndex < nooks.count,
+              destinationIndex >= 0, destinationIndex < nooks.count else {
+            return
+        }
+        
+        let movedNook = nooks.remove(at: sourceIndex)
+        nooks.insert(movedNook, at: destinationIndex)
+        
+        // Update order for all nooks
+        for (index, var nook) in nooks.enumerated() {
+            nook.order = index
+            nooks[index] = nook
+        }
+        
+        // Persist the new order
+        reorderNooks(nooks)
     }
 }

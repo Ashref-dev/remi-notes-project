@@ -89,7 +89,7 @@ class NookListViewModel: ObservableObject {
     }
 
     func fetchNooks() {
-        self.allNooks = nookManager.fetchNooks().sorted(by: { $0.name < $1.name })
+        self.allNooks = nookManager.fetchNooks() // Already sorted by order in NookManager
     }
 
     func createNook(named name: String) -> Nook? {
@@ -137,5 +137,45 @@ class NookListViewModel: ObservableObject {
                 selectedNook = updatedNook
             }
         }
+    }
+    
+    // MARK: - Nook Reordering
+    
+    func moveNook(from sourceIndex: Int, to destinationIndex: Int) {
+        guard sourceIndex != destinationIndex,
+              sourceIndex >= 0, sourceIndex < allNooks.count,
+              destinationIndex >= 0, destinationIndex < allNooks.count else {
+            return
+        }
+        
+        nookManager.moveNook(from: sourceIndex, to: destinationIndex, in: &allNooks)
+        
+        // Refresh to get the updated order
+        fetchNooks()
+    }
+    
+    func moveNookUp(_ nook: Nook) {
+        guard let currentIndex = allNooks.firstIndex(of: nook), currentIndex > 0 else { return }
+        moveNook(from: currentIndex, to: currentIndex - 1)
+    }
+    
+    func moveNookDown(_ nook: Nook) {
+        guard let currentIndex = allNooks.firstIndex(of: nook), currentIndex < allNooks.count - 1 else { return }
+        moveNook(from: currentIndex, to: currentIndex + 1)
+    }
+    
+    func resetToAlphabeticalOrder() {
+        // Sort nooks alphabetically and update their order
+        var sortedNooks = allNooks.sorted { $0.name < $1.name }
+        for (index, var nook) in sortedNooks.enumerated() {
+            nook.order = index
+            sortedNooks[index] = nook
+        }
+        
+        // Update the order in the manager
+        nookManager.reorderNooks(sortedNooks)
+        
+        // Refresh the list
+        fetchNooks()
     }
 }

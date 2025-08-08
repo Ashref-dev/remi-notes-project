@@ -70,31 +70,10 @@ struct ModernNookCard: View {
                     }
 
                     VStack(alignment: .leading, spacing: AppTheme.Spacing.xsmall) {
-                        HStack {
-                            Text(nook.name)
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(theme.textPrimary)
-                                .lineLimit(1)
-                            
-                            Spacer()
-                            
-                            // Edit button moved to rightmost position for better visibility
-                            if onEdit != nil {
-                                Button(action: { showingEditSheet = true }) {
-                                    Image(systemName: "pencil")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(theme.textSecondary)
-                                        .padding(6)
-                                        .background(
-                                            Circle()
-                                                .fill(theme.backgroundSecondary.opacity(0.8))
-                                        )
-                                }
-                                .buttonStyle(.plain)
-                                .opacity(isHovering ? 1.0 : 0.0)
-                                .accessibilityLabel("Edit nook")
-                            }
-                        }
+                        Text(nook.name)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(theme.textPrimary)
+                            .lineLimit(1)
                         
                         if !preview(for: nook).isEmpty {
                             Text(preview(for: nook))

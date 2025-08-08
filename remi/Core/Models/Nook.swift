@@ -7,13 +7,15 @@ struct Nook: Identifiable, Hashable {
     var url: URL
     var iconName: String
     var iconColor: NookIconColor
+    var order: Int
 
-    init(id: UUID = UUID(), name: String, url: URL, iconName: String = "doc.text.fill", iconColor: NookIconColor = .blue) {
+    init(id: UUID = UUID(), name: String, url: URL, iconName: String = "doc.text.fill", iconColor: NookIconColor = .blue, order: Int = 0) {
         self.id = id
         self.name = name
         self.url = url
         self.iconName = iconName
         self.iconColor = iconColor
+        self.order = order
     }
 }
 

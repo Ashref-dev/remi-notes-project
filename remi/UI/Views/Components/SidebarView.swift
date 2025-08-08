@@ -311,6 +311,12 @@ private struct NookListContentView: View {
                         selectedNook = nil
                     }
                 },
+                onReorder: { from, to in
+                    viewModel.moveNook(from: from, to: to)
+                },
+                onResetOrder: {
+                    viewModel.resetToAlphabeticalOrder()
+                },
                 theme: theme
             )
         }
@@ -324,32 +330,186 @@ private struct NookScrollView: View {
     @Binding var selectedNook: Nook?
     let onEdit: (Nook) -> Void
     let onDelete: (Nook) -> Void
+    let onReorder: (Int, Int) -> Void
+    let onResetOrder: () -> Void
     let theme: Theme
+    
+    @State private var draggedItemIndex: Int? = nil
+    @State private var dropTargetIndex: Int? = nil
+    @State private var dragTimeoutTask: Task<Void, Never>? = nil
     
     var body: some View {
         ScrollView(showsIndicators: false) {
             LazyVStack(spacing: AppTheme.Spacing.small) {
-                ForEach(nooks) { nook in
-                    ModernNookCard(
-                        nook: nook,
-                        isSelected: selectedNook?.id == nook.id,
-                        onTap: { selectedNook = nook },
-                        onEdit: onEdit
-                    )
-                    .contextMenu {
-                        Button("Edit") {
-                            // This will be handled by the edit button in the card
+                ForEach(Array(nooks.enumerated()), id: \.element.id) { index, nook in
+                    VStack(spacing: 0) {
+                        // Drop zone above - with visual indicator
+                        ZStack {
+                            // Drop indicator above - full height of card
+                            if dropTargetIndex == index && draggedItemIndex != index {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(theme.accent.opacity(0.3))
+                                    .stroke(theme.accent, lineWidth: 2)
+                                    .frame(height: 60) // Approximate card height
+                                    .padding(.horizontal, AppTheme.Spacing.medium)
+                                    .transition(.asymmetric(
+                                        insertion: .scale(scale: 0.8).combined(with: .opacity),
+                                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                                    ))
+                            }
+                            
+                            // Invisible drop target that covers the entire indicator area
+                            if dropTargetIndex == index && draggedItemIndex != index {
+                                Color.clear
+                                    .frame(height: 60)
+                                    .padding(.horizontal, AppTheme.Spacing.medium)
+                                    .onDrop(of: [.text], delegate: NookDropDelegate(
+                                        nook: nook,
+                                        currentIndex: index,
+                                        onDrop: { fromIndex, toIndex in
+                                            // Cancel timeout since drop is successful
+                                            dragTimeoutTask?.cancel()
+                                            
+                                            onReorder(fromIndex, toIndex)
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                draggedItemIndex = nil
+                                                dropTargetIndex = nil
+                                            }
+                                        },
+                                        onDragEnter: { 
+                                            withAnimation(.easeInOut(duration: 0.15)) {
+                                                dropTargetIndex = index 
+                                            }
+                                        },
+                                        onDragEnd: { 
+                                            // Cancel timeout since drag is ending properly
+                                            dragTimeoutTask?.cancel()
+                                            
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                draggedItemIndex = nil
+                                                dropTargetIndex = nil
+                                            }
+                                        }
+                                    ))
+                            }
                         }
                         
-                        Divider()
+                        DraggableNookCard(
+                            nook: nook,
+                            index: index,
+                            isSelected: selectedNook?.id == nook.id,
+                            onTap: { selectedNook = nook },
+                            onEdit: onEdit,
+                            onDelete: onDelete,
+                            onDragStart: { 
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    draggedItemIndex = index 
+                                }
+                                
+                                // Cancel any existing timeout
+                                dragTimeoutTask?.cancel()
+                                
+                                // Set a timeout to cleanup state if drag gets stuck
+                                dragTimeoutTask = Task {
+                                    try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+                                    if !Task.isCancelled {
+                                        await MainActor.run {
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                draggedItemIndex = nil
+                                                dropTargetIndex = nil
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            onDragEnd: { 
+                                // Cancel timeout since drag is ending properly
+                                dragTimeoutTask?.cancel()
+                                
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    draggedItemIndex = nil
+                                    dropTargetIndex = nil
+                                }
+                            },
+                            onDragEnter: { 
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    dropTargetIndex = index 
+                                }
+                            },
+                            onDrop: { fromIndex, toIndex in
+                                // Cancel timeout since drop is successful
+                                dragTimeoutTask?.cancel()
+                                
+                                onReorder(fromIndex, toIndex)
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    draggedItemIndex = nil
+                                    dropTargetIndex = nil
+                                }
+                            },
+                            theme: theme
+                        )
+                        .opacity(draggedItemIndex == index ? 0.3 : 1.0)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: draggedItemIndex)
                         
-                        Button("Delete", role: .destructive) {
-                            onDelete(nook)
+                        // Drop zone below (for last item)
+                        if index == nooks.count - 1 {
+                            ZStack {
+                                // Drop indicator below (for last item)
+                                if dropTargetIndex == nooks.count {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(theme.accent.opacity(0.3))
+                                        .stroke(theme.accent, lineWidth: 2)
+                                        .frame(height: 60) // Approximate card height
+                                        .padding(.horizontal, AppTheme.Spacing.medium)
+                                        .transition(.asymmetric(
+                                            insertion: .scale(scale: 0.8).combined(with: .opacity),
+                                            removal: .scale(scale: 0.9).combined(with: .opacity)
+                                        ))
+                                }
+                                
+                                // Invisible drop target for bottom area
+                                Color.clear
+                                    .frame(height: dropTargetIndex == nooks.count ? 60 : 20)
+                                    .padding(.horizontal, AppTheme.Spacing.medium)
+                                    .onDrop(of: [.text], delegate: NookDropDelegate(
+                                        nook: nook,
+                                        currentIndex: nooks.count,
+                                        onDrop: { fromIndex, toIndex in
+                                            // Cancel timeout since drop is successful
+                                            dragTimeoutTask?.cancel()
+                                            
+                                            onReorder(fromIndex, toIndex)
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                draggedItemIndex = nil
+                                                dropTargetIndex = nil
+                                            }
+                                        },
+                                        onDragEnter: { 
+                                            withAnimation(.easeInOut(duration: 0.15)) {
+                                                dropTargetIndex = nooks.count 
+                                            }
+                                        },
+                                        onDragEnd: { 
+                                            // Cancel timeout since drag is ending properly
+                                            dragTimeoutTask?.cancel()
+                                            
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                draggedItemIndex = nil
+                                                dropTargetIndex = nil
+                                            }
+                                        }
+                                    ))
+                            }
                         }
                     }
                 }
             }
             .padding(AppTheme.Spacing.large)
+        }
+        .contextMenu {
+            Button("Reset to Alphabetical Order") {
+                onResetOrder()
+            }
         }
     }
 }
@@ -497,6 +657,165 @@ private struct SettingsButtonView: View {
         }
         .accessibilityLabel("Settings")
         .accessibilityHint("Open application settings")
+    }
+}
+
+// MARK: - Draggable Nook Card Component
+
+private struct DraggableNookCard: View {
+    let nook: Nook
+    let index: Int
+    let isSelected: Bool
+    let onTap: () -> Void
+    let onEdit: (Nook) -> Void
+    let onDelete: (Nook) -> Void
+    let onDragStart: () -> Void
+    let onDragEnd: () -> Void
+    let onDragEnter: () -> Void
+    let onDrop: (Int, Int) -> Void
+    let theme: Theme
+    
+    @State private var isHovering = false
+    @State private var isDragging = false
+    @State private var showReorderHandles = false
+    
+    var body: some View {
+        ModernNookCard(
+            nook: nook,
+            isSelected: isSelected,
+            onTap: onTap,
+            onEdit: onEdit
+        )
+        .overlay(
+            // Edit and drag controls positioned at top-right
+            VStack {
+                HStack(spacing: 6) {
+                    Spacer()
+                    
+                    // Edit button - smaller and modern
+                    Button(action: { onEdit(nook) }) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(theme.textSecondary)
+                            .padding(6)
+                            .background(
+                                Circle()
+                                    .fill(theme.backgroundSecondary.opacity(0.9))
+                                    .shadow(color: .black.opacity(0.08), radius: 1, x: 0, y: 0.5)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Edit nook")
+                    
+                    // Drag handle - smaller and modern
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(theme.textSecondary)
+                        .padding(6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(theme.backgroundSecondary.opacity(0.9))
+                                .shadow(color: .black.opacity(0.08), radius: 1, x: 0, y: 0.5)
+                        )
+                        .accessibilityLabel("Drag to reorder")
+                }
+                .padding(.trailing, 8)
+                .padding(.top, 8)
+                
+                Spacer()
+            }
+            .opacity(showReorderHandles ? 1.0 : 0.0)
+            .animation(.easeInOut(duration: 0.15), value: showReorderHandles),
+            alignment: .topTrailing
+        )
+        .scaleEffect(isDragging ? 1.05 : 1.0)
+        .opacity(isDragging ? 0.8 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isDragging)
+        .onHover { hovering in
+            isHovering = hovering
+            showReorderHandles = hovering
+        }
+        .onDrag {
+            isDragging = true
+            onDragStart()
+            return NSItemProvider(object: String(index) as NSString)
+        }
+        .simultaneousGesture(
+            DragGesture()
+                .onEnded { _ in
+                    // Ensure cleanup happens when drag ends, regardless of drop success
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        isDragging = false
+                        onDragEnd()
+                    }
+                }
+        )
+        .onDrop(of: [.text], delegate: NookDropDelegate(
+            nook: nook,
+            currentIndex: index,
+            onDrop: onDrop,
+            onDragEnter: onDragEnter,
+            onDragEnd: { 
+                isDragging = false
+                onDragEnd()
+            }
+        ))
+        .contextMenu {
+            Button("Edit") {
+                onEdit(nook)
+            }
+            
+            Divider()
+            
+            Button("Delete", role: .destructive) {
+                onDelete(nook)
+            }
+        }
+    }
+}
+
+// MARK: - Drop Delegate for Drag & Drop
+
+private struct NookDropDelegate: DropDelegate {
+    let nook: Nook
+    let currentIndex: Int
+    let onDrop: (Int, Int) -> Void
+    let onDragEnter: () -> Void
+    let onDragEnd: () -> Void
+    
+    func performDrop(info: DropInfo) -> Bool {
+        guard let itemProvider = info.itemProviders(for: [.text]).first else { 
+            DispatchQueue.main.async {
+                onDragEnd()
+            }
+            return false 
+        }
+        
+        itemProvider.loadItem(forTypeIdentifier: "public.text", options: nil) { data, error in
+            DispatchQueue.main.async {
+                if let data = data as? Data,
+                   let indexString = String(data: data, encoding: .utf8),
+                   let sourceIndex = Int(indexString),
+                   sourceIndex != currentIndex {
+                    
+                    onDrop(sourceIndex, currentIndex)
+                } else {
+                    // Failed to process drop - ensure cleanup
+                    onDragEnd()
+                }
+            }
+        }
+        
+        return true
+    }
+    
+    func dropEntered(info: DropInfo) {
+        onDragEnter()
+    }
+    
+    func dropExited(info: DropInfo) {
+        // Clear drop indicator when leaving this specific target
+        // Note: We don't call onDragEnd here as that would end the entire drag operation
     }
 }
 
