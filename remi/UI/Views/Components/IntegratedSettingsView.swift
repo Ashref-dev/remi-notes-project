@@ -290,6 +290,26 @@ struct IntegratedSettingsView: View {
                                                 .help("Example: ⌘⇧1 to select first nook")
                                         }
                                     }
+                                    
+                                    Divider()
+                                        .background(theme.textSecondary.opacity(0.1))
+                                        .padding(.horizontal, 20)
+                                    
+                                    ModernSettingsRow(
+                                        title: "Debug Onboarding",
+                                        subtitle: "Trigger the onboarding flow for testing purposes",
+                                        theme: theme
+                                    ) {
+                                        Button("Show Onboarding") {
+                                            settings.triggerOnboarding()
+                                        }
+                                        .buttonStyle(.plain)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(theme.accent)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(8)
+                                    }
                                 }
                             }
                         }

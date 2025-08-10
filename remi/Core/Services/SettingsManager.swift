@@ -95,6 +95,13 @@ class SettingsManager: ObservableObject {
         self.enableNookHotkeys = UserDefaults.standard.bool(forKey: "enableNookHotkeys")
     }
     
+    // MARK: - Debug Methods
+    
+    func triggerOnboarding() {
+        hasCompletedOnboarding = false
+        OnboardingService.shared.reset()
+    }
+    
     private static func loadHotkey() -> (Key, NSEvent.ModifierFlags) {
         let keyString = UserDefaults.standard.string(forKey: "globalHotkeyKey") ?? "R"
         let modifiersRawValue = UserDefaults.standard.integer(forKey: "globalHotkeyModifiers")
