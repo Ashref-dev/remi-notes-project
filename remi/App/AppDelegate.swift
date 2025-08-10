@@ -137,7 +137,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                 
-                Text("Version 1.1.1")
+                Text("Version 1.1.2")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
