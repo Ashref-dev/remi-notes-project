@@ -198,18 +198,20 @@ struct TaskEditorView: View {
             }
             .background(theme.background)
             .onAppear {
-                // Register copy all hotkey
-                HotkeyManager.shared.registerCopyAllHotkey {
-                    viewModel.copyAllContent(format: .markdown)
-                }
+                // No global hotkey registration - use local key events instead
             }
             .onDisappear {
                 // Force save when view disappears
                 viewModel.forceSave()
-                
-                // Unregister copy hotkey
-                HotkeyManager.shared.unregisterCopyAllHotkey()
             }
+            .background(
+                // Invisible button to capture keyboard shortcut when view has focus
+                Button("") {
+                    viewModel.copyAllContent(format: .markdown)
+                }
+                .keyboardShortcut("c", modifiers: [.command, .shift])
+                .hidden()
+            )
             .animation(.easeInOut, value: isAIInputVisible)
         }
     }
@@ -281,9 +283,6 @@ struct TaskEditorView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "doc.on.clipboard")
                             .font(.system(size: 14, weight: .medium))
-                        
-                        Text("Copy")
-                            .font(.system(size: 12, weight: .medium))
                     }
                     .foregroundColor(theme.textPrimary)
                     .padding(.horizontal, 10)
