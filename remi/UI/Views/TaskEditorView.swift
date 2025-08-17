@@ -8,6 +8,7 @@ struct TaskEditorView: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var isAIInputVisible = false
+    @State private var shouldFocusAIInput = false // Trigger for AI input focus
 
     let nook: Nook // Keep reference to current nook
 
@@ -18,7 +19,7 @@ struct TaskEditorView: View {
 
     var body: some View {
         Themed { theme in
-            ZStack(alignment: .bottom) {
+            ZStack(alignment: .center) {
                 VStack(spacing: 0) {
                     TopBar(theme: theme)
 
@@ -113,33 +114,35 @@ struct TaskEditorView: View {
                     // Smart suggestions bar - Modern and Compact
                     VStack(spacing: 0) {
                         // Header with elegant toggle button
-                        HStack {
+                        HStack(spacing: 12) {
                             Button(action: {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    isQuickActionsVisible.toggle()
-                                }
+                                // Avoid global withAnimation to prevent child insert animations
+                                isQuickActionsVisible.toggle()
                             }) {
                                 HStack(spacing: 8) {
                                     // Modern icon with subtle background
                                     ZStack {
-                                        Circle()
+                                        RoundedRectangle(cornerRadius: 6)
                                             .fill(theme.accent.opacity(0.08))
-                                            .frame(width: 20, height: 20)
+                                            .frame(width: 24, height: 24)
                                         
                                         Image(systemName: isQuickActionsVisible ? "chevron.down" : "chevron.right")
-                                            .font(.system(size: 9, weight: .semibold))
+                                            .font(.system(size: 10, weight: .bold))
                                             .foregroundColor(theme.accent)
+                                            .animation(.easeInOut(duration: 0.15), value: isQuickActionsVisible)
                                     }
                                     
-                                    Text("AI Quick Actions")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(theme.textPrimary)
-                                    
-                                    // Status indicator
-                                    if isQuickActionsVisible {
-                                        Text("•")
-                                            .font(.system(size: 8))
-                                            .foregroundColor(theme.accent)
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text("AI Quick Actions")
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundColor(theme.textPrimary)
+                                        
+                                        if !isQuickActionsVisible {
+                                            Text("Writing, structure & enhancement tools")
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(theme.textSecondary.opacity(0.7))
+                                                .transition(.opacity)
+                                        }
                                     }
                                 }
                             }
@@ -148,33 +151,56 @@ struct TaskEditorView: View {
                             
                             Spacer()
                             
-                            // Subtle count indicator when collapsed
+                            // Count indicator when collapsed with modern styling
                             if !isQuickActionsVisible {
-                                Text("4")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(theme.textSecondary.opacity(0.6))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(
-                                        Capsule()
-                                            .fill(theme.backgroundSecondary)
-                                    )
+                                HStack(spacing: 4) {
+                                    Image(systemName: "wand.and.stars")
+                                        .font(.system(size: 9, weight: .medium))
+                                        .foregroundColor(theme.accent.opacity(0.6))
+                                    
+                                    Text("12")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(theme.textPrimary.opacity(0.7))
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    Capsule()
+                                        .fill(theme.backgroundSecondary)
+                                        .overlay(
+                                            Capsule()
+                                                .stroke(theme.accent.opacity(0.2), lineWidth: 0.5)
+                                        )
+                                )
+                                .transition(.scale.combined(with: .opacity))
+                            }
+                            
+                            // Status indicator when expanded
+                            if isQuickActionsVisible {
+                                Circle()
+                                    .fill(theme.accent)
+                                    .frame(width: 6, height: 6)
+                                    .transition(.scale.combined(with: .opacity))
                             }
                         }
                         .padding(.horizontal, AppTheme.Spacing.medium)
                         .padding(.vertical, 10)
                         
-                        // Collapsible content with smooth animations
+                        // Quick actions panel - Only panel slides, content is static
                         if isQuickActionsVisible {
-                            SmartSuggestionsView { suggestion in
-                                handleAIInput(prompt: suggestion)
+                            VStack(spacing: 0) {
+                                ModernQuickActionsView { suggestion in
+                                    handleAIInput(prompt: suggestion)
+                                }
+                                // Disable implicit animations in the content subtree
+                                .animation(nil, value: isQuickActionsVisible)
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 8)
+                                .clipped()
                             }
-                            .padding(.horizontal, 4)
-                            .padding(.bottom, 12)
-                            .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)).combined(with: .offset(y: -10)),
-                                removal: .opacity.combined(with: .scale(scale: 0.95, anchor: .top))
-                            ))
+                            // Only the container slides; children remain static
+                            .transition(.move(edge: .top))
+                            .animation(.easeInOut(duration: 0.18), value: isQuickActionsVisible)
                         }
                     }
                     .background(
@@ -188,12 +214,29 @@ struct TaskEditorView: View {
                     BottomBar(theme: theme)
                 }
                 
-                // AI Input View - Slides from the bottom
+                // AI Input View - Modern center modal
                 if isAIInputVisible {
-                    AIInputView(isVisible: $isAIInputVisible, onSend: handleAIInput)
-                        .frame(maxWidth: .infinity)
-                        .padding(.bottom, 60)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    ZStack {
+                        // Overlay background with tap to dismiss
+                        Color.black.opacity(0.2)
+                            .ignoresSafeArea()
+                            .transition(.opacity)
+                            .onTapGesture {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    isAIInputVisible = false
+                                }
+                            }
+                        
+                        // Centered AI Input
+                        AIInputView(
+                            isVisible: $isAIInputVisible, 
+                            shouldFocus: $shouldFocusAIInput,
+                            onSend: handleAIInput
+                        )
+                        .padding(.horizontal, 40)
+                        .transition(.scale(scale: 0.95).combined(with: .opacity))
+                    }
+                    .zIndex(100)
                 }
             }
             .background(theme.background)
@@ -212,7 +255,7 @@ struct TaskEditorView: View {
                 .keyboardShortcut("c", modifiers: [.command, .shift])
                 .hidden()
             )
-            .animation(.easeInOut, value: isAIInputVisible)
+            .animation(.easeInOut(duration: 0.2), value: isAIInputVisible)
         }
     }
     
@@ -301,13 +344,25 @@ struct TaskEditorView: View {
                 
                 // AI Assistant Button - Enhanced with gradient
                 Button(action: { 
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                    withAnimation(.easeInOut(duration: 0.2)) {
                         isAIInputVisible.toggle()
+                    }
+                    
+                    // Trigger focus with minimal delay for instant feel
+                    if !isAIInputVisible {
+                        // About to show case - trigger focus immediately
+                        DispatchQueue.main.async {
+                            shouldFocusAIInput = true
+                        }
+                    } else {
+                        // About to hide case - reset focus trigger
+                        shouldFocusAIInput = false
                     }
                 }) {
                     HStack(spacing: 6) {
-                        Image(systemName: "sparkles")
+                        Image(systemName: isAIInputVisible ? "sparkles.square.filled.on.square" : "sparkles")
                             .font(.system(size: 14, weight: .medium))
+                            .symbolRenderingMode(.hierarchical)
                         
                         Text("AI")
                             .font(.system(size: 12, weight: .semibold))
@@ -317,7 +372,10 @@ struct TaskEditorView: View {
                     .padding(.vertical, 8)
                     .background(
                         LinearGradient(
-                            colors: [
+                            colors: isAIInputVisible ? [
+                                Color(red: 0.5, green: 0.2, blue: 0.9),   // Deeper Purple when active
+                                Color(red: 0.3, green: 0.2, blue: 1.0)    // Deeper Blue when active
+                            ] : [
                                 Color(red: 0.4, green: 0.3, blue: 0.8),   // Purple
                                 Color(red: 0.2, green: 0.4, blue: 0.9)    // Blue
                             ],
@@ -326,7 +384,12 @@ struct TaskEditorView: View {
                         )
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .shadow(color: Color(red: 0.3, green: 0.3, blue: 0.8).opacity(0.3), radius: 4, x: 0, y: 2)
+                    .shadow(
+                        color: Color(red: 0.3, green: 0.3, blue: 0.8).opacity(isAIInputVisible ? 0.4 : 0.3), 
+                        radius: isAIInputVisible ? 6 : 4, 
+                        x: 0, 
+                        y: isAIInputVisible ? 3 : 2
+                    )
                     .scaleEffect(isAIInputVisible ? 1.05 : 1.0)
                 }
                 .buttonStyle(.plain)

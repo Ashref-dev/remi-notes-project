@@ -2,11 +2,13 @@ import SwiftUI
 
 struct AIInputView: View {
     @Binding var isVisible: Bool
+    @Binding var shouldFocus: Bool // New focus trigger from parent
     var onSend: (String) -> Void
     
     @State private var inputText: String = ""
     @State private var isProcessing: Bool = false
     @FocusState private var isFocused: Bool
+    @State private var focusProtectionTimer: Timer? // Protect focus from being stolen
     @ObservedObject private var settingsManager = SettingsManager.shared
     
     private var isAPIKeyConfigured: Bool {
@@ -16,7 +18,36 @@ struct AIInputView: View {
     
     var body: some View {
         Themed { theme in
-            VStack(spacing: 8) {
+            VStack(spacing: 12) {
+                // Header with close button for center modal
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AI Assistant")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(theme.textPrimary)
+                        
+                        Text("Describe how you'd like to improve your content")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(theme.textSecondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isVisible = false
+                        }
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(theme.textSecondary.opacity(0.6))
+                            .background(Color.clear)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Close AI Assistant")
+                }
+                
+                VStack(spacing: 8) {
                 // API Key warning (if needed) - minimal
                 if !isAPIKeyConfigured {
                     HStack(spacing: 4) {
@@ -73,23 +104,50 @@ struct AIInputView: View {
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(isFocused ? theme.accent.opacity(0.5) : theme.border, lineWidth: 1)
                 )
+                }
             }
-            .padding(10)
+            .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(theme.background)
-                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                    .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 8)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(theme.border.opacity(0.1), lineWidth: 1)
             )
             .onAppear { 
+                // Focus immediately on appear if API key is configured
                 if isAPIKeyConfigured {
-                    isFocused = true 
+                    isFocused = true
+                    startFocusProtection()
+                }
+            }
+            .onChange(of: shouldFocus) { _, newValue in
+                if newValue && isAPIKeyConfigured {
+                    // Parent triggered focus - apply immediately and reset trigger
+                    isFocused = true
+                    shouldFocus = false
+                    startFocusProtection()
                 }
             }
             .onChange(of: isVisible) { _, newValue in
-                if !newValue {
+                if newValue {
+                    // When becoming visible, ensure focus
+                    if isAPIKeyConfigured {
+                        isFocused = true
+                        startFocusProtection()
+                    }
+                } else {
+                    // When hiding, clean up state
                     inputText = ""
                     isProcessing = false
+                    isFocused = false
+                    stopFocusProtection()
                 }
+            }
+            .onDisappear {
+                stopFocusProtection()
             }
             .transition(.scale(scale: 0.95).combined(with: .opacity))
         }
@@ -104,6 +162,7 @@ struct AIInputView: View {
         
         let prompt = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         isProcessing = true
+        stopFocusProtection() // Stop protection while processing
         onSend(prompt)
         inputText = ""
         
@@ -114,6 +173,21 @@ struct AIInputView: View {
                 isVisible = false
             }
         }
+    }
+    
+    // Focus protection methods to prevent focus stealing from rerenders
+    private func startFocusProtection() {
+        stopFocusProtection() // Clear any existing timer
+        focusProtectionTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+            if isVisible && isAPIKeyConfigured && !isProcessing && !isFocused {
+                isFocused = true
+            }
+        }
+    }
+    
+    private func stopFocusProtection() {
+        focusProtectionTimer?.invalidate()
+        focusProtectionTimer = nil
     }
 }
 

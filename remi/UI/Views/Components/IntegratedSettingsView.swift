@@ -333,7 +333,7 @@ struct IntegratedSettingsView: View {
                                                     .font(.body)
                                                     .foregroundColor(theme.textSecondary)
                                                 Spacer()
-                                                Text("1.1.0")
+                                                Text("1.1.3")
                                                     .font(.body)
                                                     .fontWeight(.semibold)
                                                     .foregroundColor(theme.textPrimary)
