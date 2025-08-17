@@ -2,6 +2,11 @@
 
 ## 🎉 New Features & Improvements
 
+### 🔧 Critical Bug Fix - Edit Button Functionality Restored
+- **Fixed broken edit button** - Edit buttons on nook cards in the sidebar now work properly
+- **Restored nook editing modal** - Clicking edit buttons now properly opens the nook editor sheet
+- **Improved state management** - Fixed communication between card overlay buttons and edit modal triggers
+
 ### AI Quick Actions Panel Overhaul
 - **Eliminated distracting card animations** - Cards now appear instantly when the panel opens
 - **Smooth panel-only animation** - Only the container slides up/down, creating a cleaner experience

@@ -678,13 +678,15 @@ private struct DraggableNookCard: View {
     @State private var isHovering = false
     @State private var isDragging = false
     @State private var showReorderHandles = false
+    @State private var showingEditSheet = false
     
     var body: some View {
         ModernNookCard(
             nook: nook,
             isSelected: isSelected,
             onTap: onTap,
-            onEdit: onEdit
+            onEdit: onEdit,
+            showEditSheet: $showingEditSheet
         )
         .overlay(
             // Edit and drag controls positioned at top-right
@@ -693,7 +695,9 @@ private struct DraggableNookCard: View {
                     Spacer()
                     
                     // Edit button - smaller and modern
-                    Button(action: { onEdit(nook) }) {
+                    Button(action: { 
+                        showingEditSheet = true
+                    }) {
                         Image(systemName: "pencil")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(theme.textSecondary)
@@ -762,7 +766,7 @@ private struct DraggableNookCard: View {
         ))
         .contextMenu {
             Button("Edit") {
-                onEdit(nook)
+                showingEditSheet = true
             }
             
             Divider()

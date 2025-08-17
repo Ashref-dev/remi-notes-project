@@ -1,20 +1,21 @@
-    import SwiftUI
+import SwiftUI
 
 struct ModernNookCard: View {
     let nook: Nook
     let isSelected: Bool
     let onTap: () -> Void
     let onEdit: ((Nook) -> Void)?
+    @Binding var showEditSheet: Bool
     
     @State private var isHovering = false
-    @State private var showingEditSheet = false
     @State private var editableNook: Nook
     
-    init(nook: Nook, isSelected: Bool, onTap: @escaping () -> Void, onEdit: ((Nook) -> Void)? = nil) {
+    init(nook: Nook, isSelected: Bool, onTap: @escaping () -> Void, onEdit: ((Nook) -> Void)? = nil, showEditSheet: Binding<Bool> = .constant(false)) {
         self.nook = nook
         self.isSelected = isSelected
         self.onTap = onTap
         self.onEdit = onEdit
+        self._showEditSheet = showEditSheet
         self._editableNook = State(initialValue: nook)
     }
     
@@ -123,8 +124,8 @@ struct ModernNookCard: View {
             .onChange(of: nook) { newNook in
                 editableNook = newNook
             }
-            .sheet(isPresented: $showingEditSheet) {
-                NookEditorSheet(nook: $editableNook, isPresented: $showingEditSheet)
+            .sheet(isPresented: $showEditSheet) {
+                NookEditorSheet(nook: $editableNook, isPresented: $showEditSheet)
                     .onDisappear {
                         if editableNook != nook {
                             onEdit?(editableNook)
