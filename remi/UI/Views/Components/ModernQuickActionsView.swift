@@ -6,8 +6,7 @@ struct ModernQuickActionsView: View {
     let onActionTap: (String) -> Void
     
     private var isAPIKeyConfigured: Bool {
-        let key = settingsManager.groqAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !key.isEmpty && key.starts(with: "gsk_") && key.count > 20
+        settingsManager.isAPIKeyConfigured()
     }
     
     private var quickActions: [QuickActionCategory] {
@@ -33,7 +32,7 @@ struct ModernQuickActionsView: View {
                     actions: [
                         QuickAction(
                             title: "API Key Required",
-                            description: "Configure Groq API key",
+                            description: "Configure OpenRouter API key",
                             icon: "key.fill",
                             color: .orange,
                             action: "Open Settings to configure API key"
@@ -226,7 +225,7 @@ struct ModernQuickActionsView: View {
                     txn.animation = nil
                 }
             }
-            .background(theme.background)
+            .glassBackground(cornerRadius: 8, strokeOpacity: 0.08)
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
@@ -242,8 +241,6 @@ struct ModernActionCard: View {
     
     var body: some View {
         Button(action: {
-            // Add haptic feedback for professional feel
-            NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
             onTap()
         }) {
             VStack(alignment: .leading, spacing: 8) {
@@ -295,22 +292,27 @@ struct ModernActionCard: View {
             }
             .padding(12)
             .frame(minHeight: 72)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(theme.backgroundSecondary)
+            .background {
+                Color.clear
+                    .liquidGlassSurface(
+                        cornerRadius: 10,
+                        strokeOpacity: isHovered ? 0.16 : 0.08,
+                        interactive: true,
+                        fallbackMaterial: .regularMaterial
+                    )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10)
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .stroke(
-                                isHovered ? action.color.opacity(0.3) : theme.border.opacity(0.1),
+                                isHovered ? action.color.opacity(0.3) : Color.white.opacity(0.08),
                                 lineWidth: isHovered ? 1.5 : 1
                             )
                     )
-                    .shadow(
-                        color: isPressed ? .clear : (isHovered ? action.color.opacity(0.08) : Color.black.opacity(0.02)),
-                        radius: isPressed ? 0 : (isHovered ? 3 : 1),
-                        x: 0,
-                        y: isPressed ? 0 : (isHovered ? 2 : 1)
-                    )
+            }
+            .shadow(
+                color: isPressed ? .clear : (isHovered ? action.color.opacity(0.1) : Color.black.opacity(0.03)),
+                radius: isPressed ? 0 : (isHovered ? 4 : 2),
+                x: 0,
+                y: isPressed ? 0 : (isHovered ? 2 : 1)
             )
         }
     .buttonStyle(.plain)

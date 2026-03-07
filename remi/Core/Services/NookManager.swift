@@ -3,23 +3,48 @@ import Foundation
 // MARK: - Nook Metadata Structure
 
 private struct NookMetadata: Codable {
+    let id: String
     let iconName: String
     let iconColor: String
     let lastModified: Date
     let order: Int
-    
-    init(iconName: String = "doc.text.fill", iconColor: NookIconColor = .blue, order: Int = 0) {
+    let hasBeenAutoTitled: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case iconName
+        case iconColor
+        case lastModified
+        case order
+        case hasBeenAutoTitled
+    }
+
+    init(id: String = UUID().uuidString, iconName: String = "doc.text.fill", iconColor: NookIconColor = .blue, order: Int = 0, hasBeenAutoTitled: Bool = false) {
+        self.id = id
         self.iconName = iconName
         self.iconColor = iconColor.rawValue
         self.lastModified = Date()
         self.order = order
+        self.hasBeenAutoTitled = hasBeenAutoTitled
     }
-    
+
     init(from nook: Nook) {
+        self.id = nook.id.uuidString
         self.iconName = nook.iconName
         self.iconColor = nook.iconColor.rawValue
         self.lastModified = Date()
         self.order = nook.order
+        self.hasBeenAutoTitled = nook.hasBeenAutoTitled
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        self.iconName = try container.decodeIfPresent(String.self, forKey: .iconName) ?? "doc.text.fill"
+        self.iconColor = try container.decodeIfPresent(String.self, forKey: .iconColor) ?? NookIconColor.blue.rawValue
+        self.lastModified = try container.decodeIfPresent(Date.self, forKey: .lastModified) ?? Date()
+        self.order = try container.decodeIfPresent(Int.self, forKey: .order) ?? 0
+        self.hasBeenAutoTitled = try container.decodeIfPresent(Bool.self, forKey: .hasBeenAutoTitled) ?? false
     }
 }
 
@@ -58,6 +83,7 @@ class NookManager {
                     var welcomeNook = nook
                     welcomeNook.iconName = "heart.fill"
                     welcomeNook.iconColor = .pink
+                    welcomeNook.hasBeenAutoTitled = true // Don't auto-title the welcome nook
                     self.updateNookMetadata(welcomeNook)
                 }
             } catch {
@@ -74,12 +100,24 @@ class NookManager {
                 let name = url.lastPathComponent
                 let metadata = loadNookMetadata(at: url)
                 let iconColor = NookIconColor(rawValue: metadata.iconColor) ?? .blue
+                let nookId = UUID(uuidString: metadata.id) ?? UUID()
+                if nookId.uuidString != metadata.id {
+                    let repairedMetadata = NookMetadata(
+                        id: nookId.uuidString,
+                        iconName: metadata.iconName,
+                        iconColor: iconColor,
+                        order: metadata.order
+                    )
+                    saveNookMetadata(repairedMetadata, at: url)
+                }
                 let nook = Nook(
+                    id: nookId,
                     name: name,
                     url: url,
                     iconName: metadata.iconName,
                     iconColor: iconColor,
-                    order: metadata.order
+                    order: metadata.order,
+                    hasBeenAutoTitled: metadata.hasBeenAutoTitled
                 )
                 nooks.append(nook)
             }
@@ -96,13 +134,25 @@ class NookManager {
     }
 
     func createNook(named name: String) -> Nook? {
-        let newNookURL = nooksDirectory.appendingPathComponent(name)
+        let sanitizedName = sanitizeNookName(name)
+        guard !sanitizedName.isEmpty else {
+            return nil
+        }
+
+        let newNookURL = nooksDirectory.appendingPathComponent(sanitizedName)
         if !fileManager.fileExists(atPath: newNookURL.path) {
             do {
                 try fileManager.createDirectory(at: newNookURL, withIntermediateDirectories: true, attributes: nil)
                 let tasksFileURL = newNookURL.appendingPathComponent("tasks.md")
                 fileManager.createFile(atPath: tasksFileURL.path, contents: "".data(using: .utf8), attributes: nil)
-                let newNook = Nook(name: name, url: newNookURL)
+                let nextOrder = (fetchNooks().map(\.order).max() ?? -1) + 1
+                
+                // Only consider it 'auto-titled' inherently if the user named it themselves immediately,
+                // but since our UI defaults to 'New Nook', we check that.
+                let isAlreadyNamed = (sanitizedName != "New Nook")
+                
+                let newNook = Nook(name: sanitizedName, url: newNookURL, order: nextOrder, hasBeenAutoTitled: isAlreadyNamed)
+                updateNookMetadata(newNook)
                 return newNook
             } catch {
                 print("Error creating nook: \(error)")
@@ -110,17 +160,31 @@ class NookManager {
             }
         } else {
             print("Nook already exists.")
-            return fetchNooks().first { $0.name == name }
+            return fetchNooks().first { $0.name.localizedCaseInsensitiveCompare(sanitizedName) == .orderedSame }
         }
     }
 
     func renameNook(_ nook: Nook, to newName: String) -> Nook? {
-        let newURL = nooksDirectory.appendingPathComponent(newName)
+        let sanitizedName = sanitizeNookName(newName)
+        guard !sanitizedName.isEmpty else {
+            return nil
+        }
+
+        if sanitizedName == nook.url.lastPathComponent {
+            return nook
+        }
+
+        let newURL = nooksDirectory.appendingPathComponent(sanitizedName)
+        if fileManager.fileExists(atPath: newURL.path) {
+            return nil
+        }
+
         do {
             try fileManager.moveItem(at: nook.url, to: newURL)
             var updatedNook = nook
-            updatedNook.name = newName
+            updatedNook.name = sanitizedName
             updatedNook.url = newURL
+            updateNookMetadata(updatedNook)
             return updatedNook
         } catch {
             print("Error renaming nook: \(error)")
@@ -128,11 +192,14 @@ class NookManager {
         }
     }
 
-    func deleteNook(_ nook: Nook) {
+    @discardableResult
+    func deleteNook(_ nook: Nook) -> Bool {
         do {
             try fileManager.removeItem(at: nook.url)
+            return true
         } catch {
             print("Error deleting nook: \(error)")
+            return false
         }
     }
 
@@ -162,30 +229,23 @@ class NookManager {
         do {
             let data = try Data(contentsOf: metadataURL)
             let decoder = JSONDecoder()
-            
-            // Try to decode with the new structure
-            do {
-                return try decoder.decode(NookMetadata.self, from: data)
-            } catch {
-                // Migration: Try to decode old structure without order field
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let iconName = json["iconName"] as? String,
-                   let iconColor = json["iconColor"] as? String {
-                    // Create new metadata with default order and save it
-                    let migratedMetadata = NookMetadata(
-                        iconName: iconName,
-                        iconColor: NookIconColor(rawValue: iconColor) ?? .blue,
-                        order: 0
-                    )
-                    // Save the migrated metadata
-                    saveNookMetadata(migratedMetadata, at: url)
-                    return migratedMetadata
+
+            let metadata = try decoder.decode(NookMetadata.self, from: data)
+
+            if let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                let hasId = raw["id"] is String
+                let hasOrder = raw["order"] != nil
+                if !hasId || !hasOrder {
+                    saveNookMetadata(metadata, at: url)
                 }
-                throw error
             }
+
+            return metadata
         } catch {
             // Return default metadata if file doesn't exist or can't be decoded
-            return NookMetadata()
+            let metadata = NookMetadata()
+            saveNookMetadata(metadata, at: url)
+            return metadata
         }
     }
     
@@ -205,16 +265,20 @@ class NookManager {
     }
     
     func updateNook(_ nook: Nook) -> Nook? {
+        var normalizedNook = nook
+        normalizedNook.name = sanitizeNookName(nook.name)
+        guard !normalizedNook.name.isEmpty else { return nil }
+
         // Update metadata
-        updateNookMetadata(nook)
-        
+        updateNookMetadata(normalizedNook)
+
         // If name changed, rename the directory
-        let currentName = nook.url.lastPathComponent
-        if nook.name != currentName {
-            return renameNook(nook, to: nook.name)
+        let currentName = normalizedNook.url.lastPathComponent
+        if normalizedNook.name != currentName {
+            return renameNook(normalizedNook, to: normalizedNook.name)
         }
-        
-        return nook
+
+        return normalizedNook
     }
     
     // MARK: - Nook Reordering
@@ -245,5 +309,20 @@ class NookManager {
         
         // Persist the new order
         reorderNooks(nooks)
+    }
+
+    private func sanitizeNookName(_ name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+
+        let forbidden = CharacterSet(charactersIn: "/\\:?%*|\"<>\n\r\t")
+        let cleanedScalars = trimmed.unicodeScalars.map { forbidden.contains($0) ? " " : Character($0) }
+        let cleaned = String(cleanedScalars)
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+
+        let visibleName = cleaned.trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        return visibleName
     }
 }

@@ -5,8 +5,7 @@ struct ConnectionStatusIndicator: View {
     @ObservedObject private var settingsManager = SettingsManager.shared
     
     private var isAPIKeyConfigured: Bool {
-        let key = settingsManager.groqAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !key.isEmpty && key.starts(with: "gsk_") && key.count > 20
+        settingsManager.isAPIKeyConfigured()
     }
     
     private var statusColor: Color {
@@ -71,8 +70,7 @@ struct ConnectionStatusDot: View {
     @ObservedObject private var settingsManager = SettingsManager.shared
     
     private var isAPIKeyConfigured: Bool {
-        let key = settingsManager.groqAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !key.isEmpty && key.starts(with: "gsk_") && key.count > 20
+        settingsManager.isAPIKeyConfigured()
     }
     
     private var statusColor: Color {

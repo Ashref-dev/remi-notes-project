@@ -42,7 +42,7 @@ struct TaskListColumn: View {
                 Divider()
                 
                 // Task List or Empty State
-                if let nook = selectedNook {
+                if selectedNook != nil {
                     if tasks.isEmpty {
                         emptyTasksView(theme: theme)
                     } else {
@@ -53,7 +53,7 @@ struct TaskListColumn: View {
                 }
             }
         }
-        .onChange(of: selectedNook) { newNook in
+        .onChange(of: selectedNook) {
             loadTasks()
         }
         .onAppear {

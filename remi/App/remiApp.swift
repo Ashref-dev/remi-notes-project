@@ -1,4 +1,5 @@
 import SwiftUI
+import AppIntents
 
 @main
 struct remiApp: App {
@@ -9,7 +10,7 @@ struct remiApp: App {
         // Settings scene for menu bar app
         Settings {
             IntegratedSettingsView(showingSettings: $showingSettings)
-                .frame(width: 600, height: 500)
+                .frame(width: 760, height: 620)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
@@ -27,6 +28,11 @@ struct remiApp: App {
                     NotificationCenter.default.post(name: .showRemiPopover, object: nil)
                 }
                 .keyboardShortcut("r", modifiers: [.command])
+
+                Button("Open Focus Window") {
+                    NotificationCenter.default.post(name: .openFocusWindow, object: nil)
+                }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
                 
                 Divider()
             }
@@ -37,5 +43,6 @@ struct remiApp: App {
 // Notification name for communication between app and delegate
 extension Notification.Name {
     static let showRemiPopover = Notification.Name("showRemiPopover")
+    static let openFocusWindow = Notification.Name("openFocusWindow")
+    static let toggleStickyWindow = Notification.Name("toggleStickyWindow")
 }
-

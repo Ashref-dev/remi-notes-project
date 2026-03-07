@@ -45,7 +45,9 @@ struct OnboardingView: View {
                         GeometryReader { geo in
                             Color.clear
                                 .onAppear { navBarHeight = geo.size.height }
-                                .onChange(of: geo.size.height) { navBarHeight = $0 }
+                                .onChange(of: geo.size.height) { _, newHeight in
+                                    navBarHeight = newHeight
+                                }
                         }
                     )
                 }

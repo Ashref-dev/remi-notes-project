@@ -38,7 +38,7 @@ struct SystemStatusView: View {
                             title: "API Configuration",
                             status: isAPIKeyConfigured ? "Configured" : "Not Configured",
                             statusColor: isAPIKeyConfigured ? .green : .orange,
-                            detail: isAPIKeyConfigured ? "Groq API key is set" : "API key required for AI features",
+                            detail: isAPIKeyConfigured ? "OpenRouter API key is set" : "API key required for AI features",
                             icon: isAPIKeyConfigured ? "key.fill" : "key.slash",
                             theme: theme
                         )
@@ -90,8 +90,7 @@ struct SystemStatusView: View {
     }
     
     private var isAPIKeyConfigured: Bool {
-        let key = settingsManager.groqAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !key.isEmpty && key.starts(with: "gsk_") && key.count > 20
+        settingsManager.isAPIKeyConfigured()
     }
     
     private var apiHealthDetail: String {

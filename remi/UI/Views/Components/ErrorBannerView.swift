@@ -6,6 +6,7 @@ struct ErrorBannerView: View {
     let onRetry: (() -> Void)?
     
     @State private var isVisible = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     var body: some View {
         Themed { theme in
@@ -80,12 +81,19 @@ struct ErrorBannerView: View {
             )
             .scaleEffect(isVisible ? 1.0 : 0.95)
             .opacity(isVisible ? 1.0 : 0.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isVisible)
+            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7), value: isVisible)
             .onAppear {
-                withAnimation {
+                if reduceMotion {
                     isVisible = true
+                } else {
+                    withAnimation {
+                        isVisible = true
+                    }
                 }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(error.message)
+            .accessibilityHint(error.canRetry ? "Use Retry to attempt the action again." : "Dismiss to close this message.")
         }
     }
     
@@ -158,9 +166,10 @@ struct ErrorBannerView: View {
 // MARK: - Error Banner Modifier
 struct ErrorBannerModifier: ViewModifier {
     @ObservedObject private var errorService = ErrorHandlingService.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     func body(content: Content) -> some View {
-        ZStack(alignment: .top) {
+        ZStack(alignment: .bottomLeading) {
             content
             
             if let error = errorService.currentError {
@@ -175,18 +184,16 @@ struct ErrorBannerModifier: ViewModifier {
                         } : nil
                     )
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                    .padding(.bottom, 68) // Clear the FloatingNookStrip
                     .transition(.asymmetric(
-                        insertion: .move(edge: .top).combined(with: .opacity),
-                        removal: .move(edge: .top).combined(with: .opacity)
+                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                        removal: .move(edge: .bottom).combined(with: .opacity)
                     ))
-                    
-                    Spacer()
                 }
                 .zIndex(1000)
             }
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: errorService.currentError != nil)
+        .animation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.8), value: errorService.currentError != nil)
     }
 }
 

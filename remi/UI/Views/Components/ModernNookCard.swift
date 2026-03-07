@@ -115,13 +115,30 @@ struct ModernNookCard: View {
             .buttonStyle(.plain)
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isHovering)
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isSelected)
+            .contextMenu {
+                // Edit Nook Action
+                Button {
+                    showEditSheet = true
+                } label: {
+                    Label("Edit Nook", systemImage: "pencil")
+                }
+                
+                Divider()
+                
+                // Pin to Desktop Action
+                Button {
+                    NotificationCenter.default.post(name: .toggleStickyWindow, object: nook)
+                } label: {
+                    Label("Pin to Desktop", systemImage: "pin.fill")
+                }
+            }
             .onHover { hovering in
                 isHovering = hovering
             }
             .onAppear {
                 editableNook = nook
             }
-            .onChange(of: nook) { newNook in
+            .onChange(of: nook) { _, newNook in
                 editableNook = newNook
             }
             .sheet(isPresented: $showEditSheet) {
@@ -135,4 +152,3 @@ struct ModernNookCard: View {
         }
     }
 }
-

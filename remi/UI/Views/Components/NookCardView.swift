@@ -32,21 +32,32 @@ struct NookCardView: View {
             }
             .padding(AppTheme.Spacing.medium)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackgroundColor(theme: theme))
-            .cornerRadius(AppTheme.CornerRadius.medium)
+            .background {
+                if isSelected || isHovering {
+                    Color.clear
+                        .liquidGlassSurface(
+                            cornerRadius: AppTheme.CornerRadius.medium,
+                            strokeOpacity: isSelected ? 0.25 : 0.1,
+                            interactive: true,
+                            fallbackMaterial: .regularMaterial
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous)
+                                .stroke(nook.iconColor.color.opacity(isSelected ? 0.35 : 0.18), lineWidth: isSelected ? 2 : 1)
+                        )
+                } else {
+                    Color.clear
+                        .liquidGlassSurface(
+                            cornerRadius: AppTheme.CornerRadius.medium,
+                            strokeOpacity: 0.06,
+                            fallbackMaterial: .ultraThinMaterial
+                        )
+                    .opacity(0.6)
+                }
+            }
             .onHover { hovering in
                 isHovering = hovering
             }
-        }
-    }
-    
-    private func cardBackgroundColor(theme: Theme) -> Color {
-        if isSelected {
-            return theme.cardBackgroundSelected
-        } else if isHovering {
-            return theme.cardBackgroundHover
-        } else {
-            return theme.cardBackground
         }
     }
 }

@@ -29,7 +29,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         }
         
         textView.importsGraphics = false
-        textView.drawsBackground = true
+        textView.drawsBackground = false
         
         // Improve scroll behavior
         textView.textContainer?.widthTracksTextView = true
@@ -43,7 +43,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         scrollView.autohidesScrollers = true
 
         // Style the background and insertion point with modern colors
-        textView.backgroundColor = NSColor(theme.background)
+        textView.backgroundColor = .clear
         textView.insertionPointColor = NSColor(theme.accent)
         
         // Better line height and spacing
@@ -70,7 +70,7 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         let textView = nsView.documentView as! NSTextView
         
         // Update colors from the theme
-        textView.backgroundColor = NSColor(theme.background)
+        textView.backgroundColor = .clear
         textView.textColor = NSColor(theme.textPrimary)
         textView.insertionPointColor = NSColor(theme.accent)
         
@@ -214,21 +214,12 @@ struct LiveMarkdownEditor: NSViewRepresentable {
                 isAtWordBoundary(textView: textView)
             
             if shouldStartNewGroup {
-                // STEP 2.2: Safe grouping operations with error handling
-                do {
-                    if undoManager.groupingLevel > 0 {
-                        undoManager.endUndoGrouping()
-                    }
-                    undoManager.beginUndoGrouping()
-                    lastUndoGroupTime = currentTime
-                    consecutiveTypeCount = 1
-                } catch {
-                    print("⚠️ Error in undo grouping: \(error)")
-                    // Ensure clean state on error
-                    while undoManager.groupingLevel > 0 {
-                        undoManager.endUndoGrouping()
-                    }
+                if undoManager.groupingLevel > 0 {
+                    undoManager.endUndoGrouping()
                 }
+                undoManager.beginUndoGrouping()
+                lastUndoGroupTime = currentTime
+                consecutiveTypeCount = 1
             } else {
                 consecutiveTypeCount += 1
             }
@@ -817,10 +808,8 @@ struct LiveMarkdownEditor: NSViewRepresentable {
         // Set up periodic cleanup of undo stack for large documents
         Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { _ in
             // Clean up undo stack if it gets too large
-            if undoManager.canUndo {
-                let maxMemoryActions = 50
-                // This is a conservative approach to memory management
-                // NSUndoManager handles most memory management internally
+            if undoManager.canUndo && undoManager.levelsOfUndo > 50 {
+                undoManager.levelsOfUndo = 50
             }
         }
         

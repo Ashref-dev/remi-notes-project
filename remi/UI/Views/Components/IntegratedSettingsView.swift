@@ -1,524 +1,435 @@
 import SwiftUI
-import LaunchAtLogin
-import HotKey
 
 struct IntegratedSettingsView: View {
     @Binding var showingSettings: Bool
     @StateObject private var settings = SettingsManager.shared
-    @State private var apiKeyValidationState: APIKeyValidationState = .unknown
-    @State private var validationTask: Task<Void, Never>?
-    @State private var showingModelDetails = false
-    
-    enum APIKeyValidationState {
-        case unknown
+    @State private var validationState: ValidationState = .idle
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    enum ValidationState {
+        case idle
         case validating
         case valid
         case invalid(String)
-        
-        var color: Color {
+
+        var icon: String {
             switch self {
-            case .unknown: return .gray
+            case .idle: return "questionmark.circle"
+            case .validating: return "clock.arrow.circlepath"
+            case .valid: return "checkmark.circle.fill"
+            case .invalid: return "xmark.circle.fill"
+            }
+        }
+
+        var tint: Color {
+            switch self {
+            case .idle: return .secondary
             case .validating: return .blue
             case .valid: return .green
             case .invalid: return .red
             }
         }
-        
-        var icon: String {
+
+        var message: String {
             switch self {
-            case .unknown: return "questionmark.circle"
-            case .validating: return "clock.circle"
-            case .valid: return "checkmark.circle.fill"
-            case .invalid: return "exclamationmark.circle.fill"
-            }
-        }
-        
-        var message: String? {
-            switch self {
-            case .unknown: return nil
+            case .idle: return "Not validated"
             case .validating: return "Validating..."
             case .valid: return "API key is valid"
-            case .invalid(let message): return message
+            case .invalid(let text): return text
             }
+        }
+
+        var isValidating: Bool {
+            if case .validating = self { return true }
+            return false
         }
     }
 
     var body: some View {
         Themed { theme in
             VStack(spacing: 0) {
-                // Header
-                HStack {
-                    Button(action: { 
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showingSettings = false
-                        }
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "arrow.left")
-                                .font(.system(size: 16, weight: .medium))
-                            Text("Back")
-                                .font(.body)
-                        }
-                        .foregroundColor(theme.accent)
+                topBar(theme: theme)
+
+                ScrollView {
+                    VStack(spacing: 14) {
+                        aiProviderSection(theme: theme)
+                        systemPromptSection(theme: theme)
+                        aiTemplatesSection(theme: theme)
+                        modelSection(theme: theme)
+                        appBehaviorSection(theme: theme)
+                        aboutSection(theme: theme)
                     }
-                    .buttonStyle(.plain)
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .center, spacing: 4) {
-                        Text("Settings")
-                            .font(.title.weight(.bold))
-                            .foregroundColor(theme.textPrimary)
-                        
-                        Text("Customize your Remi experience")
-                            .font(.subheadline)
-                            .foregroundColor(theme.textSecondary)
-                    }
-                    
-                    Spacer()
-                    
-                    // Invisible placeholder for balance
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.left")
-                            .font(.system(size: 16, weight: .medium))
-                        Text("Back")
-                            .font(.body)
-                    }
-                    .foregroundColor(.clear)
-                }
-                .padding(.horizontal, 32)
-                .padding(.vertical, 24)
-                
-                // Main Content
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 32) {
-                        // System Status Section
-                        VStack(alignment: .leading, spacing: 20) {
-                            SectionHeader(title: "System Status", icon: "chart.line.uptrend.xyaxis", theme: theme) {
-                                Button(action: {
-                                    Task {
-                                        await HealthCheckService.shared.performHealthCheck()
-                                    }
-                                }) {
-                                    Image(systemName: "arrow.clockwise")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(theme.accent)
-                                }
-                                .buttonStyle(.plain)
-                                .help("Refresh Status")
-                            }
-                            
-                            ModernCard(theme: theme) {
-                                SystemStatusView()
-                            }
-                        }
-                        
-                        // API Configuration Section
-                        VStack(alignment: .leading, spacing: 20) {
-                            SectionHeader(title: "API Configuration", icon: "key.fill", theme: theme)
-                            
-                            ModernCard(theme: theme) {
-                                VStack(alignment: .leading, spacing: 20) {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        Text("Groq API Key")
-                                            .font(.headline)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(theme.textPrimary)
-                                        
-                                        Text("Configure your Groq API key for AI features")
-                                            .font(.subheadline)
-                                            .foregroundColor(theme.textSecondary)
-                                        
-                                        HStack(spacing: 12) {
-                                            SecureField("Enter your API key", text: $settings.groqAPIKey)
-                                                .textFieldStyle(.plain)
-                                                .font(.system(.body, design: .monospaced))
-                                                .padding(.horizontal, 16)
-                                                .padding(.vertical, 14)
-                                                .background(theme.background)
-                                                .cornerRadius(12)
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 12)
-                                                        .stroke(theme.textSecondary.opacity(0.2), lineWidth: 1)
-                                                )
-                                                .onChange(of: settings.groqAPIKey) { _ in
-                                                    validateAPIKey()
-                                                }
-                                            
-                                            // Validation indicator
-                                            if !settings.groqAPIKey.isEmpty {
-                                                Image(systemName: apiKeyValidationState.icon)
-                                                    .foregroundColor(apiKeyValidationState.color)
-                                                    .font(.system(size: 20, weight: .medium))
-                                                    .frame(width: 32, height: 32)
-                                            }
-                                        }
-                                        
-                                        // Validation message
-                                        if let message = apiKeyValidationState.message {
-                                            HStack(spacing: 8) {
-                                                Text(message)
-                                                    .font(.subheadline)
-                                                    .foregroundColor(apiKeyValidationState.color)
-                                                
-                                                if case .validating = apiKeyValidationState {
-                                                    ProgressView()
-                                                        .scaleEffect(0.8)
-                                                }
-                                            }
-                                            .padding(.top, 4)
-                                        }
-                                        
-                                        // Help text
-                                        Text("Get your API key from [groq.com](https://console.groq.com/keys)")
-                                            .font(.caption)
-                                            .foregroundColor(theme.textSecondary)
-                                            .padding(.top, 8)
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // AI Personalization Section
-                        VStack(alignment: .leading, spacing: 20) {
-                            SectionHeader(title: "AI Personalization", icon: "brain.head.profile", theme: theme)
-                            
-                            ModernCard(theme: theme) {
-                                VStack(alignment: .leading, spacing: 20) {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        Text("About You")
-                                            .font(.headline)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(theme.textPrimary)
-                                        
-                                        Text("Provide context about yourself for more tailored AI responses.")
-                                            .font(.subheadline)
-                                            .foregroundColor(theme.textSecondary)
-                                    }
-                                    
-                                    ZStack(alignment: .topLeading) {
-                                        if settings.aboutMeContext.isEmpty {
-                                            VStack(alignment: .leading) {
-                                                Text("e.g., I'm a software developer working on iOS apps, interested in SwiftUI and productivity tools...")
-                                                    .font(.body)
-                                                    .foregroundColor(theme.textSecondary.opacity(0.6))
-                                                    .padding(.horizontal, 16)
-                                                    .padding(.vertical, 14)
-                                                Spacer()
-                                            }
-                                            .allowsHitTesting(false)
-                                        }
-                                        
-                                        TextEditor(text: $settings.aboutMeContext)
-                                            .font(.body)
-                                            .scrollContentBackground(.hidden)
-                                            .background(Color.clear)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 10)
-                                    }
-                                    .frame(minHeight: 120)
-                                    .background(theme.background)
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(theme.textSecondary.opacity(0.2), lineWidth: 1)
-                                    )
-                                }
-                            }
-                        }
-                        
-                        // Model Selection Section
-                        VStack(alignment: .leading, spacing: 20) {
-                            SectionHeader(title: "AI Model Configuration", icon: "cpu.fill", theme: theme)
-                            
-                            ModernCard(theme: theme) {
-                                ModelSelectionView()
-                            }
-                        }
-                        
-                        // General Settings Section
-                        VStack(alignment: .leading, spacing: 20) {
-                            SectionHeader(title: "General", icon: "gearshape.fill", theme: theme)
-                            
-                            ModernCard(theme: theme) {
-                                VStack(spacing: 0) {
-                                    ModernSettingsRow(
-                                        title: "Launch at Login",
-                                        subtitle: "Start Remi automatically when you log in",
-                                        theme: theme
-                                    ) {
-                                        Toggle("", isOn: $settings.launchAtLogin)
-                                            .toggleStyle(.switch)
-                                    }
-                                    
-                                    Divider()
-                                        .background(theme.textSecondary.opacity(0.1))
-                                        .padding(.horizontal, 20)
-                                    
-                                    ModernSettingsRow(
-                                        title: "Global Hotkey",
-                                        subtitle: "Keyboard shortcut to show/hide Remi",
-                                        theme: theme
-                                    ) {
-                                        HotkeyRecorderView(key: $settings.hotkeyKey, modifiers: $settings.hotkeyModifiers)
-                                    }
-                                    
-                                    Divider()
-                                        .background(theme.textSecondary.opacity(0.1))
-                                        .padding(.horizontal, 20)
-                                    
-                                    ModernSettingsRow(
-                                        title: "Nook Hotkeys",
-                                        subtitle: "Quick access to nooks using number keys",
-                                        theme: theme
-                                    ) {
-                                        Toggle("", isOn: $settings.enableNookHotkeys)
-                                            .toggleStyle(.switch)
-                                    }
-                                    
-                                    if settings.enableNookHotkeys {
-                                        Divider()
-                                            .background(theme.textSecondary.opacity(0.1))
-                                            .padding(.horizontal, 20)
-                                        
-                                        ModernSettingsRow(
-                                            title: "Nook Hotkey Modifiers",
-                                            subtitle: "Modifiers + 1-9 to select nooks",
-                                            theme: theme
-                                        ) {
-                                            HotkeyRecorderView(key: .constant(.one), modifiers: $settings.nookHotkeyModifiers)
-                                                .help("Example: ⌘⇧1 to select first nook")
-                                        }
-                                    }
-                                    
-                                    Divider()
-                                        .background(theme.textSecondary.opacity(0.1))
-                                        .padding(.horizontal, 20)
-                                    
-                                    ModernSettingsRow(
-                                        title: "Debug Onboarding",
-                                        subtitle: "Trigger the onboarding flow for testing purposes",
-                                        theme: theme
-                                    ) {
-                                        Button("Show Onboarding") {
-                                            settings.triggerOnboarding()
-                                        }
-                                        .buttonStyle(.plain)
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 8)
-                                        .background(theme.accent)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(8)
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // About Section
-                        VStack(alignment: .leading, spacing: 20) {
-                            SectionHeader(title: "About Remi", icon: "heart.fill", theme: theme)
-                            
-                            ModernCard(theme: theme) {
-                                VStack(alignment: .leading, spacing: 24) {
-                                    // App Information
-                                    VStack(alignment: .leading, spacing: 16) {
-                                        Text("App Information")
-                                            .font(.headline)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(theme.textPrimary)
-                                        
-                                        VStack(alignment: .leading, spacing: 12) {
-                                            HStack {
-                                                Text("Version")
-                                                    .font(.body)
-                                                    .foregroundColor(theme.textSecondary)
-                                                Spacer()
-                                                Text("1.1.3")
-                                                    .font(.body)
-                                                    .fontWeight(.semibold)
-                                                    .foregroundColor(theme.textPrimary)
-                                            }
-                                            
-                                            Text("A simple, elegant note-taking app designed for organizing your thoughts and ideas with the power of AI.")
-                                                .font(.body)
-                                                .foregroundColor(theme.textSecondary)
-                                                .fixedSize(horizontal: false, vertical: true)
-                                        }
-                                    }
-                                    
-                                    Divider()
-                                        .background(theme.textSecondary.opacity(0.1))
-                                    
-                                    // Developer Credit
-                                    VStack(alignment: .leading, spacing: 16) {
-                                        VStack(alignment: .leading, spacing: 12) {
-                                            HStack(spacing: 16) {
-                                                Image(systemName: "heart.fill")
-                                                    .font(.system(size: 18))
-                                                    .foregroundColor(.red)
-                                                
-                                                VStack(alignment: .leading, spacing: 4) {
-                                                    Text("Created by ashref.tn")
-                                                        .font(.body)
-                                                        .fontWeight(.medium)
-                                                        .foregroundColor(theme.textPrimary)
-                                                    
-                                                    Text("With love from Tunisia 🇹🇳")
-                                                        .font(.subheadline)
-                                                        .foregroundColor(theme.textSecondary)
-                                                }
-                                            }
-                                            
-                                            // Website Link
-                                            Button(action: {
-                                                if let url = URL(string: "https://ashref.tn") {
-                                                    NSWorkspace.shared.open(url)
-                                                }
-                                            }) {
-                                                HStack(spacing: 10) {
-                                                    Image(systemName: "globe")
-                                                        .font(.system(size: 16))
-                                                    Text("Visit ashref.tn")
-                                                        .font(.body)
-                                                        .underline()
-                                                }
-                                                .foregroundColor(theme.accent)
-                                                .padding(.top, 8)
-                                            }
-                                            .buttonStyle(.plain)
-                                            .help("Open developer website")
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 40)
-                    .padding(.vertical, 32)
-                    .padding(.bottom, 40) // Extra bottom padding to ensure all content is scrollable
+                    .padding(16)
                 }
                 .background(theme.background)
             }
-            .frame(width: 800, height: 720)
+            .frame(width: 760, height: 620)
             .background(theme.background)
         }
-        .transition(.asymmetric(
-            insertion: .move(edge: .trailing).combined(with: .opacity),
-            removal: .move(edge: .trailing).combined(with: .opacity)
-        ))
-        .onAppear {
-            validateAPIKey()
+    }
+
+    @ViewBuilder
+    private func topBar(theme: Theme) -> some View {
+        HStack {
+            Button {
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
+                    showingSettings = false
+                }
+            } label: {
+                Label("Back", systemImage: "chevron.left")
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .liquidGlassButtonStyle()
+            .foregroundStyle(theme.accent)
+
+            Spacer()
+
+            Text("Settings")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(theme.textPrimary)
+
+            Spacer()
+
+            Color.clear.frame(width: 56, height: 1)
         }
-        .onDisappear {
-            validationTask?.cancel()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: 10, strokeOpacity: 0.06, interactive: true, fallbackMaterial: .thinMaterial)
         }
     }
-    
-    private func validateAPIKey() {
-        validationTask?.cancel()
-        
-        let apiKey = settings.groqAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        guard !apiKey.isEmpty else {
-            apiKeyValidationState = .unknown
-            return
-        }
-        
-        // Basic format validation
-        guard apiKey.starts(with: "gsk_") && apiKey.count > 20 else {
-            apiKeyValidationState = .invalid("Invalid API key format")
-            return
-        }
-        
-        // Set validating state
-        apiKeyValidationState = .validating
-        
-        // Test the API key with a minimal request
-        validationTask = Task {
-            do {
-                try await testAPIKey(apiKey)
-                await MainActor.run {
-                    if !Task.isCancelled {
-                        apiKeyValidationState = .valid
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    if !Task.isCancelled {
-                        if let groqError = error as? GroqError {
-                            switch groqError {
-                            case .requestFailed(let statusCode, _):
-                                if statusCode == 401 {
-                                    apiKeyValidationState = .invalid("Invalid API key")
-                                } else {
-                                    apiKeyValidationState = .invalid("API key validation failed")
-                                }
-                            default:
-                                apiKeyValidationState = .invalid("Unable to validate (network error)")
-                            }
+
+    @ViewBuilder
+    private func aiProviderSection(theme: Theme) -> some View {
+        sectionCard(theme: theme, title: "AI Provider", subtitle: "OpenRouter") {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("API Key")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(theme.textPrimary)
+
+                HStack(spacing: 10) {
+                    SecureField("Enter OpenRouter API key", text: $settings.llmAPIKey)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 12, design: .monospaced))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(theme.background)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                    Button {
+                        Task { await validateKey() }
+                    } label: {
+                        if validationState.isValidating {
+                            ProgressView()
+                                .controlSize(.small)
+                                .frame(width: 70)
                         } else {
-                            apiKeyValidationState = .invalid("Unable to validate")
+                            Text("Validate")
+                                .font(.system(size: 12, weight: .semibold))
+                                .frame(width: 70)
                         }
                     }
+                    .liquidGlassButtonStyle()
+                    .disabled(validationState.isValidating || !isAPIKeyEntered)
+                    .accessibilityLabel("Validate API key")
+                }
+
+                HStack(spacing: 6) {
+                    Image(systemName: validationState.icon)
+                        .foregroundStyle(validationState.tint)
+                    Text(validationState.message)
+                        .font(.system(size: 11))
+                        .foregroundStyle(theme.textSecondary)
+                }
+
+                Text("Get your API key from [openrouter.ai](https://openrouter.ai/keys)")
+                    .font(.system(size: 11))
+                    .foregroundStyle(theme.textSecondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func modelSection(theme: Theme) -> some View {
+        sectionCard(theme: theme, title: "Model", subtitle: "Search and select from OpenRouter catalog") {
+            VStack(spacing: 12) {
+                ModelSelectionView()
+                modelParameterControls(theme: theme)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func modelParameterControls(theme: Theme) -> some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text("Temperature")
+                    .font(.system(size: 11))
+                    .foregroundStyle(theme.textSecondary)
+                Spacer()
+                Text(String(format: "%.2f", settings.modelParameters.temperature))
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+            }
+            Slider(
+                value: $settings.modelParameters.temperature,
+                in: 0...1,
+                step: 0.05
+            )
+
+            HStack {
+                Text("Max Tokens")
+                    .font(.system(size: 11))
+                    .foregroundStyle(theme.textSecondary)
+                Spacer()
+                Text("\(settings.modelParameters.maxTokens)")
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+            }
+            Slider(
+                value: Binding(
+                    get: { Double(settings.modelParameters.maxTokens) },
+                    set: { settings.modelParameters.maxTokens = Int($0) }
+                ),
+                in: 500...8000,
+                step: 100
+            )
+        }
+        .padding(10)
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: 10, strokeOpacity: 0.05, fallbackMaterial: .thinMaterial)
+        }
+    }
+
+    @ViewBuilder
+    private func appBehaviorSection(theme: Theme) -> some View {
+        sectionCard(theme: theme, title: "App Behavior", subtitle: "Startup and keyboard controls") {
+            VStack(spacing: 0) {
+                settingRow(
+                    theme: theme,
+                    title: "Launch at Login",
+                    subtitle: "Start Remi automatically when you log in"
+                ) {
+                    Toggle("", isOn: $settings.launchAtLogin)
+                        .labelsHidden()
+                }
+
+                Divider().opacity(0.2)
+
+                settingRow(
+                    theme: theme,
+                    title: "Global Hotkey",
+                    subtitle: "Show or hide Remi quickly"
+                ) {
+                    HotkeyRecorderView(key: $settings.hotkeyKey, modifiers: $settings.hotkeyModifiers)
+                }
+
+                Divider().opacity(0.2)
+
+                settingRow(
+                    theme: theme,
+                    title: "Nook Hotkeys",
+                    subtitle: "Use number shortcuts for notes"
+                ) {
+                    Toggle("", isOn: $settings.enableNookHotkeys)
+                        .labelsHidden()
+                }
+
+                if settings.enableNookHotkeys {
+                    Divider().opacity(0.2)
+                    settingRow(
+                        theme: theme,
+                        title: "Nook Modifiers",
+                        subtitle: "Modifiers combined with number keys"
+                    ) {
+                        HotkeyRecorderView(key: .constant(.one), modifiers: $settings.nookHotkeyModifiers)
+                    }
                 }
             }
         }
     }
-    
-    private func testAPIKey(_ apiKey: String) async throws {
-        try await GroqService.shared.testAPIKey()
-    }
-    
-    // MARK: - Modern Helper Views
-    
+
     @ViewBuilder
-    private func SectionHeader(title: String, icon: String, theme: Theme, @ViewBuilder action: () -> some View = { EmptyView() }) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(theme.accent)
-                .frame(width: 28, height: 28)
-            
-            Text(title)
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(theme.textPrimary)
-            
-            Spacer()
-            
-            action()
+    private func systemPromptSection(theme: Theme) -> some View {
+        sectionCard(theme: theme, title: "AI System Prompt", subtitle: "Customize how the AI assistant behaves") {
+            VStack(alignment: .leading, spacing: 8) {
+                TextEditor(text: $settings.aiSystemPrompt)
+                    .font(.system(size: 12, design: .monospaced))
+                    .scrollContentBackground(.hidden)
+                    .padding(10)
+                    .frame(height: 100)
+                    .background(theme.background)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                Button("Reset to Default") {
+                    let defaultPrompt = "You are a concise note-taking assistant. Always respond in plain text. Be brief and direct. Preserve intent while improving grammar and clarity. Return only the improved document."
+                    settings.aiSystemPrompt = defaultPrompt
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11))
+                .foregroundStyle(theme.textSecondary)
+            }
         }
     }
-    
+
     @ViewBuilder
-    private func ModernCard<Content: View>(theme: Theme, @ViewBuilder content: () -> Content) -> some View {
-        content()
-            .padding(24)
-            .background(theme.backgroundSecondary)
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.02), radius: 16, x: 0, y: 4)
-    }
-    
-    @ViewBuilder
-    private func ModernSettingsRow<Content: View>(title: String, subtitle: String, theme: Theme, @ViewBuilder content: () -> Content) -> some View {
-        HStack(alignment: .top, spacing: 20) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.body)
-                    .fontWeight(.semibold)
-                    .foregroundColor(theme.textPrimary)
-                
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundColor(theme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+    private func aiTemplatesSection(theme: Theme) -> some View {
+        sectionCard(theme: theme, title: "AI Prompt Templates", subtitle: "Quick actions shown in the AI assistant") {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach($settings.aiQuickActions.indices, id: \.self) { index in
+                    HStack {
+                        TextField("Template prompt...", text: $settings.aiQuickActions[index])
+                            .textFieldStyle(.plain)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            .background(theme.background)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .font(.system(size: 12))
+
+                        Button {
+                            settings.aiQuickActions.remove(at: index)
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.red.opacity(0.8))
+                                .padding(6)
+                                .background(Color.red.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Button {
+                    settings.aiQuickActions.append("")
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus.circle")
+                        Text("Add Template")
+                    }
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(theme.accent)
+                    .padding(.top, 4)
+                }
+                .buttonStyle(.plain)
+
+                if settings.aiQuickActions.isEmpty {
+                    Text("No templates added. The quick actions bar will be hidden.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(theme.textSecondary)
+                        .padding(.top, 2)
+                }
             }
-            
-            Spacer()
-            
+        }
+    }
+
+    @ViewBuilder
+    private func aboutSection(theme: Theme) -> some View {
+        sectionCard(theme: theme, title: "About Remi", subtitle: "Version \(appVersion)") {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 12) {
+                    if let icon = NSImage(named: "AppIcon") {
+                        Image(nsImage: icon)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 48, height: 48)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Remi")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundStyle(theme.textPrimary)
+                        Text("A minimal macOS menu-bar notes app")
+                            .font(.system(size: 12))
+                            .foregroundStyle(theme.textSecondary)
+                    }
+                }
+
+                Divider().opacity(0.15)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Made by")
+                            .font(.system(size: 12))
+                            .foregroundStyle(theme.textSecondary)
+                        Link("ashref.dn", destination: URL(string: "https://ashref.dn")!)
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    HStack {
+                        Text("Open source")
+                            .font(.system(size: 12))
+                            .foregroundStyle(theme.textSecondary)
+                        Link("remi.ashref.tn", destination: URL(string: "https://remi.ashref.tn/")!)
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                }
+
+                Divider().opacity(0.15)
+
+                Button("Reset Onboarding") {
+                    settings.triggerOnboarding()
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11))
+                .foregroundStyle(.red.opacity(0.7))
+            }
+        }
+    }
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+    }
+
+    @ViewBuilder
+    private func sectionCard<Content: View>(theme: Theme, title: String, subtitle: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(theme.textPrimary)
+                Text(subtitle)
+                    .font(.system(size: 11))
+                    .foregroundStyle(theme.textSecondary)
+            }
             content()
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(14)
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: 12, strokeOpacity: 0.08, fallbackMaterial: .regularMaterial)
+        }
+    }
+
+    @ViewBuilder
+    private func settingRow<Content: View>(theme: Theme, title: String, subtitle: String, @ViewBuilder trailing: () -> Content) -> some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(theme.textPrimary)
+                Text(subtitle)
+                    .font(.system(size: 11))
+                    .foregroundStyle(theme.textSecondary)
+            }
+            Spacer()
+            trailing()
+        }
+        .padding(.vertical, 10)
+    }
+
+    private func validateKey() async {
+        validationState = .validating
+        do {
+            try await OpenRouterClient.shared.validateAPIKey()
+            validationState = .valid
+            HapticsService.shared.perform(.apiKeyValidated)
+        } catch {
+            let message = (error as? LLMError)?.errorDescription ?? error.localizedDescription
+            validationState = .invalid(message.isEmpty ? "Validation failed" : message)
+        }
+    }
+
+    private var isAPIKeyEntered: Bool {
+        !settings.llmAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }

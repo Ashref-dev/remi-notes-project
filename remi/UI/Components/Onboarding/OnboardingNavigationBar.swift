@@ -37,8 +37,10 @@ struct OnboardingNavigationBar: View {
         }
         .padding(.horizontal, AppTheme.Spacing.xlarge)
         .padding(.vertical, AppTheme.Spacing.large)
-        .background(theme.backgroundSecondary.opacity(0.85))
-        .background(.ultraThinMaterial)
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: 14, strokeOpacity: 0.06, fallbackMaterial: .ultraThinMaterial)
+        }
     }
     
     private var nextButtonTitle: String {

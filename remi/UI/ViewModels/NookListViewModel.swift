@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import Combine
 
+@MainActor
 class NookListViewModel: ObservableObject {
     @Published private var allNooks: [Nook] = []
     @Published var selectedNook: Nook?
@@ -16,6 +17,12 @@ class NookListViewModel: ObservableObject {
         } else {
             return allNooks.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
         }
+    }
+
+    func existingNook(named name: String) -> Nook? {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return nil }
+        return allNooks.first { $0.name.lowercased() == trimmedName.lowercased() }
     }
 
     init() {
@@ -93,28 +100,56 @@ class NookListViewModel: ObservableObject {
     }
 
     func createNook(named name: String) -> Nook? {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            ErrorHandlingService.shared.showWarning(message: "Please enter a note name.")
+            return nil
+        }
+
         // Prevent creating duplicate nooks
-        if let existingNook = allNooks.first(where: { $0.name.lowercased() == name.lowercased() }) {
+        if let existingNook = allNooks.first(where: { $0.name.lowercased() == trimmedName.lowercased() }) {
             // Optionally, select the existing nook
             self.selectedNook = existingNook
+            SettingsManager.shared.setLastViewedNook(existingNook)
+            ErrorHandlingService.shared.showInfo(message: "Opened existing note \"\(existingNook.name)\".")
             return existingNook
         }
-        
-        let newNook = nookManager.createNook(named: name)
+
+        let newNook = nookManager.createNook(named: trimmedName)
         if let newNook = newNook {
             self.fetchNooks()
             self.selectedNook = newNook
+            SettingsManager.shared.setLastViewedNook(newNook)
             self.searchText = "" // Clear search text after creation
+        } else {
+            ErrorHandlingService.shared.showError(
+                message: "Could not create note. Please try a different name.",
+                severity: .warning
+            )
         }
         return newNook
     }
 
-    func deleteNook(_ nook: Nook) {
-        nookManager.deleteNook(nook)
+    @discardableResult
+    func deleteNook(_ nook: Nook) -> Bool {
+        guard nookManager.deleteNook(nook) else {
+            ErrorHandlingService.shared.showError(
+                message: "Failed to delete \"\(nook.name)\". Please try again.",
+                severity: .error
+            )
+            return false
+        }
+
         self.allNooks.removeAll { $0.id == nook.id }
         if selectedNook == nook {
-            selectedNook = nil
+            selectedNook = allNooks.first
+            if let selectedNook {
+                SettingsManager.shared.setLastViewedNook(selectedNook)
+            } else {
+                SettingsManager.shared.clearLastViewedNook()
+            }
         }
+        return true
     }
     
     func renameNook(_ nook: Nook, to newName: String) {
@@ -122,21 +157,33 @@ class NookListViewModel: ObservableObject {
             self.fetchNooks()
             // Re-select the nook after renaming
             self.selectedNook = updatedNook
+            SettingsManager.shared.setLastViewedNook(updatedNook)
+            HapticsService.shared.perform(.noteUpdated)
+        } else {
+            ErrorHandlingService.shared.showWarning(message: "Couldn't rename note. That name may already be in use.")
         }
     }
     
-    func updateNook(_ nook: Nook) {
+    @discardableResult
+    func updateNook(_ nook: Nook) -> Nook? {
         if let updatedNook = nookManager.updateNook(nook) {
             // Update the nook in our local array
             if let index = allNooks.firstIndex(where: { $0.id == nook.id }) {
                 allNooks[index] = updatedNook
+            } else {
+                fetchNooks()
             }
             
             // Update selected nook if it's the one being edited
             if selectedNook?.id == nook.id {
                 selectedNook = updatedNook
             }
+            SettingsManager.shared.setLastViewedNook(updatedNook)
+            HapticsService.shared.perform(.noteUpdated)
+            return updatedNook
         }
+        ErrorHandlingService.shared.showWarning(message: "Couldn't save note changes. Please try a different name.")
+        return nil
     }
     
     // MARK: - Nook Reordering

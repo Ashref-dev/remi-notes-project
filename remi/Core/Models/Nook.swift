@@ -8,14 +8,16 @@ struct Nook: Identifiable, Hashable {
     var iconName: String
     var iconColor: NookIconColor
     var order: Int
+    var hasBeenAutoTitled: Bool
 
-    init(id: UUID = UUID(), name: String, url: URL, iconName: String = "doc.text.fill", iconColor: NookIconColor = .blue, order: Int = 0) {
+    init(id: UUID = UUID(), name: String, url: URL, iconName: String = "doc.text.fill", iconColor: NookIconColor = .blue, order: Int = 0, hasBeenAutoTitled: Bool = false) {
         self.id = id
         self.name = name
         self.url = url
         self.iconName = iconName
         self.iconColor = iconColor
         self.order = order
+        self.hasBeenAutoTitled = hasBeenAutoTitled
     }
 }
 
@@ -35,16 +37,16 @@ enum NookIconColor: String, CaseIterable, Hashable {
     
     var color: Color {
         switch self {
-        case .blue: return .blue
-        case .purple: return .purple
-        case .pink: return .pink
-        case .red: return .red
-        case .orange: return .orange
-        case .yellow: return .yellow
-        case .green: return .green
-        case .teal: return .teal
-        case .indigo: return .indigo
-        case .gray: return .gray
+        case .blue: return Color(red: 0.3, green: 0.6, blue: 0.9)
+        case .purple: return Color(red: 0.6, green: 0.4, blue: 0.8)
+        case .pink: return Color(red: 0.9, green: 0.4, blue: 0.6)
+        case .red: return Color(red: 0.85, green: 0.3, blue: 0.35)
+        case .orange: return Color(red: 0.9, green: 0.55, blue: 0.2)
+        case .yellow: return Color(red: 0.9, green: 0.75, blue: 0.2)
+        case .green: return Color(red: 0.3, green: 0.7, blue: 0.4)
+        case .teal: return Color(red: 0.2, green: 0.65, blue: 0.65)
+        case .indigo: return Color(red: 0.4, green: 0.45, blue: 0.85)
+        case .gray: return Color(red: 0.55, green: 0.55, blue: 0.6)
         }
     }
     

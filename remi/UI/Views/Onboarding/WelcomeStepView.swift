@@ -162,11 +162,11 @@ struct FeatureCard: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
         .padding(.horizontal, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(theme.cardBackground)
-                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
-        )
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: 16, strokeOpacity: 0.08, fallbackMaterial: .thickMaterial)
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+        }
         .onAppear {
             animate = true
         }

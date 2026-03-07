@@ -8,8 +8,7 @@ struct SmartSuggestionsView: View {
     let onSuggestionTap: (String) -> Void
     
     private var isAPIKeyConfigured: Bool {
-        let key = settingsManager.groqAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !key.isEmpty && key.starts(with: "gsk_") && key.count > 20
+        settingsManager.isAPIKeyConfigured()
     }
     
     private var suggestions: [SmartSuggestion] {
@@ -27,7 +26,7 @@ struct SmartSuggestionsView: View {
         } else if !isAPIKeyConfigured {
             suggestions.append(SmartSuggestion(
                 title: "Setup Required",
-                description: "Add your Groq API key to enable AI features",
+                description: "Add your OpenRouter API key to enable AI features",
                 icon: "key",
                 color: .orange,
                 action: "Open Settings to configure API key"

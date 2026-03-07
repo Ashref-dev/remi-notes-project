@@ -11,7 +11,7 @@ class HealthCheckService: ObservableObject {
     @Published var lastHealthCheck: Date?
     
     private var healthCheckTimer: Timer?
-    private let groqService = GroqService.shared
+    private let llmClient = OpenRouterClient.shared
     private let connectionService = ConnectionStatusService.shared
     
     enum HealthStatus {
@@ -83,11 +83,11 @@ class HealthCheckService: ObservableObject {
     
     private func checkAPIHealth() async {
         do {
-            try await groqService.testAPIKey()
+            try await llmClient.validateAPIKey()
             apiHealth = .healthy
         } catch {
-            if let groqError = error as? GroqError {
-                switch groqError {
+            if let llmError = error as? LLMError {
+                switch llmError {
                 case .apiKeyMissing, .apiKeyInvalid:
                     apiHealth = .degraded
                 case .rateLimitExceeded:

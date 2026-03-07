@@ -1,9 +1,12 @@
 import SwiftUI
 import HotKey
+import AppKit
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
+    private var focusWindow: NSWindow?
+    private var stickyWindows: [UUID: NSWindow] = [:]
     private var statusBarMenu: NSMenu!
     private let hotkeyManager = HotkeyManager.shared
     private let settingsManager = SettingsManager.shared
@@ -41,6 +44,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self,
             selector: #selector(showPopover),
             name: .showRemiPopover,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleToggleSticky),
+            name: .toggleStickyWindow,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(showFocusWindow),
+            name: .openFocusWindow,
             object: nil
         )
     }
@@ -110,6 +127,74 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
     }
+
+    @objc func showFocusWindow() {
+        if popover.isShown {
+            popover.performClose(nil)
+        }
+
+        if let focusWindow {
+            focusWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1100, height: 760),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Remi"
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.contentViewController = NSHostingController(rootView: ContentView(workspaceMode: .focusWindow))
+        window.makeKeyAndOrderFront(nil)
+        window.delegate = self
+
+        focusWindow = window
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    @objc func handleToggleSticky(_ notification: Notification) {
+        guard let nook = notification.object as? Nook else { return }
+        
+        if let existing = stickyWindows[nook.id] {
+            // Already tracking this window, close it (toggle off)
+            existing.close()
+            stickyWindows.removeValue(forKey: nook.id)
+            return
+        }
+        
+        // Spawn a new borderless sticky window
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 350),
+            styleMask: [.borderless, .resizable, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        
+        // Keep it behind regular windows but visible on the desktop
+        window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)))
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = true
+        window.isMovableByWindowBackground = true
+        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle] // True "Widget" behavior
+        
+        window.contentViewController = NSHostingController(rootView: StickyNookView(nook: nook))
+        
+        // Place it intelligently (e.g., top-right of main screen)
+        if let screen = NSScreen.main {
+            let screenRect = screen.visibleFrame
+            let x = screenRect.maxX - 340
+            let y = screenRect.maxY - 390
+            window.setFrameOrigin(NSPoint(x: x, y: y))
+        }
+        
+        window.makeKeyAndOrderFront(nil)
+        stickyWindows[nook.id] = window
+    }
     
     @objc private func showAbout() {
         let aboutWindow = NSWindow(
@@ -173,6 +258,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func quitApp() {
         // Clean up before quitting
         hotkeyManager.unregister()
+        focusWindow?.close()
         NSApp.terminate(nil)
     }
     
@@ -183,5 +269,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         // Don't quit when windows are closed - we're a menu bar app
         return false
+    }
+}
+
+extension AppDelegate: NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        if let window = notification.object as? NSWindow {
+            if window == focusWindow {
+                focusWindow = nil
+            } else {
+                // Remove from sticky tracking if closed via other means
+                if let key = stickyWindows.first(where: { $1 == window })?.key {
+                    stickyWindows.removeValue(forKey: key)
+                }
+            }
+        }
     }
 }

@@ -171,15 +171,19 @@ struct CleanFeatureCard: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 80)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(theme.cardBackground)
+            .background {
+                Color.clear
+                    .liquidGlassSurface(
+                        cornerRadius: 16,
+                        strokeOpacity: isSelected ? 0 : 0.06,
+                        fallbackMaterial: .thickMaterial
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(isSelected ? feature.color : Color.clear, lineWidth: 2)
                     )
                     .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
-            )
+            }
         }
         .buttonStyle(PlainButtonStyle())
         .opacity(animate ? 1.0 : 0.0)
@@ -222,15 +226,15 @@ struct SelectedFeatureDetailView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(theme.cardBackground)
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: 16, strokeOpacity: 0.08, fallbackMaterial: .thickMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(feature.color.opacity(0.2), lineWidth: 1)
+                        .stroke(feature.color.opacity(0.3), lineWidth: 1)
                 )
                 .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 3)
-        )
+        }
         .transition(.asymmetric(
             insertion: .move(edge: .bottom).combined(with: .opacity),
             removal: .move(edge: .bottom).combined(with: .opacity)

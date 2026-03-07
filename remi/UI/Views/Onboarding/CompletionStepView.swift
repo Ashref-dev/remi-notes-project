@@ -155,10 +155,10 @@ struct CompletionTip: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(theme.cardBackground.opacity(0.6))
-        )
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: 8, strokeOpacity: 0.08, fallbackMaterial: .thickMaterial)
+        }
         .opacity(animate ? 1.0 : 0.0)
         .offset(x: animate ? 0 : 20)
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(delay), value: animate)

@@ -48,19 +48,19 @@ class RetryService {
         throw lastError ?? NSError(domain: "RetryService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown retry error"])
     }
     
-    /// Determines if a GroqError should be retried
-    static func shouldRetryGroqError(_ error: Error) -> Bool {
-        guard let groqError = error as? GroqError else {
+    /// Determines if an LLMError should be retried
+    static func shouldRetryLLMError(_ error: Error) -> Bool {
+        guard let llmError = error as? LLMError else {
             return false
         }
         
-        return groqError.canRetry
+        return llmError.canRetry
     }
     
     /// Determines if any network-related error should be retried
     static func shouldRetryNetworkError(_ error: Error) -> Bool {
-        if let groqError = error as? GroqError {
-            return shouldRetryGroqError(groqError)
+        if let llmError = error as? LLMError {
+            return shouldRetryLLMError(llmError)
         }
         
         // Handle NSURLError cases

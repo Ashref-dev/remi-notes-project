@@ -2,496 +2,392 @@ import SwiftUI
 
 struct TaskEditorView: View {
     @StateObject private var viewModel: TaskEditorViewModel
-    @FocusState private var isInputFocused: Bool
-    @State private var isMarkdownPreviewEnabled = UserDefaults.standard.bool(forKey: "isMarkdownPreviewEnabled")
-    @State private var isQuickActionsVisible = false // Quick Actions closed by default
-    @Environment(\.dismiss) private var dismiss
-    
+    @State private var isMarkdownPreviewEnabled = false
     @State private var isAIInputVisible = false
-    @State private var shouldFocusAIInput = false // Trigger for AI input focus
+    @State private var shouldFocusAIInput = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var glassNamespace
 
-    let nook: Nook // Keep reference to current nook
+    let nook: Nook
+    let workspaceMode: WorkspaceMode
+    @Binding var showingSettings: Bool
 
-    init(nook: Nook) {
+    init(nook: Nook, workspaceMode: WorkspaceMode = .quickPopover, showingSettings: Binding<Bool> = .constant(false)) {
         self.nook = nook
+        self.workspaceMode = workspaceMode
+        self._showingSettings = showingSettings
         _viewModel = StateObject(wrappedValue: TaskEditorViewModel(nook: nook))
+        _isMarkdownPreviewEnabled = State(initialValue: UserDefaults.standard.bool(forKey: "isMarkdownPreviewEnabled"))
     }
 
     var body: some View {
         Themed { theme in
-            ZStack(alignment: .center) {
+            ZStack(alignment: .top) {
+                // Editor
                 VStack(spacing: 0) {
-                    TopBar(theme: theme)
-
-                    // Main editor view
-                    ZStack(alignment: .center) {
-                        LiveMarkdownEditor(
-                            text: $viewModel.taskContent,
-                            theme: theme,
-                            isMarkdownPreviewEnabled: isMarkdownPreviewEnabled,
-                            autoFocus: true,
-                            onTextViewReady: { textView in
-                                // Connect NSTextView's undo manager to ViewModel for AI-safe registrations
-                                viewModel.textViewUndoManager = textView.undoManager
-                                viewModel.textView = textView
-                            }
-                        )
-                        .id("editor-\(isMarkdownPreviewEnabled ? "markdown" : "plain")")
-                        .opacity(viewModel.isProcessingAI ? 0.6 : 1.0)
-                        .animation(.easeInOut(duration: 0.2), value: viewModel.isProcessingAI)
-                        
-                        // Simple loading indicator
-                        if viewModel.isProcessingAI {
-                            VStack {
-                                ProgressView()
-                                    .scaleEffect(1.2)
-                                    .tint(theme.accent)
-                                
-                                Text("AI is improving your notes...")
-                                    .font(.caption)
-                                    .foregroundColor(theme.textSecondary)
-                                    .padding(.top, 8)
-                            }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(theme.background)
-                                    .shadow(color: Color.black.opacity(0.1), radius: 8)
-                            )
-                            .transition(.scale(scale: 0.8).combined(with: .opacity))
-                            .zIndex(2)
-                        }
-                    }
-                    .overlay(alignment: .topTrailing) {
-                        VStack(alignment: .trailing, spacing: 8) {
-                            // Compact save confirmation indicator
-                            if viewModel.showSaveConfirmation {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.green)
-                                    Text("Saved")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(theme.textPrimary)
-                                }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(theme.background)
-                                        .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
-                                )
-                                .transition(.scale(scale: 0.9).combined(with: .opacity))
-                            }
-                            
-                            // Copy success confirmation indicator
-                            if viewModel.showCopySuccess {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "doc.on.clipboard.fill")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.blue)
-                                    Text("Copied!")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(theme.textPrimary)
-                                }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(theme.background)
-                                        .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
-                                )
-                                .transition(.scale(scale: 0.9).combined(with: .opacity))
-                            }
-                        }
-                        .padding(.top, 12)
-                        .padding(.trailing, 16)
-                        .zIndex(4)
-                    }
-
-                    Divider()
-
-                    // Smart suggestions bar - Modern and Compact
-                    VStack(spacing: 0) {
-                        // Header with elegant toggle button
-                        HStack(spacing: 12) {
-                            Button(action: {
-                                // Avoid global withAnimation to prevent child insert animations
-                                isQuickActionsVisible.toggle()
-                            }) {
-                                HStack(spacing: 8) {
-                                    // Modern icon with subtle background
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .fill(theme.accent.opacity(0.08))
-                                            .frame(width: 24, height: 24)
-                                        
-                                        Image(systemName: isQuickActionsVisible ? "chevron.down" : "chevron.right")
-                                            .font(.system(size: 10, weight: .bold))
-                                            .foregroundColor(theme.accent)
-                                            .animation(.easeInOut(duration: 0.15), value: isQuickActionsVisible)
-                                    }
-                                    
-                                    VStack(alignment: .leading, spacing: 1) {
-                                        Text("AI Quick Actions")
-                                            .font(.system(size: 13, weight: .semibold))
-                                            .foregroundColor(theme.textPrimary)
-                                        
-                                        if !isQuickActionsVisible {
-                                            Text("Writing, structure & enhancement tools")
-                                                .font(.system(size: 10, weight: .medium))
-                                                .foregroundColor(theme.textSecondary.opacity(0.7))
-                                                .transition(.opacity)
-                                        }
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .help(isQuickActionsVisible ? "Hide AI Quick Actions" : "Show AI Quick Actions")
-                            
-                            Spacer()
-                            
-                            // Count indicator when collapsed with modern styling
-                            if !isQuickActionsVisible {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "wand.and.stars")
-                                        .font(.system(size: 9, weight: .medium))
-                                        .foregroundColor(theme.accent.opacity(0.6))
-                                    
-                                    Text("12")
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundColor(theme.textPrimary.opacity(0.7))
-                                }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    Capsule()
-                                        .fill(theme.backgroundSecondary)
-                                        .overlay(
-                                            Capsule()
-                                                .stroke(theme.accent.opacity(0.2), lineWidth: 0.5)
-                                        )
-                                )
-                                .transition(.scale.combined(with: .opacity))
-                            }
-                            
-                            // Status indicator when expanded
-                            if isQuickActionsVisible {
-                                Circle()
-                                    .fill(theme.accent)
-                                    .frame(width: 6, height: 6)
-                                    .transition(.scale.combined(with: .opacity))
-                            }
-                        }
-                        .padding(.horizontal, AppTheme.Spacing.medium)
-                        .padding(.vertical, 10)
-                        
-                        // Quick actions panel - Only panel slides, content is static
-                        if isQuickActionsVisible {
-                            VStack(spacing: 0) {
-                                ModernQuickActionsView { suggestion in
-                                    handleAIInput(prompt: suggestion)
-                                }
-                                // Disable implicit animations in the content subtree
-                                .animation(nil, value: isQuickActionsVisible)
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 8)
-                                .clipped()
-                            }
-                            // Only the container slides; children remain static
-                            .transition(.move(edge: .top))
-                            .animation(.easeInOut(duration: 0.18), value: isQuickActionsVisible)
-                        }
-                    }
-                    .background(
-                        RoundedRectangle(cornerRadius: 0)
-                            .fill(theme.background)
-                    )
+                    // Spacer for the top floating bar
+                    Color.clear.frame(height: 50)
                     
-                    Divider()
+                    LiveMarkdownEditor(
+                        text: $viewModel.taskContent,
+                        theme: theme,
+                        isMarkdownPreviewEnabled: isMarkdownPreviewEnabled,
+                        autoFocus: true,
+                        onTextViewReady: { textView in
+                            viewModel.textViewUndoManager = textView.undoManager
+                            viewModel.textView = textView
+                        }
+                    )
+                    .id("editor-\(isMarkdownPreviewEnabled ? "markdown" : "plain")")
+                    .opacity(viewModel.isProcessingAI ? 0.6 : 1.0)
+                    .overlay {
+                        if viewModel.isProcessingAI {
+                            AIShimmerOverlay(theme: theme)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    
+                    // Padding at the bottom for the strip so we don't type implicitly behind it
+                    Color.clear.frame(height: 70)
+                }
 
-                    // Bottom toolbar
-                    BottomBar(theme: theme)
+                // Top Accessory Bar
+                floatingTopBar(theme: theme)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+
+                // Toast chips — bottom-left, above the nook strip, never hidden under buttons
+                VStack {
+                    Spacer()
+                    statusChips(theme: theme)
+                        .padding(.leading, 16)
+                        .padding(.bottom, 70)   // clears the nook strip height + padding
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                // AI Processing overlay
+                if viewModel.isProcessingAI {
+                    VStack {
+                        Spacer()
+                        ProgressView("Applying AI edit...")
+                            .padding(14)
+                            .background(
+                                Color.clear
+                                    .liquidGlassSurface(cornerRadius: 10, strokeOpacity: 0.08, fallbackMaterial: .regularMaterial)
+                                    .shadow(radius: 10)
+                            )
+                        Spacer()
+                    }
                 }
                 
-                // AI Input View - Modern center modal
+                // AI Diff overlay
+                if viewModel.showAIDiff {
+                    VStack {
+                        Spacer()
+                        AIDiffView(
+                            originalText: viewModel.aiDiffOriginalText,
+                            proposedText: viewModel.aiDiffProposedText,
+                            theme: theme,
+                            onAccept: {
+                                viewModel.acceptAIDiff()
+                            },
+                            onReject: {
+                                viewModel.rejectAIDiff()
+                            }
+                        )
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 80) // Stay above the nook strip
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                }
+
+                // AI Prompt Input
                 if isAIInputVisible {
                     ZStack {
-                        // Overlay background with tap to dismiss
-                        Color.black.opacity(0.2)
+                        Color.black.opacity(0.15)
                             .ignoresSafeArea()
-                            .transition(.opacity)
                             .onTapGesture {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    isAIInputVisible = false
-                                }
+                                closeAIInput()
                             }
-                        
-                        // Centered AI Input
+
                         AIInputView(
-                            isVisible: $isAIInputVisible, 
+                            isVisible: $isAIInputVisible,
                             shouldFocus: $shouldFocusAIInput,
                             onSend: handleAIInput
                         )
                         .padding(.horizontal, 40)
-                        .transition(.scale(scale: 0.95).combined(with: .opacity))
+                        .padding(.top, 80)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                        .liquidGlassMorph("editor.aiInput", in: glassNamespace)
                     }
-                    .zIndex(100)
+                    .transition(.opacity)
                 }
-            }
-            .background(theme.background)
-            .onAppear {
-                // No global hotkey registration - use local key events instead
             }
             .onDisappear {
-                // Force save when view disappears
                 viewModel.forceSave()
             }
-            .background(
-                // Invisible button to capture keyboard shortcut when view has focus
-                Button("") {
-                    viewModel.copyAllContent(format: .markdown)
+            .onExitCommand {
+                if isAIInputVisible {
+                    closeAIInput()
                 }
-                .keyboardShortcut("c", modifiers: [.command, .shift])
-                .hidden()
-            )
-            .animation(.easeInOut(duration: 0.2), value: isAIInputVisible)
+            }
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: isAIInputVisible)
+            .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                handleDrop(providers: providers)
+            }
         }
     }
-    
-    // MARK: - Subviews
+
+    private func handleDrop(providers: [NSItemProvider]) -> Bool {
+        var handled = false
+        for provider in providers {
+            if provider.hasItemConformingToTypeIdentifier("public.file-url") {
+                provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, error in
+                    if let data = item as? Data,
+                       let urlStr = String(data: data, encoding: .utf8),
+                       let url = URL(string: urlStr) {
+                        
+                        DispatchQueue.main.async {
+                            let filename = url.lastPathComponent
+                            let absoluteString = url.absoluteString
+                            let isImage = ["jpg", "jpeg", "png", "gif", "webp", "heic"].contains(url.pathExtension.lowercased())
+                            
+                            let markdownLink = isImage ? "![\\(filename)](\\(absoluteString))" : "[\\(filename)](\\(absoluteString))"
+                            
+                            self.viewModel.enhanceContent(with: markdownLink, actionName: "Drop File")
+                        }
+                    }
+                }
+                handled = true
+            }
+        }
+        return handled
+    }
 
     @ViewBuilder
-    private func TopBar(theme: Theme) -> some View {
-        HStack {
-            Button(action: { dismiss() }) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 22, weight: .semibold))
+    private func floatingTopBar(theme: Theme) -> some View {
+        HStack(spacing: 12) {
+            // App Identity Pill – tapping opens Settings
+            Button {
+                showingSettings = true
+            } label: {
+                HStack(spacing: 8) {
+                    if let appIcon = NSImage(named: "AppIcon") {
+                        Image(nsImage: appIcon)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 22, height: 22)
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    } else {
+                        Image(systemName: "leaf.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(theme.accent)
+                    }
+                    Text("Remi")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(theme.textPrimary)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .frame(height: 38)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .foregroundColor(theme.textSecondary)
+            .background {
+                Color.clear
+                    .liquidGlassSurface(cornerRadius: 12, strokeOpacity: 0.08, fallbackMaterial: .thinMaterial)
+            }
+            .help("Settings")
 
             Spacer()
 
-            Text(viewModel.nook.name)
-                .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundColor(theme.textPrimary)
-
-            Spacer()
-            
-            HStack(spacing: 12) {
-                Divider()
-                    .frame(height: 20)
-                
-                // Markdown Preview Toggle - Enhanced responsiveness
-                Button(action: { 
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        isMarkdownPreviewEnabled.toggle()
-                        // Save preference to UserDefaults
-                        UserDefaults.standard.set(isMarkdownPreviewEnabled, forKey: "isMarkdownPreviewEnabled")
-                    }
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: isMarkdownPreviewEnabled ? "doc.richtext" : "doc.plaintext")
-                            .font(.system(size: 14, weight: .medium))
-                        
-                        Text(isMarkdownPreviewEnabled ? "Markdown" : "Plain Text")
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .foregroundColor(isMarkdownPreviewEnabled ? theme.accent : theme.textSecondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(isMarkdownPreviewEnabled ? theme.accent.opacity(0.15) : theme.backgroundSecondary)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(isMarkdownPreviewEnabled ? theme.accent.opacity(0.3) : Color.clear, lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
-                .help(isMarkdownPreviewEnabled ? "Switch to Plain Text View" : "Switch to Markdown Preview")
-                
-                // Copy All Button - Modern and Elegant
-                Menu {
-                    Button(action: { viewModel.copyAllContent(format: .markdown) }) {
-                        Label("Copy as Markdown", systemImage: "doc.text")
-                    }
-                    
-                    Button(action: { viewModel.copyAllContent(format: .plainText) }) {
-                        Label("Copy as Plain Text", systemImage: "doc.plaintext")
-                    }
+            // General App Actions & Editor Actions
+            HStack(spacing: 8) {
+                // Formatting toggle
+                Button {
+                    isMarkdownPreviewEnabled.toggle()
+                    UserDefaults.standard.set(isMarkdownPreviewEnabled, forKey: "isMarkdownPreviewEnabled")
                 } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "doc.on.clipboard")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundColor(theme.textPrimary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(theme.backgroundSecondary)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(theme.textSecondary.opacity(0.2), lineWidth: 1)
-                            )
+                    Label(
+                        isMarkdownPreviewEnabled ? "MD" : "TXT",
+                        systemImage: isMarkdownPreviewEnabled ? "doc.richtext" : "doc.plaintext"
                     )
+                    .font(.system(size: 12, weight: .semibold))
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help("Copy content to clipboard (⌘⇧C)")
-                
-                // AI Assistant Button - Enhanced with gradient
-                Button(action: { 
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isAIInputVisible.toggle()
+                .padding(.horizontal, 10)
+                .frame(height: 38)
+                .background {
+                    Color.clear
+                        .liquidGlassSurface(cornerRadius: 12, strokeOpacity: 0.08, fallbackMaterial: .thinMaterial)
+                }
+                .help(isMarkdownPreviewEnabled ? "Show Plain Text" : "Show Markdown Preview")
+
+                // AI toggle
+                Button {
+                    let willShow = !isAIInputVisible
+                    withOptionalAnimation(.easeInOut(duration: 0.16)) {
+                        isAIInputVisible = willShow
                     }
-                    
-                    // Trigger focus with minimal delay for instant feel
-                    if !isAIInputVisible {
-                        // About to show case - trigger focus immediately
-                        DispatchQueue.main.async {
-                            shouldFocusAIInput = true
-                        }
-                    } else {
-                        // About to hide case - reset focus trigger
-                        shouldFocusAIInput = false
-                    }
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: isAIInputVisible ? "sparkles.square.filled.on.square" : "sparkles")
-                            .font(.system(size: 14, weight: .medium))
-                            .symbolRenderingMode(.hierarchical)
-                        
-                        Text("AI")
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        LinearGradient(
-                            colors: isAIInputVisible ? [
-                                Color(red: 0.5, green: 0.2, blue: 0.9),   // Deeper Purple when active
-                                Color(red: 0.3, green: 0.2, blue: 1.0)    // Deeper Blue when active
-                            ] : [
-                                Color(red: 0.4, green: 0.3, blue: 0.8),   // Purple
-                                Color(red: 0.2, green: 0.4, blue: 0.9)    // Blue
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                    if willShow { shouldFocusAIInput = true }
+                } label: {
+                    Label("AI", systemImage: "sparkles")
+                        .font(.system(size: 12, weight: .bold))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 10)
+                .frame(height: 38)
+                .background {
+                    Color.clear
+                        .liquidGlassSurface(
+                            cornerRadius: 12,
+                            strokeOpacity: isAIInputVisible ? 0.25 : 0.08,
+                            interactive: true,
+                            fallbackMaterial: .thinMaterial
                         )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .shadow(
-                        color: Color(red: 0.3, green: 0.3, blue: 0.8).opacity(isAIInputVisible ? 0.4 : 0.3), 
-                        radius: isAIInputVisible ? 6 : 4, 
-                        x: 0, 
-                        y: isAIInputVisible ? 3 : 2
-                    )
-                    .scaleEffect(isAIInputVisible ? 1.05 : 1.0)
                 }
-                .buttonStyle(.plain)
-                .help("Open AI Assistant")
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(theme.backgroundSecondary)
-    }
-    
-    @ViewBuilder
-    private func BottomBar(theme: Theme) -> some View {
-        HStack(spacing: 16) {
-            // Elegant undo/redo hints
-            HStack(spacing: 16) {
-                // Undo hint
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.uturn.backward")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(theme.textSecondary.opacity(0.7))
-                    
-                    Text("⌘Z")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .foregroundColor(theme.textSecondary.opacity(0.8))
-                }
-                
-                // Redo hint
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.uturn.forward")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(theme.textSecondary.opacity(0.7))
-                    
-                    Text("⌘⇧Z")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .foregroundColor(theme.textSecondary.opacity(0.8))
-                }
-                
-                // Copy hint
-                HStack(spacing: 4) {
-                    Image(systemName: "doc.on.clipboard")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(theme.textSecondary.opacity(0.7))
-                    
-                    Text("⌘⇧C")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .foregroundColor(theme.textSecondary.opacity(0.8))
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(theme.backgroundSecondary.opacity(0.6))
-            )
-            
-            Spacer()
-            
-            // Status indicators with modern styling
-            HStack(spacing: 12) {
-                ConnectionStatusIndicator()
-                
-                // Enhanced word count
-                if !viewModel.taskContent.isEmpty {
-                    let wordCount = viewModel.taskContent.components(separatedBy: .whitespacesAndNewlines)
-                        .filter { !$0.isEmpty }.count
-                    
-                    HStack(spacing: 4) {
-                        Image(systemName: "textformat.abc")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(theme.textSecondary)
+                .liquidGlassMorph("editor.aiInput", in: glassNamespace)
+                .help("Open AI editing tools")
+
+                // More actions — plain Menu, no liquidGlassButtonStyle wrapping to avoid icon doubling
+                Menu {
+                    Button("Copy as Markdown") { viewModel.copyAllContent(format: .markdown) }
+                    Button("Copy as Plain Text") { viewModel.copyAllContent(format: .plainText) }
+                    Divider()
+                    Button("Undo") { viewModel.textViewUndoManager?.undo() }
+                    Button("Redo") { viewModel.textViewUndoManager?.redo() }
+                    Divider()
+                    if workspaceMode == .quickPopover {
+                        Button("Open Focus Window") {
+                            NotificationCenter.default.post(name: .openFocusWindow, object: nil)
+                        }
                         
-                        Text("\(wordCount) words")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(theme.textSecondary)
+                        Divider()
+                        
+                        Button("Pin to Desktop") {
+                            NotificationCenter.default.post(name: .toggleStickyWindow, object: nook)
+                        }
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(theme.backgroundSecondary)
-                    )
+                    Button("Settings") { showingSettings = true }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 14, weight: .bold))
+                        .frame(width: 36, height: 38)
+                        .contentShape(Rectangle())
                 }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .help("More Actions")
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(theme.backgroundSecondary)
     }
-    
-    // MARK: - Private Methods
-    
+
+    @ViewBuilder
+    private func statusChips(theme: Theme) -> some View {
+        HStack(spacing: 6) {
+            if viewModel.showSaveConfirmation {
+                statusChip(
+                    text: "Saved",
+                    icon: "checkmark.circle.fill",
+                    tint: .green,
+                    theme: theme
+                )
+            }
+
+            if viewModel.showCopySuccess {
+                statusChip(
+                    text: "Copied",
+                    icon: "doc.on.clipboard.fill",
+                    tint: .blue,
+                    theme: theme
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func statusChip(text: String, icon: String, tint: Color, theme: Theme) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .foregroundStyle(tint)
+            Text(text)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(theme.textPrimary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: 10, strokeOpacity: 0.08, fallbackMaterial: .thickMaterial)
+        }
+        .transition(.scale.combined(with: .opacity))
+    }
+
+    private var wordCount: Int {
+        viewModel.taskContent
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .count
+    }
+
     private func handleAIInput(prompt: String) {
         Task {
             await viewModel.processAIQuery(prompt: prompt)
+        }
+    }
+
+    private func closeAIInput() {
+        withOptionalAnimation(.easeInOut(duration: 0.16)) {
+            isAIInputVisible = false
+        }
+    }
+
+    private func withOptionalAnimation(
+        _ animation: Animation,
+        _ updates: @escaping () -> Void
+    ) {
+        if reduceMotion {
+            updates()
+        } else {
+            withAnimation(animation, updates)
         }
     }
 }
 
 struct TaskEditorView_Previews: PreviewProvider {
     static var previews: some View {
-        let previewNook = Nook(name: "Preview Nook", url: URL(fileURLWithPath: "/dev/null"))
+        let previewNook = Nook(name: "Preview", url: URL(fileURLWithPath: "/tmp/preview"))
         TaskEditorView(nook: previewNook)
+    }
+}
+
+struct AIShimmerOverlay: View {
+    let theme: Theme
+    @State private var isAnimating = false
+
+    var body: some View {
+        GeometryReader { geometry in
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0.0),
+                    .init(color: theme.accent.opacity(0.3), location: 0.5),
+                    .init(color: .clear, location: 1.0)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .frame(width: geometry.size.width * 2, height: geometry.size.height * 2)
+            .offset(x: isAnimating ? geometry.size.width : -geometry.size.width * 2,
+                    y: isAnimating ? geometry.size.height : -geometry.size.height * 2)
+            .blendMode(.plusLighter)
+        }
+        .onAppear {
+            withAnimation(.linear(duration: 2.5).repeatForever(autoreverses: false)) {
+                isAnimating = true
+            }
+        }
     }
 }

@@ -59,7 +59,11 @@ struct InteractiveStepView: View {
         .padding(.horizontal, AppTheme.Spacing.xlarge)
         .padding(.top, AppTheme.Spacing.xlarge)
         .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 10) { showingContinueOption = true } }
-        .onChange(of: aiDemoStep) { step in if step == 1 { DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { showAIResponse = true } } }
+        .onChange(of: aiDemoStep) { _, step in
+            if step == 1 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { showAIResponse = true }
+            }
+        }
     }
 }
 
@@ -137,10 +141,10 @@ struct DemoArea: View {
             }
         }
         .padding(AppTheme.Spacing.medium)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
-                .fill(theme.backgroundSecondary)
-        )
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: AppTheme.CornerRadius.medium, strokeOpacity: 0.08, fallbackMaterial: .thickMaterial)
+        }
     }
     
     private func moveNook(from index: Int, direction: MoveDirection) {
@@ -260,11 +264,14 @@ struct DemoNookCard: View {
             }
         }
         .padding(AppTheme.Spacing.small)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small)
-                .fill(isSelected ? theme.accent.opacity(0.1) : theme.cardBackground)
-                .stroke(isSelected ? theme.accent : Color.clear, lineWidth: 1)
-        )
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: AppTheme.CornerRadius.small, strokeOpacity: isSelected ? 0 : 0.08, fallbackMaterial: .thickMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small)
+                        .stroke(isSelected ? theme.accent : Color.clear, lineWidth: 1)
+                )
+        }
         .onHover { hovering in
             isHovered = hovering
         }
@@ -335,11 +342,14 @@ struct AIResponseDemo: View {
             }
         }
         .padding(AppTheme.Spacing.medium)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
-                .fill(theme.cardBackground)
-                .stroke(theme.accent, lineWidth: 1)
-        )
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: AppTheme.CornerRadius.medium, strokeOpacity: 0.08, fallbackMaterial: .thickMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
+                        .stroke(theme.accent, lineWidth: 1)
+                )
+        }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 withAnimation(.easeInOut(duration: 0.5)) {
@@ -448,10 +458,10 @@ struct InstructionsPanel: View {
             Spacer()
         }
         .padding(AppTheme.Spacing.medium)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
-                .fill(theme.backgroundSecondary)
-        )
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: AppTheme.CornerRadius.medium, strokeOpacity: 0.08, fallbackMaterial: .thickMaterial)
+        }
     }
 }
 

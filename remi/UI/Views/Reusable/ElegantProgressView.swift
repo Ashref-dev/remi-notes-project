@@ -10,7 +10,10 @@ struct ElegantProgressView: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Material.ultraThick)
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: 0, strokeOpacity: 0, fallbackMaterial: .regularMaterial)
+        }
         .transition(.opacity.animation(.easeInOut))
     }
 }

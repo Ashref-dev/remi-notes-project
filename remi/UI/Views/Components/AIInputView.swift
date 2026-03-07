@@ -2,18 +2,18 @@ import SwiftUI
 
 struct AIInputView: View {
     @Binding var isVisible: Bool
-    @Binding var shouldFocus: Bool // New focus trigger from parent
+    @Binding var shouldFocus: Bool
     var onSend: (String) -> Void
     
     @State private var inputText: String = ""
     @State private var isProcessing: Bool = false
     @FocusState private var isFocused: Bool
-    @State private var focusProtectionTimer: Timer? // Protect focus from being stolen
     @ObservedObject private var settingsManager = SettingsManager.shared
+    @Namespace private var glassNamespace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     private var isAPIKeyConfigured: Bool {
-        let key = settingsManager.groqAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !key.isEmpty && key.starts(with: "gsk_") && key.count > 20
+        settingsManager.isAPIKeyConfigured()
     }
     
     var body: some View {
@@ -34,7 +34,7 @@ struct AIInputView: View {
                     Spacer()
                     
                     Button(action: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withOptionalAnimation(.easeInOut(duration: 0.2)) {
                             isVisible = false
                         }
                     }) {
@@ -43,7 +43,8 @@ struct AIInputView: View {
                             .foregroundColor(theme.textSecondary.opacity(0.6))
                             .background(Color.clear)
                     }
-                    .buttonStyle(.plain)
+                    .liquidGlassButtonStyle()
+                    .liquidGlassUnion("editor.aiInput.controls", in: glassNamespace)
                     .help("Close AI Assistant")
                 }
                 
@@ -55,7 +56,7 @@ struct AIInputView: View {
                             .foregroundColor(.orange)
                             .font(.system(size: 10))
                         
-                        Text("Configure API key in Settings")
+                        Text("Configure OpenRouter key in Settings")
                             .font(.system(size: 10))
                             .foregroundColor(theme.textSecondary)
                     }
@@ -95,61 +96,76 @@ struct AIInputView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(!canSend || isProcessing)
+                    .accessibilityLabel("Send AI request")
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-                .background(theme.backgroundSecondary)
-                .cornerRadius(12)
+                .background {
+                    Color.clear
+                        .liquidGlassSurface(cornerRadius: 12, strokeOpacity: 0.05, interactive: true, fallbackMaterial: .thinMaterial)
+                }
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(isFocused ? theme.accent.opacity(0.5) : theme.border, lineWidth: 1)
                 )
+
+                    // Quick action chips
+                    if isAPIKeyConfigured && inputText.isEmpty && !SettingsManager.shared.aiQuickActions.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 6) {
+                                ForEach(SettingsManager.shared.aiQuickActions, id: \.self) { action in
+                                Button {
+                                    inputText = action
+                                    isFocused = true
+                                } label: {
+                                    Text(action)
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundStyle(theme.textSecondary)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background {
+                                            Capsule()
+                                                .fill(theme.textSecondary.opacity(0.08))
+                                        }
+                                        .overlay {
+                                            Capsule()
+                                                .stroke(theme.textSecondary.opacity(0.12), lineWidth: 0.5)
+                                        }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 2)
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
-            }
+            } // inner VStack
+            } // outer VStack
             .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(theme.background)
+            .background {
+                Color.clear
+                    .liquidGlassSurface(cornerRadius: 16, strokeOpacity: 0.08, interactive: true, fallbackMaterial: .regularMaterial)
                     .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 8)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(theme.border.opacity(0.1), lineWidth: 1)
-            )
+            }
             .onAppear { 
-                // Focus immediately on appear if API key is configured
-                if isAPIKeyConfigured {
-                    isFocused = true
-                    startFocusProtection()
-                }
+                requestFocusIfNeeded()
             }
             .onChange(of: shouldFocus) { _, newValue in
-                if newValue && isAPIKeyConfigured {
-                    // Parent triggered focus - apply immediately and reset trigger
-                    isFocused = true
+                if newValue {
                     shouldFocus = false
-                    startFocusProtection()
+                    requestFocusIfNeeded()
                 }
             }
             .onChange(of: isVisible) { _, newValue in
                 if newValue {
-                    // When becoming visible, ensure focus
-                    if isAPIKeyConfigured {
-                        isFocused = true
-                        startFocusProtection()
-                    }
+                    requestFocusIfNeeded()
                 } else {
-                    // When hiding, clean up state
                     inputText = ""
                     isProcessing = false
                     isFocused = false
-                    stopFocusProtection()
                 }
             }
-            .onDisappear {
-                stopFocusProtection()
-            }
-            .transition(.scale(scale: 0.95).combined(with: .opacity))
+            .transition(reduceMotion ? .opacity : .scale(scale: 0.95).combined(with: .opacity))
         }
     }
     
@@ -162,32 +178,39 @@ struct AIInputView: View {
         
         let prompt = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         isProcessing = true
-        stopFocusProtection() // Stop protection while processing
         onSend(prompt)
         inputText = ""
         
         // Hide after sending
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            withAnimation(.easeOut(duration: 0.3)) {
+            withOptionalAnimation(.easeOut(duration: 0.3)) {
                 isProcessing = false
                 isVisible = false
             }
         }
     }
-    
-    // Focus protection methods to prevent focus stealing from rerenders
-    private func startFocusProtection() {
-        stopFocusProtection() // Clear any existing timer
-        focusProtectionTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            if isVisible && isAPIKeyConfigured && !isProcessing && !isFocused {
+
+    private func requestFocusIfNeeded() {
+        guard isVisible, isAPIKeyConfigured, !isProcessing else { return }
+        isFocused = true
+
+        // Re-assert once after layout without a polling timer.
+        DispatchQueue.main.async {
+            if isVisible && isAPIKeyConfigured && !isProcessing {
                 isFocused = true
             }
         }
     }
-    
-    private func stopFocusProtection() {
-        focusProtectionTimer?.invalidate()
-        focusProtectionTimer = nil
+
+    private func withOptionalAnimation(
+        _ animation: Animation,
+        _ updates: @escaping () -> Void
+    ) {
+        if reduceMotion {
+            updates()
+        } else {
+            withAnimation(animation, updates)
+        }
     }
 }
 
@@ -195,4 +218,3 @@ struct AIInputView: View {
 extension Notification.Name {
     static let openSettings = Notification.Name("openSettings")
 }
-

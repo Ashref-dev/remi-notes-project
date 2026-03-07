@@ -1,0 +1,117 @@
+Remi macOS “Liquid Glass” Modernization Plan
+
+Goals
+- Adopt Apple’s modern glass aesthetic across popovers, windows, and key surfaces.
+- Keep strong readability and performance while supporting older macOS with graceful fallbacks.
+
+Target OS & APIs
+- Primary: macOS 15+ (Sequoia) with SwiftUI `View.glassBackgroundEffect(in:)` and Materials.
+- Fallback: macOS 12–14 using SwiftUI `Material` (e.g., `.ultraThinMaterial`, `.regularMaterial`) or AppKit `NSVisualEffectView` via `NSViewRepresentable`.
+
+High‑Level Changes
+1) Popover Container (main entry)
+   - Wrap the popover’s root `ContentView` background with `glassBackgroundEffect(in: .roundedRectangle(cornerRadius: 14))`.
+   - Hide scroll backgrounds inside to avoid clashing backgrounds: `.scrollContentBackground(.hidden)`.
+   - Add subtle border + separator overlays for depth.
+
+2) Cards & Panels (Nooks, Editor, Quick Actions)
+   - Introduce a reusable `GlassCard` view (or modifier) that:
+     - Applies `glassBackgroundEffect(in:)` on macOS 15+.
+     - Falls back to `.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))` on older macOS.
+     - Adds a 1px stroke and a faint top highlight.
+   - Replace existing solid backgrounds in `NookListView`, `TaskEditorView`, Quick Actions panel with `GlassCard`.
+
+3) Headers & Tool Areas
+   - For custom headers/tool rows, use a slim glass strip (rounded rectangle or capsule as appropriate) with reduced opacity.
+   - Prefer content tints (accent-like) using `foregroundStyle(.secondary)` where needed so text remains legible on glass.
+
+4) Settings Window
+   - Root stack gets a large rounded glass background.
+   - We already use `.windowStyle(.hiddenTitleBar)`; ensure the content has proper top padding to breathe under the title area.
+
+5) Theme Update (light/dark harmony)
+   - Add a small set of tints in `Theme.swift` for glass overlays:
+     - Glass tint light: white → clear gradient at 3–6% opacity.
+     - Glass tint dark: black → clear gradient at 5–8% opacity.
+   - Use these for strokes/highlights to avoid pure white/black halos.
+
+6) Performance & Accessibility
+   - Avoid deeply nested glass effects; prefer one parent glass layer with simple children.
+   - Test blur/readability with large type sizes and Increase Contrast.
+   - Prefer shape-clipped glass to reduce offscreen blur cost.
+
+Implementation Notes (Code Sketches)
+- Popover background (macOS 15+):
+  ZStack {
+    // content
+  }
+  .background {
+    if #available(macOS 15, *) {
+      Color.clear
+        .glassBackgroundEffect(in: .roundedRectangle(cornerRadius: 14))
+        .overlay(
+          RoundedRectangle(cornerRadius: 14)
+            .strokeBorder(LinearGradient(colors: [Color.white.opacity(0.15), Color.white.opacity(0.02)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
+        )
+        .overlay(
+          Divider().opacity(0.06), alignment: .top
+        )
+    } else {
+      RoundedRectangle(cornerRadius: 14)
+        .fill(.ultraThinMaterial)
+        .overlay(
+          RoundedRectangle(cornerRadius: 14)
+            .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+        )
+    }
+  }
+  .scrollContentBackground(.hidden)
+
+- Reusable card:
+  struct GlassCard<Content: View>: View {
+    let corner: CGFloat
+    @ViewBuilder var content: Content
+    var body: some View {
+      content
+        .padding(12)
+        .background {
+          if #available(macOS 15, *) {
+            Color.clear.glassBackgroundEffect(in: .roundedRectangle(cornerRadius: corner))
+          } else {
+            RoundedRectangle(cornerRadius: corner).fill(.ultraThinMaterial)
+          }
+        }
+        .overlay(
+          RoundedRectangle(cornerRadius: corner)
+            .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+        )
+    }
+  }
+
+Integration Plan (Concrete Steps)
+1) Add `UI/Components/Reusable/GlassCard.swift` with the reusable glass component.
+2) Update popover root (`ContentView`) to apply glass background and hide scroll backgrounds.
+3) Replace legacy solid backgrounds in:
+   - `UI/Views/NookListView.swift` (list container or each nook card)
+   - `UI/Views/TaskEditorView.swift` (editor panel)
+   - `UI/Views/OnboardingView.swift` (primary panels)
+   - AI Quick Actions panel container
+4) Add a small `Theme/Glass.swift` (optional) with tint colors and gradients.
+5) Verify text/icon contrast; tweak foregroundStyle and opacities as needed.
+6) Gate the new effect with availability checks; keep older macOS looking consistent using Materials.
+
+QA Checklist
+- Text remains legible over busy wallpapers (light/dark, increased contrast on).
+- Popover edges: no double borders; separators align to pixel grid.
+- Scrolling doesn’t reveal opaque backgrounds.
+- CPU/GPU stable when resizing or showing popover repeatedly.
+
+References
+- SwiftUI `glassBackgroundEffect(in:)` (macOS 15+)
+  https://developer.apple.com/documentation/swiftui/view/glassbackgroundeffect
+- SwiftUI `Material` and HIG Materials
+  https://developer.apple.com/documentation/swiftui/material
+  https://developer.apple.com/design/human-interface-guidelines/macos/visual-design/materials
+- AppKit `NSVisualEffectView` (fallback and advanced control)
+  https://developer.apple.com/documentation/appkit/nsvisualeffectview
+  https://developer.apple.com/documentation/appkit/nsvisualeffectview/material

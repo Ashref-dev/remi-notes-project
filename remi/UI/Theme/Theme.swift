@@ -19,7 +19,10 @@ struct AppTheme {
     }
 
     struct Fonts {
-        static let editor: NSFont = .systemFont(ofSize: 16, weight: .regular)
+        static let editor: NSFont = {
+            let font = NSFont.systemFont(ofSize: 16, weight: .regular)
+            return font
+        }()
         static let title: SwiftUI.Font = .title.weight(.bold)
         static let title2: SwiftUI.Font = .title2.weight(.bold)
         static let title3: SwiftUI.Font = .title3.weight(.semibold)
@@ -28,7 +31,7 @@ struct AppTheme {
     }
     
     struct Popover {
-        static let width: CGFloat = 900
-        static let height: CGFloat = 720
+        static let width: CGFloat = 760
+        static let height: CGFloat = 620
     }
 }

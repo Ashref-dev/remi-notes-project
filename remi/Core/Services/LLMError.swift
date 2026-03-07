@@ -1,7 +1,5 @@
-
 import Foundation
 
-// MARK: - Helper Structs for JSON Encoding
 struct ChatMessage: Encodable {
     let role: String
     let content: String
@@ -15,19 +13,7 @@ struct ChatRequest: Encodable {
     let stream: Bool
 }
 
-// MARK: - Helper Structs for JSON Decoding
-struct ChatCompletionChunk: Decodable {
-    struct Choice: Decodable {
-        struct Delta: Decodable {
-            let content: String?
-        }
-        let delta: Delta
-    }
-    let choices: [Choice]
-}
-
-// MARK: - Custom Errors
-enum GroqError: Error, LocalizedError {
+enum LLMError: Error, LocalizedError {
     case apiKeyMissing
     case apiKeyInvalid
     case invalidURL
@@ -44,9 +30,9 @@ enum GroqError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .apiKeyMissing:
-            return "Please set your Groq API key in Settings to use AI features."
+            return "Please set your OpenRouter API key in Settings to use AI features."
         case .apiKeyInvalid:
-            return "Your Groq API key appears to be invalid. Please check it in Settings."
+            return "Your OpenRouter API key appears invalid. Please check it in Settings."
         case .invalidURL:
             return "The API endpoint URL is invalid."
         case .requestFailed(let statusCode, _):
@@ -56,19 +42,19 @@ enum GroqError: Error, LocalizedError {
             case 401:
                 return "Authentication failed. Please verify your API key in Settings."
             case 403:
-                return "Access forbidden. Your API key may not have the required permissions."
+                return "Access forbidden. Your API key may not have required permissions."
             case 404:
                 return "The requested resource was not found."
             case 429:
-                return "Rate limit exceeded. Please wait a moment before trying again."
+                return "Rate limit exceeded. Please wait before trying again."
             case 500...599:
-                return "Server error. Please try again later."
+                return "Provider server error. Please try again later."
             default:
                 return "Request failed with status code \(statusCode). Please try again."
             }
         case .networkError(let error):
-            if error.localizedDescription.contains("not connected to the internet") ||
-               error.localizedDescription.contains("network connection") {
+            if error.localizedDescription.localizedCaseInsensitiveContains("not connected") ||
+                error.localizedDescription.localizedCaseInsensitiveContains("network connection") {
                 return "No internet connection. Please check your network and try again."
             }
             return "Network error: \(error.localizedDescription)"
@@ -83,12 +69,12 @@ enum GroqError: Error, LocalizedError {
         case .noInternetConnection:
             return "No internet connection. Please check your network and try again."
         case .apiQuotaExceeded:
-            return "API quota exceeded. Please check your Groq account limits."
+            return "API quota exceeded. Please check your OpenRouter account limits."
         case .modelUnavailable:
-            return "The AI model is currently unavailable. Please try again later."
+            return "The selected AI model is unavailable. Please choose a different model."
         }
     }
-    
+
     var canRetry: Bool {
         switch self {
         case .apiKeyMissing, .apiKeyInvalid, .invalidURL, .apiQuotaExceeded:
@@ -101,7 +87,7 @@ enum GroqError: Error, LocalizedError {
             return true
         }
     }
-    
+
     var severity: ErrorSeverity {
         switch self {
         case .apiKeyMissing, .apiKeyInvalid:

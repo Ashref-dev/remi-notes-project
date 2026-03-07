@@ -11,6 +11,8 @@ struct NookEditorSheet: View {
     @State private var selectedCategory: NookIconCategory
     @State private var isHoveringCancel = false
     @State private var isHoveringSave = false
+    @State private var validationError: String?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     init(nook: Binding<Nook>, isPresented: Binding<Bool>) {
         self._nook = nook
@@ -93,6 +95,19 @@ struct NookEditorSheet: View {
                 .background(theme.backgroundSecondary)
                 
                 Divider()
+
+                if let validationError {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(validationError)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(theme.textSecondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, AppTheme.Spacing.large)
+                    .padding(.vertical, AppTheme.Spacing.small)
+                }
                 
                 // Content
                 ScrollView {
@@ -130,9 +145,12 @@ struct NookEditorSheet: View {
                 .background(theme.background)
             }
             .frame(width: 460, height: 550)
-            .background(theme.background)
-            .cornerRadius(AppTheme.CornerRadius.medium)
-            .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 10)
+            .background(
+                Color.clear
+                    .liquidGlassSurface(cornerRadius: 16, strokeOpacity: 0.1, fallbackMaterial: .thickMaterial)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: Color.black.opacity(0.15), radius: 25, x: 0, y: 15)
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
                 // Handle app termination gracefully
             }
@@ -148,21 +166,19 @@ struct NookEditorSheet: View {
         
         // Ensure we have a valid name
         guard !cleanedName.isEmpty else {
+            validationError = "Note name can't be empty."
             return
         }
+
+        validationError = nil
         
         // Update the nook with validated changes
         nook.name = cleanedName
         nook.iconName = selectedIcon
         nook.iconColor = selectedColor
         
-        // Add haptic feedback for successful save
-        #if os(macOS)
-        // No haptic feedback on macOS, but we could add a subtle animation
-        #endif
-        
         // Close the sheet with animation
-        withAnimation(.easeInOut(duration: 0.25)) {
+        withOptionalAnimation(.easeInOut(duration: 0.25)) {
             isPresented = false
         }
     }
@@ -176,6 +192,17 @@ struct NookEditorSheet: View {
     
     private var isValidName: Bool {
         !editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func withOptionalAnimation(
+        _ animation: Animation,
+        _ updates: @escaping () -> Void
+    ) {
+        if reduceMotion {
+            updates()
+        } else {
+            withAnimation(animation, updates)
+        }
     }
 }
 
@@ -227,8 +254,8 @@ private struct NookPreviewSection: View {
             }
             .padding(AppTheme.Spacing.medium)
             .background(
-                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small)
-                    .fill(theme.backgroundSecondary.opacity(0.8))
+                Color.clear
+                    .liquidGlassSurface(cornerRadius: AppTheme.CornerRadius.small, strokeOpacity: 0.05, fallbackMaterial: .thinMaterial)
                     .overlay(
                         RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small)
                             .stroke(iconColor.color.opacity(0.3), lineWidth: 1.5)
@@ -264,13 +291,17 @@ private struct NookNameEditorSection: View {
                 .font(.system(size: 14))
                 .padding(AppTheme.Spacing.medium)
                 .background(
-                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small)
-                        .fill(theme.backgroundSecondary.opacity(0.8))
+                    Color.clear
+                        .liquidGlassSurface(
+                            cornerRadius: AppTheme.CornerRadius.small,
+                            strokeOpacity: isNameFocused ? 0.2 : 0.05,
+                            fallbackMaterial: .thinMaterial
+                        )
                         .overlay(
                             RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small)
                                 .stroke(
-                                    isNameFocused ? theme.accent.opacity(0.6) : theme.border.opacity(0.3),
-                                    lineWidth: isNameFocused ? 2 : 1
+                                    isNameFocused ? theme.accent.opacity(0.6) : Color.clear,
+                                    lineWidth: 2
                                 )
                         )
                 )

@@ -184,11 +184,14 @@ struct CompactPermissionCard: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(theme.cardBackground.opacity(0.8))
-                .stroke(statusColor.opacity(0.2), lineWidth: 1)
-        )
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: 10, strokeOpacity: 0.08, fallbackMaterial: .thickMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(statusColor.opacity(0.3), lineWidth: 1)
+                )
+        }
         .opacity(animate ? 1.0 : 0.0)
         .offset(x: animate ? 0 : 20)
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(delay), value: animate)
@@ -272,11 +275,14 @@ struct PermissionCard: View {
             )
         }
         .padding(AppTheme.Spacing.medium)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
-                .fill(theme.cardBackground)
-                .stroke(statusBorderColor, lineWidth: 1)
-        )
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: AppTheme.CornerRadius.medium, strokeOpacity: 0.08, fallbackMaterial: .thickMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
+                        .stroke(statusBorderColor, lineWidth: 1)
+                )
+        }
     }
     
     private var statusBorderColor: Color {
@@ -381,7 +387,10 @@ struct ManualPermissionsInstructionsView: View {
         }
         .padding(AppTheme.Spacing.xlarge)
         .frame(width: 500, height: 400)
-        .background(theme.background)
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: 16, strokeOpacity: 0.08, fallbackMaterial: .regularMaterial)
+        }
     }
 }
 
