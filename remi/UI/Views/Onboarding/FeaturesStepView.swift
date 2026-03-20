@@ -6,14 +6,14 @@ struct FeaturesStepView: View {
     @State private var animateElements = false
     
     enum Feature: CaseIterable {
-        case ai, nooks, hotkeys, reordering
+        case ai, nooks, hotkeys, palette
         
         var title: String {
             switch self {
             case .ai: return "AI Assistant"
             case .nooks: return "Smart Nooks"
             case .hotkeys: return "Global Access"
-            case .reordering: return "Drag & Drop"
+            case .palette: return "Command Palette"
             }
         }
         
@@ -22,7 +22,7 @@ struct FeaturesStepView: View {
             case .ai: return "brain.head.profile"
             case .nooks: return "folder.fill"
             case .hotkeys: return "keyboard.fill"
-            case .reordering: return "arrow.up.and.down"
+            case .palette: return "command"
             }
         }
         
@@ -31,7 +31,7 @@ struct FeaturesStepView: View {
             case .ai: return "Smart suggestions and content improvements powered by AI"
             case .nooks: return "Organize thoughts into focused, searchable spaces"
             case .hotkeys: return "Access Remi instantly from anywhere with custom shortcuts"
-            case .reordering: return "Arrange and prioritize nooks with intuitive drag & drop"
+            case .palette: return "Hit ⌘K to instantly search notes or toggle themes"
             }
         }
         
@@ -40,7 +40,7 @@ struct FeaturesStepView: View {
             case .ai: return .purple
             case .nooks: return .blue
             case .hotkeys: return .green
-            case .reordering: return .orange
+            case .palette: return .orange
             }
         }
     }
@@ -108,11 +108,11 @@ struct FeaturesStepView: View {
                     )
                     
                     CleanFeatureCard(
-                        feature: .reordering,
-                        isSelected: selectedFeature == .reordering,
+                        feature: .palette,
+                        isSelected: selectedFeature == .palette,
                         onSelect: { 
                             withAnimation(.easeInOut(duration: 0.3)) {
-                                selectedFeature = .reordering
+                                selectedFeature = .palette
                             }
                         },
                         theme: theme,

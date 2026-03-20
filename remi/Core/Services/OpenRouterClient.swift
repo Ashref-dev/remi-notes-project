@@ -33,15 +33,10 @@ final class OpenRouterClient: LLMClient {
 
     func sendEdit(prompt: String, context: String, model: String, params: ModelParameters) async throws -> String {
         let isLocal = model == "local"
-        
-        if !isLocal {
-            try validateAPIKeyFormat()
-        }
-
         let targetEndpoint = isLocal ? localChatEndpoint : chatEndpoint
-        guard let url = URL(string: targetEndpoint) else {
-            throw LLMError.invalidURL
-        }
+        let url = try createURL(from: targetEndpoint)
+
+        if !isLocal { try validateAPIKeyFormat() }
 
         let systemPrompt = SettingsManager.shared.aiSystemPrompt
 
@@ -69,17 +64,8 @@ final class OpenRouterClient: LLMClient {
             "stream": false
         ]
 
-        var request = URLRequest(url: url)
+        var request = createURLRequest(url: url, isLocal: isLocal, timeout: isLocal ? 120 : 40)
         request.httpMethod = "POST"
-        
-        if !isLocal {
-            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-            request.setValue("https://github.com/ashref/remi", forHTTPHeaderField: "HTTP-Referer")
-            request.setValue("Remi", forHTTPHeaderField: "X-Title")
-        }
-        
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = isLocal ? 120 : 40
 
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
@@ -134,15 +120,10 @@ final class OpenRouterClient: LLMClient {
 
     func validateAPIKey() async throws {
         try validateAPIKeyFormat()
-        guard let url = URL(string: modelsEndpoint) else {
-            throw LLMError.invalidURL
-        }
+        let url = try createURL(from: modelsEndpoint)
 
-        var request = URLRequest(url: url)
+        var request = createURLRequest(url: url, isLocal: false, timeout: 15)
         request.httpMethod = "GET"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 15
 
         let (_, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -161,5 +142,27 @@ final class OpenRouterClient: LLMClient {
         default:
             throw LLMError.requestFailed(statusCode: httpResponse.statusCode, description: "Validation failed")
         }
+    }
+
+    // MARK: - Helpers
+
+    private func createURL(from endpoint: String) throws -> URL {
+        guard let url = URL(string: endpoint) else {
+            throw LLMError.invalidURL
+        }
+        return url
+    }
+
+    private func createURLRequest(url: URL, isLocal: Bool, timeout: TimeInterval) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = timeout
+        
+        if !isLocal {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            request.setValue("https://github.com/ashref/remi", forHTTPHeaderField: "HTTP-Referer")
+            request.setValue("Remi", forHTTPHeaderField: "X-Title")
+        }
+        return request
     }
 }

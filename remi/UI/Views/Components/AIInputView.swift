@@ -213,8 +213,3 @@ struct AIInputView: View {
         }
     }
 }
-
-// Notification for opening settings
-extension Notification.Name {
-    static let openSettings = Notification.Name("openSettings")
-}

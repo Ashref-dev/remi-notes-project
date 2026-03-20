@@ -7,11 +7,42 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1A871D55E4EFC1CC619AA665 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BDC3BA2F529C3DF7AD707986 /* Cocoa.framework */; };
+		2DE10FC24D016DCDDA9D1F62 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B789C862F8AA30988EC6D4B2 /* ShareViewController.swift */; };
+		54D5D13CF9E07B75B8055079 /* RemiUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C075866D6F11593E4ACB8D /* RemiUITests.swift */; };
+		7B7AB947BF376DF213B560F2 /* remiShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = D3CE8AD5490D70637336FB80 /* remiShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B0E3DC263F5F4C85AAA09D5E /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BDC3BA2F529C3DF7AD707986 /* Cocoa.framework */; };
+		B20527937C38D1CEA4E859AB /* RemiCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CBE45FF107B5493E1A2450 /* RemiCoreTests.swift */; };
+		CA314777E9D2B005B712B8B1 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BDC3BA2F529C3DF7AD707986 /* Cocoa.framework */; };
 		E40EE8462E1C303C00635227 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = E40EE8452E1C303C00635227 /* Alamofire */; };
 		E40EE84B2E1C305600635227 /* HotKey in Frameworks */ = {isa = PBXBuildFile; productRef = E40EE84A2E1C305600635227 /* HotKey */; };
 		E40EE84E2E1C306E00635227 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = E40EE84D2E1C306E00635227 /* SwiftyJSON */; };
 		E40EE8512E1C308500635227 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = E40EE8502E1C308500635227 /* LaunchAtLogin */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		10B44BC5AAF7B94F97C81D6C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E40EE8272E1C2ED300635227 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 246CD7485D074C4044CF4E75;
+			remoteInfo = remiShareExtension;
+		};
+		199EAA5A239FCDCD5B83F275 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E40EE8272E1C2ED300635227 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E40EE82E2E1C2ED300635227;
+			remoteInfo = remi;
+		};
+		D5C18DF5E3B08828876989C4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E40EE8272E1C2ED300635227 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E40EE82E2E1C2ED300635227;
+			remoteInfo = remi;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		E40EE8532E1C384200635227 /* Embed Frameworks */ = {
@@ -24,21 +55,67 @@
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EF14C28246EE1256803DF029 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				7B7AB947BF376DF213B560F2 /* remiShareExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		10C6C1FFDFB6D5DF0760CD00 /* remiShareExtension.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = remiShareExtension.entitlements; sourceTree = "<group>"; };
+		15CBE45FF107B5493E1A2450 /* RemiCoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemiCoreTests.swift; sourceTree = "<group>"; };
+		3B56F2390B6C0429B84B768A /* remiUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = remiUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		483392FC513E8CCAF975646C /* remiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = remiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		84F13896E5E9AAFAA9D9BE46 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		85C075866D6F11593E4ACB8D /* RemiUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemiUITests.swift; sourceTree = "<group>"; };
+		B789C862F8AA30988EC6D4B2 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		BDC3BA2F529C3DF7AD707986 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
+		D3CE8AD5490D70637336FB80 /* remiShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = remiShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E40EE82F2E1C2ED300635227 /* remi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = remi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E40EE8312E1C2ED300635227 /* remi */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = remi;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		1631D86DFFA6A682C3C6B7BE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A871D55E4EFC1CC619AA665 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		388ECCF7B2798550611EE074 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0E3DC263F5F4C85AAA09D5E /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8859A25AE742596DCDB47AEA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA314777E9D2B005B712B8B1 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E40EE82C2E1C2ED300635227 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -53,11 +130,51 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0DCE602F1061F2091F136850 /* OS X */ = {
+			isa = PBXGroup;
+			children = (
+				BDC3BA2F529C3DF7AD707986 /* Cocoa.framework */,
+			);
+			name = "OS X";
+			sourceTree = "<group>";
+		};
+		1650F173E8D4699971C507C5 /* remiTests */ = {
+			isa = PBXGroup;
+			children = (
+				15CBE45FF107B5493E1A2450 /* RemiCoreTests.swift */,
+			);
+			name = remiTests;
+			path = remiTests;
+			sourceTree = "<group>";
+		};
+		315B32D28E396FDB66A256C7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				0DCE602F1061F2091F136850 /* OS X */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		DD2E53D2B0435B4FE1398C01 /* remiShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				B789C862F8AA30988EC6D4B2 /* ShareViewController.swift */,
+				84F13896E5E9AAFAA9D9BE46 /* Info.plist */,
+				10C6C1FFDFB6D5DF0760CD00 /* remiShareExtension.entitlements */,
+			);
+			name = remiShareExtension;
+			path = remiShareExtension;
+			sourceTree = "<group>";
+		};
 		E40EE8262E1C2ED200635227 = {
 			isa = PBXGroup;
 			children = (
 				E40EE8312E1C2ED300635227 /* remi */,
 				E40EE8302E1C2ED300635227 /* Products */,
+				315B32D28E396FDB66A256C7 /* Frameworks */,
+				1650F173E8D4699971C507C5 /* remiTests */,
+				E6F7200B20649970F88220B5 /* remiUITests */,
+				DD2E53D2B0435B4FE1398C01 /* remiShareExtension */,
 			);
 			sourceTree = "<group>";
 		};
@@ -65,13 +182,78 @@
 			isa = PBXGroup;
 			children = (
 				E40EE82F2E1C2ED300635227 /* remi.app */,
+				483392FC513E8CCAF975646C /* remiTests.xctest */,
+				3B56F2390B6C0429B84B768A /* remiUITests.xctest */,
+				D3CE8AD5490D70637336FB80 /* remiShareExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		E6F7200B20649970F88220B5 /* remiUITests */ = {
+			isa = PBXGroup;
+			children = (
+				85C075866D6F11593E4ACB8D /* RemiUITests.swift */,
+			);
+			name = remiUITests;
+			path = remiUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		246CD7485D074C4044CF4E75 /* remiShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1FBC38A566A23429DF88B3D5 /* Build configuration list for PBXNativeTarget "remiShareExtension" */;
+			buildPhases = (
+				951E6F16C1905AD5875B7A7F /* Sources */,
+				388ECCF7B2798550611EE074 /* Frameworks */,
+				3F2C050DE63820DB7240B795 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = remiShareExtension;
+			productName = remiShareExtension;
+			productReference = D3CE8AD5490D70637336FB80 /* remiShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		5E0005DF8858A20759219635 /* remiTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2CCD641983A47A375D07636D /* Build configuration list for PBXNativeTarget "remiTests" */;
+			buildPhases = (
+				DCEE794E984F44B9ABBBA4E5 /* Sources */,
+				8859A25AE742596DCDB47AEA /* Frameworks */,
+				53ED0A8BC1548953ECC68182 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				ACB25DF2D1144C66C0140E81 /* PBXTargetDependency */,
+			);
+			name = remiTests;
+			productName = remiTests;
+			productReference = 483392FC513E8CCAF975646C /* remiTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		8A40CAB15DB7555B437E2EC4 /* remiUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 75FD2A553A7CF8E7DA263F00 /* Build configuration list for PBXNativeTarget "remiUITests" */;
+			buildPhases = (
+				98B23A013773A8A400B9BA99 /* Sources */,
+				1631D86DFFA6A682C3C6B7BE /* Frameworks */,
+				327A612DB43D79038945D637 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				029ED10260DE508CCECCF939 /* PBXTargetDependency */,
+			);
+			name = remiUITests;
+			productName = remiUITests;
+			productReference = 3B56F2390B6C0429B84B768A /* remiUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		E40EE82E2E1C2ED300635227 /* remi */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E40EE83E2E1C2ED500635227 /* Build configuration list for PBXNativeTarget "remi" */;
@@ -80,10 +262,12 @@
 				E40EE82C2E1C2ED300635227 /* Frameworks */,
 				E40EE82D2E1C2ED300635227 /* Resources */,
 				E40EE8532E1C384200635227 /* Embed Frameworks */,
+				EF14C28246EE1256803DF029 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				FEF2260D998A8245BD3904F4 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				E40EE8312E1C2ED300635227 /* remi */,
@@ -135,11 +319,35 @@
 			projectRoot = "";
 			targets = (
 				E40EE82E2E1C2ED300635227 /* remi */,
+				5E0005DF8858A20759219635 /* remiTests */,
+				8A40CAB15DB7555B437E2EC4 /* remiUITests */,
+				246CD7485D074C4044CF4E75 /* remiShareExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		327A612DB43D79038945D637 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3F2C050DE63820DB7240B795 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		53ED0A8BC1548953ECC68182 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E40EE82D2E1C2ED300635227 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -150,6 +358,30 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		951E6F16C1905AD5875B7A7F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2DE10FC24D016DCDDA9D1F62 /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		98B23A013773A8A400B9BA99 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				54D5D13CF9E07B75B8055079 /* RemiUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCEE794E984F44B9ABBBA4E5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B20527937C38D1CEA4E859AB /* RemiCoreTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E40EE82B2E1C2ED300635227 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -159,7 +391,162 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		029ED10260DE508CCECCF939 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = remi;
+			target = E40EE82E2E1C2ED300635227 /* remi */;
+			targetProxy = D5C18DF5E3B08828876989C4 /* PBXContainerItemProxy */;
+		};
+		ACB25DF2D1144C66C0140E81 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = remi;
+			target = E40EE82E2E1C2ED300635227 /* remi */;
+			targetProxy = 199EAA5A239FCDCD5B83F275 /* PBXContainerItemProxy */;
+		};
+		FEF2260D998A8245BD3904F4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = remiShareExtension;
+			target = 246CD7485D074C4044CF4E75 /* remiShareExtension */;
+			targetProxy = 10B44BC5AAF7B94F97C81D6C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		1BDA423CE6A1E9660B13CB17 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = RM2VM3WB62;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				PRODUCT_BUNDLE_IDENTIFIER = ashref.tn.remi.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = remi;
+			};
+			name = Release;
+		};
+		2179B1F698F32E8AAF439070 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = RM2VM3WB62;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				PRODUCT_BUNDLE_IDENTIFIER = ashref.tn.remi.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/remi.app/Contents/MacOS/remi";
+			};
+			name = Release;
+		};
+		52381D909378152AC7EE3FBC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = remiShareExtension/remiShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = RM2VM3WB62;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = remiShareExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				PRODUCT_BUNDLE_IDENTIFIER = ashref.tn.remi.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		5B96EC5F5DA24E5FFC66DC15 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = RM2VM3WB62;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				PRODUCT_BUNDLE_IDENTIFIER = ashref.tn.remi.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = remi;
+			};
+			name = Debug;
+		};
+		830FA4067EBD911354D1BD80 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = remiShareExtension/remiShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = RM2VM3WB62;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = remiShareExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				PRODUCT_BUNDLE_IDENTIFIER = ashref.tn.remi.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A395DB3C5F6B948BAFDD84EB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = RM2VM3WB62;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				PRODUCT_BUNDLE_IDENTIFIER = ashref.tn.remi.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/remi.app/Contents/MacOS/remi";
+			};
+			name = Debug;
+		};
 		E40EE83C2E1C2ED500635227 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -293,7 +680,8 @@
 				DEVELOPMENT_TEAM = RM2VM3WB62;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = remi/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Remi - Quick Notes";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -324,7 +712,8 @@
 				DEVELOPMENT_TEAM = RM2VM3WB62;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = remi/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Remi - Quick Notes";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -344,6 +733,33 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1FBC38A566A23429DF88B3D5 /* Build configuration list for PBXNativeTarget "remiShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				52381D909378152AC7EE3FBC /* Release */,
+				830FA4067EBD911354D1BD80 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		2CCD641983A47A375D07636D /* Build configuration list for PBXNativeTarget "remiTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2179B1F698F32E8AAF439070 /* Release */,
+				A395DB3C5F6B948BAFDD84EB /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		75FD2A553A7CF8E7DA263F00 /* Build configuration list for PBXNativeTarget "remiUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1BDA423CE6A1E9660B13CB17 /* Release */,
+				5B96EC5F5DA24E5FFC66DC15 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		E40EE82A2E1C2ED300635227 /* Build configuration list for PBXProject "remi" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

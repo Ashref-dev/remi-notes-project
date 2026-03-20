@@ -1,6 +1,21 @@
 import Foundation
 import SwiftUI
 
+enum NookCaptureSource: String, Codable, CaseIterable, Hashable {
+    case manual
+    case quickCapture
+    case service
+    case shareExtension
+    case appIntent
+}
+
+struct PendingAIProposal: Codable, Hashable {
+    var prompt: String
+    var proposedText: String
+    var summary: String
+    var createdAt: Date
+}
+
 struct Nook: Identifiable, Hashable {
     let id: UUID
     var name: String
@@ -9,8 +24,30 @@ struct Nook: Identifiable, Hashable {
     var iconColor: NookIconColor
     var order: Int
     var hasBeenAutoTitled: Bool
+    var createdAt: Date
+    var updatedAt: Date
+    var lastOpenedAt: Date?
+    var isPinned: Bool
+    var tags: [String]
+    var captureSource: NookCaptureSource
+    var pendingAIProposal: PendingAIProposal?
 
-    init(id: UUID = UUID(), name: String, url: URL, iconName: String = "doc.text.fill", iconColor: NookIconColor = .blue, order: Int = 0, hasBeenAutoTitled: Bool = false) {
+    init(
+        id: UUID = UUID(),
+        name: String,
+        url: URL,
+        iconName: String = "doc.text.fill",
+        iconColor: NookIconColor = .blue,
+        order: Int = 0,
+        hasBeenAutoTitled: Bool = false,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date(),
+        lastOpenedAt: Date? = nil,
+        isPinned: Bool = false,
+        tags: [String] = [],
+        captureSource: NookCaptureSource = .manual,
+        pendingAIProposal: PendingAIProposal? = nil
+    ) {
         self.id = id
         self.name = name
         self.url = url
@@ -18,6 +55,23 @@ struct Nook: Identifiable, Hashable {
         self.iconColor = iconColor
         self.order = order
         self.hasBeenAutoTitled = hasBeenAutoTitled
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.lastOpenedAt = lastOpenedAt
+        self.isPinned = isPinned
+        self.tags = tags
+        self.captureSource = captureSource
+        self.pendingAIProposal = pendingAIProposal
+    }
+
+    static let inboxTag = "Inbox"
+
+    var isInbox: Bool {
+        tags.contains(Self.inboxTag)
+    }
+
+    var hasPendingAIWork: Bool {
+        pendingAIProposal != nil
     }
 }
 

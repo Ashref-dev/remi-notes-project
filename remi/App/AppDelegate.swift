@@ -6,6 +6,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
     private var focusWindow: NSWindow?
+    private var quickCapturePanel: NSPanel?
     private var stickyWindows: [UUID: NSWindow] = [:]
     private var statusBarMenu: NSMenu!
     private let hotkeyManager = HotkeyManager.shared
@@ -30,6 +31,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.popover.behavior = .transient
         self.popover.contentViewController = NSHostingController(rootView: ContentView())
 
+        importSharedCapturesIfNeeded()
+
         // Register the global hotkey from SettingsManager
         let hotkey = HotKey(key: settingsManager.hotkeyKey, modifiers: settingsManager.hotkeyModifiers)
         hotkeyManager.register(hotkey: hotkey) { [weak self] in
@@ -38,6 +41,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Hide the app from dock and app switcher (backup to Info.plist setting)
         NSApp.setActivationPolicy(.accessory)
+        NSApp.servicesProvider = self
         
         // Listen for show popover notifications
         NotificationCenter.default.addObserver(
@@ -60,6 +64,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             name: .openFocusWindow,
             object: nil
         )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(showQuickCapturePanel),
+            name: .showQuickCapturePanel,
+            object: nil
+        )
     }
 
     private func setupStatusBarMenu() {
@@ -69,6 +80,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let openItem = NSMenuItem(title: "Open Remi", action: #selector(showPopover), keyEquivalent: "")
         openItem.target = self
         menu.addItem(openItem)
+
+        let todayItem = NSMenuItem(title: "Open Today", action: #selector(showTodayOverlay), keyEquivalent: "")
+        todayItem.target = self
+        menu.addItem(todayItem)
+
+        let quickCaptureItem = NSMenuItem(title: "Quick Capture", action: #selector(showQuickCapturePanel), keyEquivalent: "")
+        quickCaptureItem.target = self
+        menu.addItem(quickCaptureItem)
+
+        let focusItem = NSMenuItem(title: "Open Focus Window", action: #selector(showFocusWindow), keyEquivalent: "")
+        focusItem.target = self
+        menu.addItem(focusItem)
         
         menu.addItem(NSMenuItem.separator())
         
@@ -115,6 +138,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc func showPopover() {
+        importSharedCapturesIfNeeded()
         // Ensure menu is cleared when showing popover
         statusItem.menu = nil
         
@@ -129,6 +153,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func showFocusWindow() {
+        importSharedCapturesIfNeeded()
         if popover.isShown {
             popover.performClose(nil)
         }
@@ -154,6 +179,53 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         focusWindow = window
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc func showTodayOverlay() {
+        if let focusWindow {
+            focusWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        } else {
+            showPopover()
+        }
+
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .showTodayOverlay, object: nil)
+        }
+    }
+
+    @objc func showQuickCapturePanel() {
+        importSharedCapturesIfNeeded()
+        if let quickCapturePanel, quickCapturePanel.isVisible {
+            quickCapturePanel.orderOut(nil)
+            return
+        }
+
+        let panel = quickCapturePanel ?? NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 260),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        panel.isMovableByWindowBackground = true
+        panel.center()
+        panel.contentViewController = NSHostingController(
+            rootView: QuickCapturePanelView { [weak self] in
+                self?.quickCapturePanel?.orderOut(nil)
+            }
+        )
+
+        quickCapturePanel = panel
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
     }
     
     @objc func handleToggleSticky(_ notification: Notification) {
@@ -241,9 +313,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
-                Text("ashref.tn")
-                    .font(.headline)
-                    .fontWeight(.semibold)
+                if let url = URL(string: "https://ashref.tn") {
+                    Link("ashref.tn", destination: url)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                } else {
+                    Text("ashref.tn")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                }
             }
         }
         .padding(40)
@@ -270,6 +348,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Don't quit when windows are closed - we're a menu bar app
         return false
     }
+
+    private func importSharedCapturesIfNeeded() {
+        if !CaptureService.shared.importQueuedSharedCaptures().isEmpty {
+            NotificationCenter.default.post(name: .nooksDidChange, object: nil)
+        }
+    }
 }
 
 extension AppDelegate: NSWindowDelegate {
@@ -284,5 +368,50 @@ extension AppDelegate: NSWindowDelegate {
                 }
             }
         }
+    }
+}
+
+extension AppDelegate {
+    @objc func createInboxNoteService(
+        _ pboard: NSPasteboard,
+        userData: String?,
+        error: AutoreleasingUnsafeMutablePointer<NSString?>
+    ) {
+        handleServiceCapture(
+            from: pboard,
+            route: .createInboxNote,
+            error: error
+        )
+    }
+
+    @objc func appendToCurrentNoteService(
+        _ pboard: NSPasteboard,
+        userData: String?,
+        error: AutoreleasingUnsafeMutablePointer<NSString?>
+    ) {
+        handleServiceCapture(
+            from: pboard,
+            route: .appendToCurrentNote,
+            error: error
+        )
+    }
+
+    private func handleServiceCapture(
+        from pasteboard: NSPasteboard,
+        route: CaptureRoute,
+        error: AutoreleasingUnsafeMutablePointer<NSString?>
+    ) {
+        guard let text = pasteboard.string(forType: .string),
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            error.pointee = "Couldn't read text from the pasteboard." as NSString
+            return
+        }
+
+        guard CaptureService.shared.capture(text: text, route: route, source: .service) != nil else {
+            error.pointee = "Remi couldn't save the shared text." as NSString
+            return
+        }
+
+        NotificationCenter.default.post(name: .nooksDidChange, object: nil)
     }
 }

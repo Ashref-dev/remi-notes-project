@@ -7,6 +7,7 @@ enum HapticEvent {
     case aiApplied
     case modelSaved
     case apiKeyValidated
+    case historyRestored
 }
 
 final class HapticsService {
@@ -19,7 +20,7 @@ final class HapticsService {
         switch event {
         case .noteCreated, .modelSaved, .noteUpdated, .apiKeyValidated:
             pattern = .alignment
-        case .noteDeleted, .aiApplied:
+        case .noteDeleted, .aiApplied, .historyRestored:
             pattern = .levelChange
         }
 

@@ -5,17 +5,31 @@ struct TaskEditorView: View {
     @State private var isMarkdownPreviewEnabled = false
     @State private var isAIInputVisible = false
     @State private var shouldFocusAIInput = false
+    @State private var isShowingHistory = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var glassNamespace
 
     let nook: Nook
     let workspaceMode: WorkspaceMode
     @Binding var showingSettings: Bool
+    @Binding var pendingAIPreset: String?
+    let onOpenToday: () -> Void
+    let onOpenQuickCapture: () -> Void
 
-    init(nook: Nook, workspaceMode: WorkspaceMode = .quickPopover, showingSettings: Binding<Bool> = .constant(false)) {
+    init(
+        nook: Nook,
+        workspaceMode: WorkspaceMode = .quickPopover,
+        showingSettings: Binding<Bool> = .constant(false),
+        pendingAIPreset: Binding<String?> = .constant(nil),
+        onOpenToday: @escaping () -> Void = {},
+        onOpenQuickCapture: @escaping () -> Void = {}
+    ) {
         self.nook = nook
         self.workspaceMode = workspaceMode
         self._showingSettings = showingSettings
+        self._pendingAIPreset = pendingAIPreset
+        self.onOpenToday = onOpenToday
+        self.onOpenQuickCapture = onOpenQuickCapture
         _viewModel = StateObject(wrappedValue: TaskEditorViewModel(nook: nook))
         _isMarkdownPreviewEnabled = State(initialValue: UserDefaults.standard.bool(forKey: "isMarkdownPreviewEnabled"))
     }
@@ -23,11 +37,9 @@ struct TaskEditorView: View {
     var body: some View {
         Themed { theme in
             ZStack(alignment: .top) {
-                // Editor
                 VStack(spacing: 0) {
-                    // Spacer for the top floating bar
                     Color.clear.frame(height: 50)
-                    
+
                     LiveMarkdownEditor(
                         text: $viewModel.taskContent,
                         theme: theme,
@@ -47,26 +59,22 @@ struct TaskEditorView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    
-                    // Padding at the bottom for the strip so we don't type implicitly behind it
+
                     Color.clear.frame(height: 70)
                 }
 
-                // Top Accessory Bar
                 floatingTopBar(theme: theme)
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
 
-                // Toast chips — bottom-left, above the nook strip, never hidden under buttons
                 VStack {
                     Spacer()
                     statusChips(theme: theme)
                         .padding(.leading, 16)
-                        .padding(.bottom, 70)   // clears the nook strip height + padding
+                        .padding(.bottom, 70)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                // AI Processing overlay
                 if viewModel.isProcessingAI {
                     VStack {
                         Spacer()
@@ -80,8 +88,7 @@ struct TaskEditorView: View {
                         Spacer()
                     }
                 }
-                
-                // AI Diff overlay
+
                 if viewModel.showAIDiff {
                     VStack {
                         Spacer()
@@ -97,12 +104,11 @@ struct TaskEditorView: View {
                             }
                         )
                         .padding(.horizontal, 24)
-                        .padding(.bottom, 80) // Stay above the nook strip
+                        .padding(.bottom, 80)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
 
-                // AI Prompt Input
                 if isAIInputVisible {
                     ZStack {
                         Color.black.opacity(0.15)
@@ -124,8 +130,19 @@ struct TaskEditorView: View {
                     .transition(.opacity)
                 }
             }
+            .onAppear {
+                viewModel.loadRevisions()
+            }
             .onDisappear {
                 viewModel.forceSave()
+            }
+            .onChange(of: nook) { _, newValue in
+                viewModel.nook = newValue
+            }
+            .onChange(of: pendingAIPreset) { _, newValue in
+                guard let newValue else { return }
+                pendingAIPreset = nil
+                viewModel.applyPreset(newValue)
             }
             .onExitCommand {
                 if isAIInputVisible {
@@ -136,6 +153,11 @@ struct TaskEditorView: View {
             .onDrop(of: [.fileURL], isTargeted: nil) { providers in
                 handleDrop(providers: providers)
             }
+            .sheet(isPresented: $isShowingHistory) {
+                VersionHistoryView(revisions: viewModel.revisions) { revision in
+                    viewModel.restore(revision)
+                }
+            }
         }
     }
 
@@ -143,19 +165,20 @@ struct TaskEditorView: View {
         var handled = false
         for provider in providers {
             if provider.hasItemConformingToTypeIdentifier("public.file-url") {
-                provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, error in
+                provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, _ in
                     if let data = item as? Data,
                        let urlStr = String(data: data, encoding: .utf8),
                        let url = URL(string: urlStr) {
-                        
                         DispatchQueue.main.async {
                             let filename = url.lastPathComponent
-                            let absoluteString = url.absoluteString
+                            let markdownLink: String
                             let isImage = ["jpg", "jpeg", "png", "gif", "webp", "heic"].contains(url.pathExtension.lowercased())
-                            
-                            let markdownLink = isImage ? "![\\(filename)](\\(absoluteString))" : "[\\(filename)](\\(absoluteString))"
-                            
-                            self.viewModel.enhanceContent(with: markdownLink, actionName: "Drop File")
+                            if isImage {
+                                markdownLink = "![\(filename)](\(url.absoluteString))"
+                            } else {
+                                markdownLink = "[\(filename)](\(url.absoluteString))"
+                            }
+                            viewModel.enhanceContent(with: markdownLink, actionName: "Drop File")
                         }
                     }
                 }
@@ -168,7 +191,6 @@ struct TaskEditorView: View {
     @ViewBuilder
     private func floatingTopBar(theme: Theme) -> some View {
         HStack(spacing: 12) {
-            // App Identity Pill – tapping opens Settings
             Button {
                 showingSettings = true
             } label: {
@@ -185,8 +207,8 @@ struct TaskEditorView: View {
                             .foregroundStyle(theme.accent)
                     }
                     Text("Remi")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(theme.textPrimary)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(theme.textPrimary)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
@@ -202,9 +224,7 @@ struct TaskEditorView: View {
 
             Spacer()
 
-            // General App Actions & Editor Actions
             HStack(spacing: 8) {
-                // Formatting toggle
                 Button {
                     isMarkdownPreviewEnabled.toggle()
                     UserDefaults.standard.set(isMarkdownPreviewEnabled, forKey: "isMarkdownPreviewEnabled")
@@ -225,13 +245,14 @@ struct TaskEditorView: View {
                 }
                 .help(isMarkdownPreviewEnabled ? "Show Plain Text" : "Show Markdown Preview")
 
-                // AI toggle
                 Button {
                     let willShow = !isAIInputVisible
                     withOptionalAnimation(.easeInOut(duration: 0.16)) {
                         isAIInputVisible = willShow
                     }
-                    if willShow { shouldFocusAIInput = true }
+                    if willShow {
+                        shouldFocusAIInput = true
+                    }
                 } label: {
                     Label("AI", systemImage: "sparkles")
                         .font(.system(size: 12, weight: .bold))
@@ -252,8 +273,26 @@ struct TaskEditorView: View {
                 .liquidGlassMorph("editor.aiInput", in: glassNamespace)
                 .help("Open AI editing tools")
 
-                // More actions — plain Menu, no liquidGlassButtonStyle wrapping to avoid icon doubling
                 Menu {
+                    Button("Open Today") {
+                        onOpenToday()
+                    }
+                    Button("Quick Capture") {
+                        onOpenQuickCapture()
+                    }
+                    Divider()
+                    Menu("AI Presets") {
+                        ForEach(SettingsManager.shared.aiQuickActions, id: \.self) { preset in
+                            Button(preset) {
+                                viewModel.applyPreset(preset)
+                            }
+                        }
+                    }
+                    Button("Version History…") {
+                        viewModel.loadRevisions()
+                        isShowingHistory = true
+                    }
+                    Divider()
                     Button("Copy as Markdown") { viewModel.copyAllContent(format: .markdown) }
                     Button("Copy as Plain Text") { viewModel.copyAllContent(format: .plainText) }
                     Divider()
@@ -264,9 +303,7 @@ struct TaskEditorView: View {
                         Button("Open Focus Window") {
                             NotificationCenter.default.post(name: .openFocusWindow, object: nil)
                         }
-                        
-                        Divider()
-                        
+
                         Button("Pin to Desktop") {
                             NotificationCenter.default.post(name: .toggleStickyWindow, object: nook)
                         }
@@ -305,6 +342,10 @@ struct TaskEditorView: View {
                     theme: theme
                 )
             }
+
+            if let ambientSuggestion = viewModel.ambientSuggestion {
+                ambientSuggestionChip(ambientSuggestion, theme: theme)
+            }
         }
     }
 
@@ -326,11 +367,48 @@ struct TaskEditorView: View {
         .transition(.scale.combined(with: .opacity))
     }
 
-    private var wordCount: Int {
-        viewModel.taskContent
-            .components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-            .count
+    @ViewBuilder
+    private func ambientSuggestionChip(_ suggestion: AmbientSuggestion, theme: Theme) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: suggestion.systemImage)
+                .foregroundStyle(theme.accent)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(suggestion.title)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(theme.textPrimary)
+                Text(suggestion.subtitle)
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.textSecondary)
+                    .lineLimit(1)
+            }
+
+            Button {
+                viewModel.applyAmbientSuggestion()
+            } label: {
+                Text("Apply")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(theme.accent)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                viewModel.dismissAmbientSuggestion()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(theme.textSecondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background {
+            Color.clear
+                .liquidGlassSurface(cornerRadius: 10, strokeOpacity: 0.08, fallbackMaterial: .thickMaterial)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(suggestion.title). \(suggestion.subtitle)")
     }
 
     private func handleAIInput(prompt: String) {
@@ -345,10 +423,7 @@ struct TaskEditorView: View {
         }
     }
 
-    private func withOptionalAnimation(
-        _ animation: Animation,
-        _ updates: @escaping () -> Void
-    ) {
+    private func withOptionalAnimation(_ animation: Animation, _ updates: @escaping () -> Void) {
         if reduceMotion {
             updates()
         } else {
@@ -380,8 +455,10 @@ struct AIShimmerOverlay: View {
                 endPoint: .bottomTrailing
             )
             .frame(width: geometry.size.width * 2, height: geometry.size.height * 2)
-            .offset(x: isAnimating ? geometry.size.width : -geometry.size.width * 2,
-                    y: isAnimating ? geometry.size.height : -geometry.size.height * 2)
+            .offset(
+                x: isAnimating ? geometry.size.width : -geometry.size.width * 2,
+                y: isAnimating ? geometry.size.height : -geometry.size.height * 2
+            )
             .blendMode(.plusLighter)
         }
         .onAppear {

@@ -7,7 +7,6 @@ enum WorkspaceMode {
 
 struct ContentView: View {
     @ObservedObject private var settingsManager = SettingsManager.shared
-    @State private var selectedNook: Nook?
     @State private var showingSettings = false
 
     let workspaceMode: WorkspaceMode
@@ -33,7 +32,6 @@ struct ContentView: View {
                             .frame(width: surfaceWidth, height: surfaceHeight)
                     } else {
                         WorkspaceShell(
-                            selectedNook: $selectedNook,
                             showingSettings: $showingSettings,
                             workspaceMode: workspaceMode
                         )
@@ -50,38 +48,48 @@ struct ContentView: View {
             }
         }
         .errorBanner()
+        .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
+            showingSettings = true
+        }
     }
 }
 
 struct WorkspaceShell: View {
-    @Binding var selectedNook: Nook?
     @Binding var showingSettings: Bool
     let workspaceMode: WorkspaceMode
 
-    @StateObject private var railViewModel = NookListViewModel()
+    @StateObject private var railViewModel = NookListViewModel.shared
     @State private var isManagingNooks = false
+    @State private var isShowingToday = false
     @State private var isShowingCommandPalette = false
+    @State private var editorRequest: NookEditorRequest?
+    @State private var pendingAIPreset: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var glassNamespace
 
     var body: some View {
         Themed { theme in
             ZStack {
-                // Main Editor Background
-                if let nook = selectedNook {
-                    TaskEditorView(nook: nook, workspaceMode: workspaceMode, showingSettings: $showingSettings)
-                        .id(nook.id)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                if let nook = railViewModel.selectedNook {
+                    TaskEditorView(
+                        nook: nook,
+                        workspaceMode: workspaceMode,
+                        showingSettings: $showingSettings,
+                        pendingAIPreset: $pendingAIPreset,
+                        onOpenToday: { isShowingToday = true },
+                        onOpenQuickCapture: { NotificationCenter.default.post(name: .showQuickCapturePanel, object: nil) }
+                    )
+                    .id(nook.id)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     emptyState(theme: theme)
                 }
 
-                // Floating Nook Strip at the botttom
                 VStack {
                     Spacer()
                     FloatingNookStrip(
                         viewModel: railViewModel,
-                        selectedNook: $selectedNook,
+                        selectedNook: selectedNookBinding,
                         glassNamespace: glassNamespace,
                         onManageTapped: {
                             isManagingNooks = true
@@ -89,19 +97,32 @@ struct WorkspaceShell: View {
                     )
                 }
 
-                // Manage Nooks Overlay
                 if isManagingNooks {
                     ManageNooksOverlay(
                         viewModel: railViewModel,
-                        selectedNook: $selectedNook,
+                        selectedNook: selectedNookBinding,
                         isPresented: isManagingNooks,
-                        onClose: { withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { isManagingNooks = false } }
+                        onEditNote: { nook, area in
+                            editorRequest = NookEditorRequest(nook: nook, focusArea: area)
+                        },
+                        onClose: { withOptionalAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { isManagingNooks = false } }
                     )
-                    .transition(.scale(scale: 0.95).combined(with: .opacity))
                     .zIndex(10)
                 }
-                
-                // Command Palette Overlay (⌘K)
+
+                if isShowingToday {
+                    TodayOverlay(
+                        viewModel: railViewModel,
+                        selectedNook: selectedNookBinding,
+                        isPresented: isShowingToday,
+                        onQuickCapture: {
+                            NotificationCenter.default.post(name: .showQuickCapturePanel, object: nil)
+                        },
+                        onClose: { withOptionalAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { isShowingToday = false } }
+                    )
+                    .zIndex(12)
+                }
+
                 if isShowingCommandPalette {
                     ZStack {
                         Color.black.opacity(0.15)
@@ -109,11 +130,12 @@ struct WorkspaceShell: View {
                             .onTapGesture {
                                 isShowingCommandPalette = false
                             }
-                        
+
                         CommandPaletteView(
                             nookListViewModel: railViewModel,
                             isPresented: $isShowingCommandPalette,
-                            theme: theme
+                            theme: theme,
+                            commandContext: commandContext
                         )
                         .padding(.top, 100)
                         .frame(maxHeight: .infinity, alignment: .top)
@@ -122,28 +144,104 @@ struct WorkspaceShell: View {
                     .transition(.opacity)
                 }
             }
-            // Invisible button to catch ⌘K for Command Palette anywhere in Workspace
             .background(
                 Button("") {
-                    withAnimation(.easeInOut(duration: 0.15)) {
+                    withOptionalAnimation(.easeInOut(duration: 0.15)) {
                         isShowingCommandPalette.toggle()
                     }
                 }
                 .keyboardShortcut("k", modifiers: .command)
                 .hidden()
             )
+            .background(
+                Button("") {
+                    withOptionalAnimation(.easeInOut(duration: 0.18)) {
+                        isShowingToday.toggle()
+                    }
+                }
+                .keyboardShortcut("t", modifiers: [.command, .option])
+                .hidden()
+            )
             .onAppear {
                 railViewModel.fetchNooks()
-                if selectedNook == nil {
-                    selectedNook = railViewModel.selectedNook ?? railViewModel.filteredNooks.first
+                if railViewModel.selectedNook == nil {
+                    railViewModel.select(railViewModel.filteredNooks.first)
                 }
             }
-            .onChange(of: railViewModel.selectedNook) { _, newValue in
-                if selectedNook == nil {
-                    selectedNook = newValue
+            .onReceive(NotificationCenter.default.publisher(for: .showTodayOverlay)) { _ in
+                isShowingToday = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .toggleCommandPalette)) { _ in
+                withOptionalAnimation(.easeInOut(duration: 0.15)) {
+                    isShowingCommandPalette.toggle()
+                }
+            }
+            .sheet(item: $editorRequest) { request in
+                NookEditorSheetHost(initialRequest: request) { updatedNook in
+                    if let savedNook = railViewModel.updateNook(updatedNook),
+                       railViewModel.selectedNook?.id == savedNook.id {
+                        railViewModel.select(savedNook)
+                    }
                 }
             }
         }
+    }
+
+    private var selectedNookBinding: Binding<Nook?> {
+        Binding(
+            get: { railViewModel.selectedNook },
+            set: { railViewModel.select($0) }
+        )
+    }
+
+    private var commandContext: CommandContext {
+        CommandContext(
+            currentNook: railViewModel.selectedNook,
+            nooks: railViewModel.filteredNooks,
+            quickActions: SettingsManager.shared.aiQuickActions,
+            openNote: { nook in
+                railViewModel.select(nook)
+            },
+            createNote: { name in
+                if railViewModel.createNook(named: name) != nil {
+                    HapticsService.shared.perform(.noteCreated)
+                }
+            },
+            deleteNote: { nook in
+                if railViewModel.deleteNook(nook) {
+                    HapticsService.shared.perform(.noteDeleted)
+                }
+            },
+            togglePinned: { nook in
+                if let saved = railViewModel.togglePinned(nook), railViewModel.selectedNook?.id == saved.id {
+                    railViewModel.select(saved)
+                }
+            },
+            editNote: { nook, area in
+                editorRequest = NookEditorRequest(nook: nook, focusArea: area)
+            },
+            openToday: {
+                isShowingToday = true
+            },
+            openQuickCapture: {
+                NotificationCenter.default.post(name: .showQuickCapturePanel, object: nil)
+            },
+            openFocusWindow: {
+                NotificationCenter.default.post(name: .openFocusWindow, object: nil)
+            },
+            pinCurrentNoteToDesktop: { nook in
+                NotificationCenter.default.post(name: .toggleStickyWindow, object: nook)
+            },
+            openSettings: {
+                showingSettings = true
+            },
+            setTheme: { option in
+                SettingsManager.shared.colorSchemeOption = option
+            },
+            applyAIPreset: { preset in
+                pendingAIPreset = preset
+            }
+        )
     }
 
     @ViewBuilder
@@ -160,6 +258,44 @@ struct WorkspaceShell: View {
             .liquidGlassButtonStyle(prominent: true)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func withOptionalAnimation(_ animation: Animation, _ updates: @escaping () -> Void) {
+        if reduceMotion {
+            updates()
+        } else {
+            withAnimation(animation, updates)
+        }
+    }
+}
+
+private struct NookEditorSheetHost: View {
+    let initialRequest: NookEditorRequest
+    let onSave: (Nook) -> Void
+
+    @State private var draftNook: Nook
+    @State private var isPresented = true
+    @Environment(\.dismiss) private var dismiss
+
+    init(initialRequest: NookEditorRequest, onSave: @escaping (Nook) -> Void) {
+        self.initialRequest = initialRequest
+        self.onSave = onSave
+        _draftNook = State(initialValue: initialRequest.nook)
+    }
+
+    var body: some View {
+        NookEditorSheet(
+            nook: $draftNook,
+            isPresented: $isPresented,
+            focusArea: initialRequest.focusArea
+        )
+        .onChange(of: isPresented) { _, newValue in
+            guard !newValue else { return }
+            if draftNook != initialRequest.nook {
+                onSave(draftNook)
+            }
+            dismiss()
+        }
     }
 }
 

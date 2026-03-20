@@ -1,89 +1,61 @@
 import SwiftUI
 
 struct CommandPaletteView: View {
-    @ObservedObject var settingsManager = SettingsManager.shared
     @ObservedObject var nookListViewModel: NookListViewModel
     @Binding var isPresented: Bool
     @State private var searchText = ""
     @FocusState private var isSearchFocused: Bool
-    
+
     let theme: Theme
-    
-    // Command matches
-    var commandMatches: [CommandItem] {
-        let text = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        var matches = [CommandItem]()
-        
-        // Commands (Theme toggling, etc)
-        if text.isEmpty || "dark".contains(text) || "theme".contains(text) {
-            matches.append(CommandItem(id: "theme_dark", title: "Switch to Dark Theme", icon: "moon.fill", type: .action {
-                settingsManager.colorSchemeOption = .customDark
-            }))
-        }
-        if text.isEmpty || "light".contains(text) || "theme".contains(text) {
-            matches.append(CommandItem(id: "theme_light", title: "Switch to Light Theme", icon: "sun.max.fill", type: .action {
-                settingsManager.colorSchemeOption = .customLight
-            }))
-        }
-        if text.isEmpty || "system".contains(text) || "theme".contains(text) {
-            matches.append(CommandItem(id: "theme_system", title: "Use System Theme", icon: "gearshape.fill", type: .action {
-                settingsManager.colorSchemeOption = .system
-            }))
-        }
-        
-        // Nook Search
-        let nooks = text.isEmpty ? nookListViewModel.filteredNooks : nookListViewModel.filteredNooks.filter { $0.name.localizedCaseInsensitiveContains(text) }
-        
-        for nook in nooks {
-            matches.append(CommandItem(id: nook.id.uuidString, title: nook.name, icon: nook.iconName, iconColor: nook.iconColor.color, type: .nook(nook)))
-        }
-        
-        return matches
+    let commandContext: CommandContext
+
+    private var commandMatches: [RemiCommand] {
+        CommandRouter.shared.commands(matching: searchText, context: commandContext)
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
-            // Search Header
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(theme.textSecondary)
-                
+                    .foregroundStyle(theme.textSecondary)
+
                 TextField("Search notes or commands...", text: $searchText)
                     .textFieldStyle(.plain)
                     .font(.system(size: 18))
-                    .foregroundColor(theme.textPrimary)
+                    .foregroundStyle(theme.textPrimary)
                     .focused($isSearchFocused)
                     .onSubmit {
                         executeFirstMatch()
                     }
-                
+
                 if !searchText.isEmpty {
                     Button(action: { searchText = "" }) {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(theme.textSecondary)
+                            .foregroundStyle(theme.textSecondary)
                     }
                     .buttonStyle(.plain)
                 }
             }
             .padding(16)
             .background(Color.black.opacity(0.05))
-            
-            Divider()
-                .background(theme.textSecondary.opacity(0.2))
-            
-            // Results List
+
+            Divider().background(theme.textSecondary.opacity(0.2))
+
             ScrollView {
-                VStack(spacing: 4) {
-                    let matches = commandMatches
-                    if matches.isEmpty {
+                VStack(spacing: 6) {
+                    if commandMatches.isEmpty {
                         Text("No results found")
                             .font(.system(size: 14))
-                            .foregroundColor(theme.textSecondary)
+                            .foregroundStyle(theme.textSecondary)
                             .padding(.top, 32)
                     } else {
-                        ForEach(matches) { match in
-                            CommandRowView(item: match, theme: theme) {
+                        ForEach(commandMatches) { match in
+                            CommandRowView(
+                                item: match,
+                                theme: theme,
+                                iconColor: iconColor(for: match)
+                            ) {
                                 execute(match)
                             }
                         }
@@ -91,9 +63,9 @@ struct CommandPaletteView: View {
                 }
                 .padding(8)
             }
-            .frame(maxHeight: 300)
+            .frame(maxHeight: 320)
         }
-        .frame(width: 500)
+        .frame(width: 520)
         .background {
             Color.clear
                 .liquidGlassSurface(cornerRadius: 12, strokeOpacity: 0.1, fallbackMaterial: .thickMaterial)
@@ -102,7 +74,6 @@ struct CommandPaletteView: View {
         .onAppear {
             isSearchFocused = true
         }
-        // Invisible button to catch Esc key
         .background(
             Button("") {
                 isPresented = false
@@ -111,73 +82,71 @@ struct CommandPaletteView: View {
             .hidden()
         )
     }
-    
+
     private func executeFirstMatch() {
-        if let match = commandMatches.first {
-            execute(match)
-        }
+        guard let match = commandMatches.first else { return }
+        execute(match)
     }
-    
-    private func execute(_ match: CommandItem) {
-        switch match.type {
-        case .action(let block):
-            block()
-        case .nook(let nook):
-            nookListViewModel.selectedNook = nook
-            SettingsManager.shared.setLastViewedNook(nook)
-        }
+
+    private func execute(_ match: RemiCommand) {
+        CommandRouter.shared.perform(match, context: commandContext)
         isPresented = false
     }
-}
 
-struct CommandItem: Identifiable {
-    let id: String
-    let title: String
-    let icon: String
-    var iconColor: Color? = nil
-    let type: CommandType
-    
-    enum CommandType {
-        case action(() -> Void)
-        case nook(Nook)
+    private func iconColor(for command: RemiCommand) -> Color? {
+        guard case .note(let noteID) = command.target,
+              let nook = commandContext.nooks.first(where: { $0.id == noteID }) else {
+            return nil
+        }
+        return nook.iconColor.color
     }
 }
 
-struct CommandRowView: View {
-    let item: CommandItem
+private struct CommandRowView: View {
+    let item: RemiCommand
     let theme: Theme
+    let iconColor: Color?
     let action: () -> Void
-    
+
     @State private var isHovered = false
-    
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: item.icon)
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(item.iconColor ?? theme.textSecondary)
+                    .foregroundStyle(iconColor ?? theme.textSecondary)
                     .frame(width: 20)
-                
-                Text(item.title)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(isHovered ? theme.accent : theme.textPrimary)
-                
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.title)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(isHovered ? theme.accent : theme.textPrimary)
+
+                    if let subtitle = item.subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.system(size: 11))
+                            .foregroundStyle(theme.textSecondary)
+                            .lineLimit(1)
+                    }
+                }
+
                 Spacer()
-                
-                if case .action = item.type {
+
+                if let shortcutHint = item.shortcutHint {
+                    Text(shortcutHint)
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .foregroundStyle(theme.textSecondary)
+                } else if case .action = item.target {
                     Text("Action")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(theme.textSecondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(4)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
                 }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(isHovered ? theme.accent.opacity(0.1) : Color.clear)
             )
         }

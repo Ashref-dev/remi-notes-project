@@ -7,9 +7,13 @@ class HotkeyManager {
     private var hotKey: HotKey?
     private var nookHotkeys: [HotKey] = []
     private var copyAllHotkey: HotKey?
+    private var quickCaptureHotkey: HotKey?
+    private var todayHotkey: HotKey?
     private var callback: (() -> Void)?
     private var nookCallbacks: [(Int) -> Void] = []
     private var copyAllCallback: (() -> Void)?
+    private var quickCaptureCallback: (() -> Void)?
+    private var todayCallback: (() -> Void)?
 
     private init() {}
 
@@ -67,11 +71,39 @@ class HotkeyManager {
         copyAllHotkey = nil
         copyAllCallback = nil
     }
+
+    func registerQuickCaptureHotkey(callback: @escaping () -> Void) {
+        unregisterQuickCaptureHotkey()
+        quickCaptureCallback = callback
+
+        quickCaptureHotkey = HotKey(key: .n, modifiers: [.command, .option])
+        quickCaptureHotkey?.keyDownHandler = callback
+    }
+
+    func unregisterQuickCaptureHotkey() {
+        quickCaptureHotkey = nil
+        quickCaptureCallback = nil
+    }
+
+    func registerTodayHotkey(callback: @escaping () -> Void) {
+        unregisterTodayHotkey()
+        todayCallback = callback
+
+        todayHotkey = HotKey(key: .t, modifiers: [.command, .option])
+        todayHotkey?.keyDownHandler = callback
+    }
+
+    func unregisterTodayHotkey() {
+        todayHotkey = nil
+        todayCallback = nil
+    }
     
     func unregister() {
         hotKey = nil
         unregisterNookHotkeys()
         unregisterCopyAllHotkey()
+        unregisterQuickCaptureHotkey()
+        unregisterTodayHotkey()
     }
     
     func unregisterNookHotkeys() {

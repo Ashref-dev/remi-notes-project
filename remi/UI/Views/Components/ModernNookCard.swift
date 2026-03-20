@@ -32,25 +32,35 @@ struct ModernNookCard: View {
     
     // Pre-computed colors to avoid flickering - Apple-like design
     private func cardBackgroundColor(theme: Theme) -> Color {
-        if isSelected {
-            return nook.iconColor.color.opacity(0.12)
-        } else if isHovering {
-            // Slightly darker gray for hover
-            return Color(NSColor.controlBackgroundColor).opacity(0.9)
-        } else {
-            // Light gray background by default for better visibility
-            return Color(NSColor.controlBackgroundColor).opacity(0.6)
-        }
+        if isSelected { return nook.iconColor.color.opacity(0.12) }
+        return isHovering 
+            ? Color(NSColor.controlBackgroundColor).opacity(0.9)
+            : Color(NSColor.controlBackgroundColor).opacity(0.6)
     }
     
     private func shadowColor(theme: Theme) -> Color {
-        if isSelected {
-            return nook.iconColor.color.opacity(0.25)
-        } else if isHovering {
-            return nook.iconColor.color.opacity(0.15)
-        } else {
-            return nook.iconColor.color.opacity(0.05)
-        }
+        if isSelected { return nook.iconColor.color.opacity(0.25) }
+        return nook.iconColor.color.opacity(isHovering ? 0.15 : 0.05)
+    }
+
+    private var strokeColor: Color {
+        if isSelected { return nook.iconColor.color.opacity(0.4) }
+        return nook.iconColor.color.opacity(isHovering ? 0.3 : 0.2)
+    }
+
+    private var strokeWidth: CGFloat {
+        if isSelected { return 2 }
+        return isHovering ? 1.5 : 1
+    }
+
+    private var shadowRadius: CGFloat {
+        if isSelected { return 12 }
+        return isHovering ? 8 : 4
+    }
+
+    private var shadowY: CGFloat {
+        if isSelected { return 4 }
+        return isHovering ? 3 : 2
     }
 
     var body: some View {
@@ -99,17 +109,13 @@ struct ModernNookCard: View {
                 .scaleEffect(isHovering ? 1.02 : 1.0)
                 .overlay(
                     RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
-                        .stroke(
-                            isSelected ? nook.iconColor.color.opacity(0.4) : 
-                            (isHovering ? nook.iconColor.color.opacity(0.3) : nook.iconColor.color.opacity(0.2)),
-                            lineWidth: isSelected ? 2 : (isHovering ? 1.5 : 1)
-                        )
+                        .stroke(strokeColor, lineWidth: strokeWidth)
                 )
                 .shadow(
                     color: shadowColor(theme: theme),
-                    radius: isSelected ? 12 : (isHovering ? 8 : 4),
+                    radius: shadowRadius,
                     x: 0,
-                    y: isSelected ? 4 : (isHovering ? 3 : 2)
+                    y: shadowY
                 )
             }
             .buttonStyle(.plain)

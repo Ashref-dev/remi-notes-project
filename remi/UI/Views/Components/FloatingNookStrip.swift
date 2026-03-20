@@ -12,6 +12,16 @@ struct FloatingNookStrip: View {
     @State private var swipeDirection: Int = 0  // -1 left, 1 right, for transition direction
 
     private let haptic = NSHapticFeedbackManager.defaultPerformer
+    
+    private var isFirstNook: Bool {
+        guard let current = selectedNook, !viewModel.filteredNooks.isEmpty else { return false }
+        return viewModel.filteredNooks.first?.id == current.id
+    }
+    
+    private var isLastNook: Bool {
+        guard let current = selectedNook, !viewModel.filteredNooks.isEmpty else { return false }
+        return viewModel.filteredNooks.last?.id == current.id
+    }
 
     var body: some View {
         Themed { theme in
@@ -23,7 +33,7 @@ struct FloatingNookStrip: View {
                     HStack {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(theme.textSecondary.opacity(isHovering ? 0.65 : 0.0))
+                            .foregroundStyle(theme.textSecondary.opacity((isHovering && !isFirstNook) ? 0.65 : 0.0))
                             .padding(.leading, 10)
                         Spacer()
                     }
@@ -51,7 +61,7 @@ struct FloatingNookStrip: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(theme.textSecondary.opacity(isHovering ? 0.65 : 0.0))
+                            .foregroundStyle(theme.textSecondary.opacity((isHovering && !isLastNook) ? 0.65 : 0.0))
                             .padding(.trailing, 10)
                     }
                 }
@@ -86,7 +96,7 @@ struct FloatingNookStrip: View {
                 // ─── Accessory Actions ───
                 HStack(spacing: 8) {
                     Button {
-                        if let created = viewModel.createNook(named: "New Note") {
+                        if let created = viewModel.createNook(named: "New Nook") {
                             spring { selectedNook = created }
                             HapticsService.shared.perform(.noteCreated)
                         }
@@ -124,13 +134,17 @@ struct FloatingNookStrip: View {
               let idx = nooks.firstIndex(where: { $0.id == current.id }) else { return }
         let next = idx + direction
         guard nooks.indices.contains(next) else {
-            haptic.perform(.generic, performanceTime: .default)
+            // Double pulse haptic feedback for reaching the edge
+            haptic.perform(.generic, performanceTime: .now)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                haptic.perform(.generic, performanceTime: .now)
+            }
             return
         }
         swipeDirection = direction
         spring {
-            selectedNook = nooks[next]
-            SettingsManager.shared.setLastViewedNook(nooks[next])
+            viewModel.select(nooks[next])
+            selectedNook = viewModel.selectedNook
         }
         haptic.perform(.levelChange, performanceTime: .now)
         HapticsService.shared.perform(.noteUpdated)
@@ -197,7 +211,7 @@ final class SwipeTrackingView: NSView {
         guard isSwitching == false else { return }
 
         // Only respond when the mouse is actually within our visible frame.
-        guard let window = window else { return }
+        guard window != nil else { return }
         let locInWindow = event.locationInWindow
         let locInView = convert(locInWindow, from: nil)
         guard bounds.contains(locInView) else { return }
@@ -244,8 +258,8 @@ struct NookGridPicker: View {
                         let isSelected = selectedNook?.id == nook.id
                         Button {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                selectedNook = nook
-                                SettingsManager.shared.setLastViewedNook(nook)
+                                viewModel.select(nook)
+                                selectedNook = viewModel.selectedNook
                                 isPresented = false
                             }
                         } label: {

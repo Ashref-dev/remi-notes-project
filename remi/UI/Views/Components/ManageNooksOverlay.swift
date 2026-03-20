@@ -4,11 +4,11 @@ struct ManageNooksOverlay: View {
     @ObservedObject var viewModel: NookListViewModel
     @Binding var selectedNook: Nook?
     let isPresented: Bool
+    let onEditNote: (Nook, NoteEditorFocusArea) -> Void
     let onClose: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var searchFocused: Bool
-    @State private var editingNook: Nook?
 
     var body: some View {
         Themed { theme in
@@ -20,12 +20,18 @@ struct ManageNooksOverlay: View {
                         .transition(.opacity)
 
                     VStack(spacing: 0) {
-                        // Header
                         HStack {
-                            Text("Manage Notes")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundStyle(theme.textPrimary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Manage Notes")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(theme.textPrimary)
+                                Text("Search, create, edit, and clean up your notes.")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(theme.textSecondary)
+                            }
+
                             Spacer()
+
                             Button(action: onClose) {
                                 Image(systemName: "xmark.circle.fill")
                                     .font(.system(size: 16))
@@ -35,7 +41,6 @@ struct ManageNooksOverlay: View {
                         }
                         .padding(16)
 
-                        // Search & Create
                         HStack(spacing: 12) {
                             HStack(spacing: 8) {
                                 Image(systemName: "magnifyingglass")
@@ -58,80 +63,36 @@ struct ManageNooksOverlay: View {
 
                         Divider().opacity(0.1)
 
-                        // List
                         ScrollView {
                             LazyVStack(spacing: 6) {
-                                if viewModel.filteredNooks.isEmpty && !viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    Button {
-                                        handleSubmit()
-                                    } label: {
+                                if viewModel.filteredNooks.isEmpty,
+                                   !viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    Button(action: handleSubmit) {
                                         HStack {
-                                            Image(systemName: "plus.circle")
+                                            Image(systemName: "plus.circle.fill")
                                                 .foregroundStyle(theme.accent)
                                             Text("Create \"\(viewModel.searchText)\"")
                                                 .font(.system(size: 13, weight: .medium))
+                                                .foregroundStyle(theme.textPrimary)
                                             Spacer()
                                         }
-                                        .padding()
+                                        .padding(12)
                                         .background {
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(theme.accent.opacity(0.1))
+                                            Color.clear
+                                                .liquidGlassSurface(cornerRadius: 10, strokeOpacity: 0.05, fallbackMaterial: .thinMaterial)
                                         }
                                     }
                                     .buttonStyle(.plain)
                                 }
 
                                 ForEach(viewModel.filteredNooks) { nook in
-                                    HStack {
-                                        Image(systemName: nook.iconName)
-                                            .foregroundStyle(nook.iconColor.color)
-                                            .font(.system(size: 14))
-                                            .frame(width: 24)
-
-                                        Text(nook.name)
-                                            .font(.system(size: 13, weight: .medium))
-                                            .foregroundStyle(theme.textPrimary)
-
-                                        Spacer()
-
-                                        Button {
-                                            editingNook = nook
-                                        } label: {
-                                            Image(systemName: "pencil.circle.fill")
-                                                .font(.system(size: 16))
-                                                .foregroundStyle(theme.textSecondary.opacity(0.7))
-                                        }
-                                        .buttonStyle(.plain)
-
-                                        Button {
-                                            if viewModel.deleteNook(nook) {
-                                                HapticsService.shared.perform(.noteDeleted)
-                                            }
-                                        } label: {
-                                            Image(systemName: "trash.circle.fill")
-                                                .font(.system(size: 16))
-                                                .foregroundStyle(.red.opacity(0.8))
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                    .padding(.vertical, 10)
-                                    .padding(.horizontal, 12)
-                                    .background {
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .fill((selectedNook?.id == nook.id) ? theme.accent.opacity(0.1) : Color.white.opacity(0.02))
-                                    }
-                                    .onTapGesture {
-                                        selectedNook = nook
-                                        SettingsManager.shared.setLastViewedNook(nook)
-                                        viewModel.searchText = "" // Clear search
-                                        onClose()
-                                    }
+                                    row(for: nook, theme: theme)
                                 }
                             }
                             .padding(16)
                         }
                     }
-                    .frame(width: 400, height: 480)
+                    .frame(width: 420, height: 500)
                     .background {
                         Color.clear
                             .liquidGlassSurface(cornerRadius: 16, strokeOpacity: 0.12, fallbackMaterial: .thickMaterial)
@@ -146,21 +107,109 @@ struct ManageNooksOverlay: View {
                 }
             }
             .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85), value: isPresented)
-            .sheet(item: $editingNook) { nook in
-                NookEditorSheetHost(initialNook: nook) { updatedNook in
-                    if let savedNook = viewModel.updateNook(updatedNook) {
-                        if selectedNook?.id == savedNook.id {
-                            selectedNook = savedNook
-                        }
+        }
+    }
+
+    @ViewBuilder
+    private func row(for nook: Nook, theme: Theme) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: nook.iconName)
+                .foregroundStyle(nook.iconColor.color)
+                .font(.system(size: 14))
+                .frame(width: 22)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(nook.name)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(theme.textPrimary)
+
+                    if nook.isPinned {
+                        badge(text: "Pinned", tint: .orange)
+                    }
+
+                    if nook.isInbox {
+                        badge(text: "Inbox", tint: theme.accent)
                     }
                 }
+
+                if !nook.tags.isEmpty {
+                    Text(nook.tags.joined(separator: ", "))
+                        .font(.system(size: 10))
+                        .foregroundStyle(theme.textSecondary)
+                        .lineLimit(1)
+                }
             }
+
+            Spacer()
+
+            Button {
+                var updated = nook
+                updated.isPinned.toggle()
+                if let saved = viewModel.updateNook(updated), selectedNook?.id == saved.id {
+                    selectedNook = saved
+                }
+            } label: {
+                Image(systemName: nook.isPinned ? "pin.slash.fill" : "pin.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(nook.isPinned ? .orange : theme.textSecondary.opacity(0.8))
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                onEditNote(nook, .general)
+            } label: {
+                Image(systemName: "pencil.circle.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(theme.textSecondary.opacity(0.8))
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                if viewModel.deleteNook(nook) {
+                    HapticsService.shared.perform(.noteDeleted)
+                }
+            } label: {
+                Image(systemName: "trash.circle.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(.red.opacity(0.8))
+            }
+            .buttonStyle(.plain)
         }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background {
+            Color.clear
+                .liquidGlassSurface(
+                    cornerRadius: 12,
+                    strokeOpacity: selectedNook?.id == nook.id ? 0.14 : 0.05,
+                    fallbackMaterial: .thinMaterial
+                )
+        }
+        .onTapGesture {
+            viewModel.select(nook)
+            selectedNook = viewModel.selectedNook
+            viewModel.searchText = ""
+            onClose()
+        }
+    }
+
+    @ViewBuilder
+    private func badge(text: String, tint: Color) -> some View {
+        Text(text)
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background {
+                Capsule()
+                    .fill(tint.opacity(0.12))
+            }
     }
 
     private func handleSubmit() {
         let text = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !text.isEmpty && viewModel.filteredNooks.isEmpty {
+        if !text.isEmpty, viewModel.filteredNooks.isEmpty {
             let existingNook = viewModel.existingNook(named: text)
             if let created = viewModel.createNook(named: text) {
                 selectedNook = created
@@ -171,37 +220,10 @@ struct ManageNooksOverlay: View {
                 onClose()
             }
         } else if let first = viewModel.filteredNooks.first {
-            selectedNook = first
-            SettingsManager.shared.setLastViewedNook(first)
+            viewModel.select(first)
+            selectedNook = viewModel.selectedNook
             viewModel.searchText = ""
             onClose()
         }
-    }
-}
-
-// Reusing NookEditorSheetHost from ContentView
-private struct NookEditorSheetHost: View {
-    let initialNook: Nook
-    let onSave: (Nook) -> Void
-
-    @State private var draftNook: Nook
-    @State private var isPresented = true
-    @Environment(\.dismiss) private var dismiss
-
-    init(initialNook: Nook, onSave: @escaping (Nook) -> Void) {
-        self.initialNook = initialNook
-        self.onSave = onSave
-        _draftNook = State(initialValue: initialNook)
-    }
-
-    var body: some View {
-        NookEditorSheet(nook: $draftNook, isPresented: $isPresented)
-            .onChange(of: isPresented) { _, newValue in
-                guard !newValue else { return }
-                if draftNook != initialNook {
-                    onSave(draftNook)
-                }
-                dismiss()
-            }
     }
 }

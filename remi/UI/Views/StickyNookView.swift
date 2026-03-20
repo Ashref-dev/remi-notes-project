@@ -5,9 +5,6 @@ struct StickyNookView: View {
     @StateObject private var viewModel: TaskEditorViewModel
     @State private var isHovering = false
     
-    // Add window dragging logic
-    @State private var dragOffset: CGSize = .zero
-    
     init(nook: Nook) {
         self.nook = nook
         // Re-use logic for fetching and saving markdown text

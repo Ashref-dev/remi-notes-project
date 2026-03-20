@@ -55,7 +55,10 @@ struct IntegratedSettingsView: View {
                         aiProviderSection(theme: theme)
                         systemPromptSection(theme: theme)
                         aiTemplatesSection(theme: theme)
+                        intelligenceSection(theme: theme)
                         modelSection(theme: theme)
+                        captureSection(theme: theme)
+                        historySection(theme: theme)
                         appBehaviorSection(theme: theme)
                         aboutSection(theme: theme)
                     }
@@ -241,9 +244,98 @@ struct IntegratedSettingsView: View {
                         theme: theme,
                         title: "Nook Modifiers",
                         subtitle: "Modifiers combined with number keys"
-                    ) {
-                        HotkeyRecorderView(key: .constant(.one), modifiers: $settings.nookHotkeyModifiers)
+                        ) {
+                            HotkeyRecorderView(key: .constant(.one), modifiers: $settings.nookHotkeyModifiers)
+                        }
+                }
+
+                Divider().opacity(0.2)
+
+                settingRow(
+                    theme: theme,
+                    title: "Quick Capture Hotkey",
+                    subtitle: "Use Option-Command-N to open the capture panel globally"
+                ) {
+                    Toggle("", isOn: $settings.enableQuickCaptureHotkey)
+                        .labelsHidden()
+                }
+
+                Divider().opacity(0.2)
+
+                settingRow(
+                    theme: theme,
+                    title: "Today Hotkey",
+                    subtitle: "Use Option-Command-T to open the Today overlay"
+                ) {
+                    Toggle("", isOn: $settings.enableTodayHotkey)
+                        .labelsHidden()
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func intelligenceSection(theme: Theme) -> some View {
+        sectionCard(theme: theme, title: "Ambient Intelligence", subtitle: "Keep AI subtle and editor-first") {
+            settingRow(
+                theme: theme,
+                title: "Ambient Suggestions",
+                subtitle: "Show one compact suggestion chip when a note looks like it could benefit from AI help"
+            ) {
+                Toggle("", isOn: $settings.ambientSuggestionsEnabled)
+                    .labelsHidden()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func captureSection(theme: Theme) -> some View {
+        sectionCard(theme: theme, title: "Capture", subtitle: "Control how quick capture routes text into Remi") {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Default Capture Route")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(theme.textPrimary)
+
+                Picker("Default Capture Route", selection: $settings.captureDefaultRoute) {
+                    ForEach(CaptureRoute.allCases) { route in
+                        Text(route.title).tag(route)
                     }
+                }
+                .pickerStyle(.segmented)
+
+                Text(settings.captureDefaultRoute.subtitle)
+                    .font(.system(size: 11))
+                    .foregroundStyle(theme.textSecondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func historySection(theme: Theme) -> some View {
+        sectionCard(theme: theme, title: "History", subtitle: "Automatic local revisions for recovery") {
+            VStack(spacing: 10) {
+                HStack {
+                    Text("Retention")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(theme.textPrimary)
+                    Spacer()
+                    Stepper("\(settings.historyRetentionDays) days", value: $settings.historyRetentionDays, in: 1...365)
+                        .labelsHidden()
+                    Text("\(settings.historyRetentionDays) days")
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(theme.textSecondary)
+                }
+
+                HStack {
+                    Text("Max Revisions")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(theme.textPrimary)
+                    Spacer()
+                    Stepper("\(settings.historyMaxRevisions)", value: $settings.historyMaxRevisions, in: 5...500, step: 5)
+                        .labelsHidden()
+                    Text("\(settings.historyMaxRevisions)")
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(theme.textSecondary)
                 }
             }
         }
@@ -352,7 +444,7 @@ struct IntegratedSettingsView: View {
                         Text("Made by")
                             .font(.system(size: 12))
                             .foregroundStyle(theme.textSecondary)
-                        Link("ashref.dn", destination: URL(string: "https://ashref.dn")!)
+                        Link("ashref.tn", destination: URL(string: "https://ashref.tn")!)
                             .font(.system(size: 12, weight: .semibold))
                     }
                     HStack {
