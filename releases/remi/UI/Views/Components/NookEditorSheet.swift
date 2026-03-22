@@ -299,6 +299,8 @@ struct NookEditorSheet: View {
         nook.iconColor = selectedColor
         nook.tags = parsedTags
         nook.isPinned = isPinned
+        // Mark as user-named so auto-titling never overwrites this note again.
+        nook.hasBeenAutoTitled = true
 
         withOptionalAnimation(.easeInOut(duration: 0.2)) {
             isPresented = false
