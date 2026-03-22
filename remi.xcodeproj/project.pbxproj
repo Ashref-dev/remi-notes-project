@@ -8,9 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		1A871D55E4EFC1CC619AA665 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BDC3BA2F529C3DF7AD707986 /* Cocoa.framework */; };
+		1F11B86E6B3DA8F3C531D2A1 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 778322B92A51E7D2B42C6C54 /* AppIntents.framework */; };
 		2DE10FC24D016DCDDA9D1F62 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B789C862F8AA30988EC6D4B2 /* ShareViewController.swift */; };
 		54D5D13CF9E07B75B8055079 /* RemiUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C075866D6F11593E4ACB8D /* RemiUITests.swift */; };
 		7B7AB947BF376DF213B560F2 /* remiShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = D3CE8AD5490D70637336FB80 /* remiShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		9A6CC53337F97C4300A1FEE1 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 778322B92A51E7D2B42C6C54 /* AppIntents.framework */; };
+		A4F847D12C3A4D6B9E3F1021 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 778322B92A51E7D2B42C6C54 /* AppIntents.framework */; };
 		B0E3DC263F5F4C85AAA09D5E /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BDC3BA2F529C3DF7AD707986 /* Cocoa.framework */; };
 		B20527937C38D1CEA4E859AB /* RemiCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CBE45FF107B5493E1A2450 /* RemiCoreTests.swift */; };
 		CA314777E9D2B005B712B8B1 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BDC3BA2F529C3DF7AD707986 /* Cocoa.framework */; };
@@ -73,6 +76,7 @@
 		15CBE45FF107B5493E1A2450 /* RemiCoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemiCoreTests.swift; sourceTree = "<group>"; };
 		3B56F2390B6C0429B84B768A /* remiUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = remiUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		483392FC513E8CCAF975646C /* remiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = remiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		778322B92A51E7D2B42C6C54 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AppIntents.framework; sourceTree = DEVELOPER_DIR; };
 		84F13896E5E9AAFAA9D9BE46 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		85C075866D6F11593E4ACB8D /* RemiUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemiUITests.swift; sourceTree = "<group>"; };
 		B789C862F8AA30988EC6D4B2 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -96,6 +100,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9A6CC53337F97C4300A1FEE1 /* AppIntents.framework in Frameworks */,
 				1A871D55E4EFC1CC619AA665 /* Cocoa.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -104,6 +109,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A4F847D12C3A4D6B9E3F1021 /* AppIntents.framework in Frameworks */,
 				B0E3DC263F5F4C85AAA09D5E /* Cocoa.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -120,6 +126,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1F11B86E6B3DA8F3C531D2A1 /* AppIntents.framework in Frameworks */,
 				E40EE84B2E1C305600635227 /* HotKey in Frameworks */,
 				E40EE8462E1C303C00635227 /* Alamofire in Frameworks */,
 				E40EE84E2E1C306E00635227 /* SwiftyJSON in Frameworks */,
@@ -133,6 +140,7 @@
 		0DCE602F1061F2091F136850 /* OS X */ = {
 			isa = PBXGroup;
 			children = (
+				778322B92A51E7D2B42C6C54 /* AppIntents.framework */,
 				BDC3BA2F529C3DF7AD707986 /* Cocoa.framework */,
 			);
 			name = "OS X";
@@ -675,13 +683,13 @@
 				CODE_SIGN_ENTITLEMENTS = remi/remi.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_ASSET_PATHS = "\"remi/Preview Content\"";
 				DEVELOPMENT_TEAM = RM2VM3WB62;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = remi/App/Info.plist;
+				INFOPLIST_FILE = Config/remi-Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Remi - Quick Notes";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -690,7 +698,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1.3;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ashref.tn.remi;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -707,13 +715,13 @@
 				CODE_SIGN_ENTITLEMENTS = remi/remi.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_ASSET_PATHS = "\"remi/Preview Content\"";
 				DEVELOPMENT_TEAM = RM2VM3WB62;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = remi/App/Info.plist;
+				INFOPLIST_FILE = Config/remi-Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Remi - Quick Notes";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -722,7 +730,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1.3;
+				MARKETING_VERSION = 2.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ashref.tn.remi;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

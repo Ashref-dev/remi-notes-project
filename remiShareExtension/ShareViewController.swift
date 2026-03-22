@@ -7,9 +7,8 @@ final class ShareViewController: SLComposeServiceViewController {
 
     override func isContentValid() -> Bool {
         let composeText = contentText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let hasAttachments = !(extensionContext?.inputItems as? [NSExtensionItem] ?? [])
-            .flatMap(\.attachments ?? [])
-            .isEmpty
+        let items = extensionContext?.inputItems as? [NSExtensionItem] ?? []
+        let hasAttachments = items.contains { !($0.attachments ?? []).isEmpty }
         return !composeText.isEmpty || hasAttachments
     }
 
