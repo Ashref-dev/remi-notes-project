@@ -60,7 +60,6 @@ struct WorkspaceShell: View {
 
     @StateObject private var railViewModel = NookListViewModel.shared
     @State private var isManagingNooks = false
-    @State private var isShowingToday = false
     @State private var isShowingCommandPalette = false
     @State private var editorRequest: NookEditorRequest?
     @State private var pendingAIPreset: String?
@@ -75,9 +74,7 @@ struct WorkspaceShell: View {
                         nook: nook,
                         workspaceMode: workspaceMode,
                         showingSettings: $showingSettings,
-                        pendingAIPreset: $pendingAIPreset,
-                        onOpenToday: { isShowingToday = true },
-                        onOpenQuickCapture: { NotificationCenter.default.post(name: .showQuickCapturePanel, object: nil) }
+                        pendingAIPreset: $pendingAIPreset
                     )
                     .id(nook.id)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -110,19 +107,6 @@ struct WorkspaceShell: View {
                     .zIndex(10)
                 }
 
-                if isShowingToday {
-                    TodayOverlay(
-                        viewModel: railViewModel,
-                        selectedNook: selectedNookBinding,
-                        isPresented: isShowingToday,
-                        onQuickCapture: {
-                            NotificationCenter.default.post(name: .showQuickCapturePanel, object: nil)
-                        },
-                        onClose: { withOptionalAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { isShowingToday = false } }
-                    )
-                    .zIndex(12)
-                }
-
                 if isShowingCommandPalette {
                     ZStack {
                         Color.black.opacity(0.15)
@@ -153,23 +137,11 @@ struct WorkspaceShell: View {
                 .keyboardShortcut("k", modifiers: .command)
                 .hidden()
             )
-            .background(
-                Button("") {
-                    withOptionalAnimation(.easeInOut(duration: 0.18)) {
-                        isShowingToday.toggle()
-                    }
-                }
-                .keyboardShortcut("t", modifiers: [.command, .option])
-                .hidden()
-            )
             .onAppear {
                 railViewModel.fetchNooks()
                 if railViewModel.selectedNook == nil {
                     railViewModel.select(railViewModel.filteredNooks.first)
                 }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .showTodayOverlay)) { _ in
-                isShowingToday = true
             }
             .onReceive(NotificationCenter.default.publisher(for: .toggleCommandPalette)) { _ in
                 withOptionalAnimation(.easeInOut(duration: 0.15)) {
@@ -212,25 +184,11 @@ struct WorkspaceShell: View {
                     HapticsService.shared.perform(.noteDeleted)
                 }
             },
-            togglePinned: { nook in
-                if let saved = railViewModel.togglePinned(nook), railViewModel.selectedNook?.id == saved.id {
-                    railViewModel.select(saved)
-                }
-            },
             editNote: { nook, area in
                 editorRequest = NookEditorRequest(nook: nook, focusArea: area)
             },
-            openToday: {
-                isShowingToday = true
-            },
-            openQuickCapture: {
-                NotificationCenter.default.post(name: .showQuickCapturePanel, object: nil)
-            },
             openFocusWindow: {
                 NotificationCenter.default.post(name: .openFocusWindow, object: nil)
-            },
-            pinCurrentNoteToDesktop: { nook in
-                NotificationCenter.default.post(name: .toggleStickyWindow, object: nook)
             },
             openSettings: {
                 showingSettings = true

@@ -57,9 +57,7 @@ struct IntegratedSettingsView: View {
 
     var body: some View {
         Themed { theme in
-            VStack(spacing: 0) {
-                topBar(theme: theme)
-
+            ZStack(alignment: .top) {
                 ScrollView {
                     VStack(spacing: 14) {
                         aiProviderSection(theme: theme)
@@ -67,15 +65,21 @@ struct IntegratedSettingsView: View {
                         aiTemplatesSection(theme: theme)
                         intelligenceSection(theme: theme)
                         modelSection(theme: theme)
-                        captureSection(theme: theme)
                         historySection(theme: theme)
                         libraryTransferSection(theme: theme)
                         appBehaviorSection(theme: theme)
                         aboutSection(theme: theme)
                     }
-                    .padding(16)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 72)
+                    .padding(.bottom, 16)
                 }
                 .background(theme.background)
+
+                topBar(theme: theme)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .zIndex(1)
             }
             .frame(width: 760, height: 620)
             .background(theme.background)
@@ -84,10 +88,14 @@ struct IntegratedSettingsView: View {
 
     @ViewBuilder
     private func topBar(theme: Theme) -> some View {
-        HStack {
+        HStack(spacing: 12) {
             Button {
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
+                if reduceMotion {
                     showingSettings = false
+                } else {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        showingSettings = false
+                    }
                 }
             } label: {
                 Label("Back", systemImage: "chevron.left")
@@ -95,6 +103,8 @@ struct IntegratedSettingsView: View {
             }
             .liquidGlassButtonStyle()
             .foregroundStyle(theme.accent)
+            .contentShape(Rectangle())
+            .accessibilityLabel("Back to notes")
 
             Spacer()
 
@@ -106,7 +116,8 @@ struct IntegratedSettingsView: View {
 
             Color.clear.frame(width: 56, height: 1)
         }
-        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
         .padding(.vertical, 12)
         .background {
             Color.clear
@@ -255,31 +266,9 @@ struct IntegratedSettingsView: View {
                         theme: theme,
                         title: "Nook Modifiers",
                         subtitle: "Modifiers combined with number keys"
-                        ) {
-                            HotkeyRecorderView(key: .constant(.one), modifiers: $settings.nookHotkeyModifiers)
-                        }
-                }
-
-                Divider().opacity(0.2)
-
-                settingRow(
-                    theme: theme,
-                    title: "Quick Capture Hotkey",
-                    subtitle: "Use Option-Command-N to open the capture panel globally"
-                ) {
-                    Toggle("", isOn: $settings.enableQuickCaptureHotkey)
-                        .labelsHidden()
-                }
-
-                Divider().opacity(0.2)
-
-                settingRow(
-                    theme: theme,
-                    title: "Today Hotkey",
-                    subtitle: "Use Option-Command-T to open the Today overlay"
-                ) {
-                    Toggle("", isOn: $settings.enableTodayHotkey)
-                        .labelsHidden()
+                    ) {
+                        HotkeyRecorderView(key: .constant(.one), modifiers: $settings.nookHotkeyModifiers)
+                    }
                 }
             }
         }
@@ -295,28 +284,6 @@ struct IntegratedSettingsView: View {
             ) {
                 Toggle("", isOn: $settings.ambientSuggestionsEnabled)
                     .labelsHidden()
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func captureSection(theme: Theme) -> some View {
-        sectionCard(theme: theme, title: "Capture", subtitle: "Control how quick capture routes text into Remi") {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Default Capture Route")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(theme.textPrimary)
-
-                Picker("Default Capture Route", selection: $settings.captureDefaultRoute) {
-                    ForEach(CaptureRoute.allCases) { route in
-                        Text(route.title).tag(route)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                Text(settings.captureDefaultRoute.subtitle)
-                    .font(.system(size: 11))
-                    .foregroundStyle(theme.textSecondary)
             }
         }
     }
@@ -355,7 +322,7 @@ struct IntegratedSettingsView: View {
     @ViewBuilder
     private func libraryTransferSection(theme: Theme) -> some View {
         sectionCard(theme: theme, title: "Library Transfer", subtitle: "Move notes and supported preferences between Macs") {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 Text("Export your notes, note organization, and supported Remi preferences as a single JSON file. API keys and machine-specific startup or hotkey settings are not included.")
                     .font(.system(size: 11))
                     .foregroundStyle(theme.textSecondary)
@@ -366,8 +333,10 @@ struct IntegratedSettingsView: View {
                     } label: {
                         Label("Export JSON", systemImage: "square.and.arrow.up")
                             .font(.system(size: 12, weight: .semibold))
+                            .frame(maxWidth: .infinity, minHeight: 18)
                     }
                     .liquidGlassButtonStyle()
+                    .frame(maxWidth: .infinity)
                     .disabled(isProcessingTransfer)
                     .accessibilityLabel("Export Remi library as JSON")
 
@@ -376,31 +345,35 @@ struct IntegratedSettingsView: View {
                     } label: {
                         Label("Import JSON", systemImage: "square.and.arrow.down")
                             .font(.system(size: 12, weight: .semibold))
+                            .frame(maxWidth: .infinity, minHeight: 18)
                     }
                     .liquidGlassButtonStyle()
+                    .frame(maxWidth: .infinity)
                     .disabled(isProcessingTransfer)
                     .accessibilityLabel("Import Remi library from JSON")
+                }
+                .frame(maxWidth: .infinity)
 
+                HStack(spacing: 8) {
                     if isProcessingTransfer {
                         ProgressView()
                             .controlSize(.small)
                     }
-                }
 
-                if let transferFeedback {
-                    HStack(spacing: 6) {
+                    if let transferFeedback {
                         Image(systemName: transferFeedback.icon)
                             .foregroundStyle(transferFeedback.tint)
                         Text(transferFeedback.message)
                             .font(.system(size: 11))
                             .foregroundStyle(theme.textSecondary)
+                    } else {
+                        Text("Import replaces the notes currently stored on this Mac and applies the exported non-sensitive preferences.")
+                            .font(.system(size: 11))
+                            .foregroundStyle(theme.textSecondary)
                     }
-                    .accessibilityElement(children: .combine)
                 }
-
-                Text("Import replaces the notes currently stored on this Mac and applies the exported non-sensitive preferences.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(theme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .combine)
             }
         }
     }

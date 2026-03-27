@@ -12,7 +12,6 @@ final class RemiCoreTests: XCTestCase {
             aiSystemPrompt: "Be concise.",
             aiQuickActions: ["Summarize", "Clarify"],
             ambientSuggestionsEnabled: true,
-            captureDefaultRoute: .createInboxNote,
             historyRetentionDays: 30,
             historyMaxRevisions: 50
         )
@@ -71,32 +70,6 @@ final class RemiCoreTests: XCTestCase {
         )
     }
 
-    func testTodayWorkspaceSectionsIncludePinnedInboxAndPendingAI() {
-        let now = Date()
-        let noteA = makeNook(
-            name: "Pinned",
-            isPinned: true,
-            tags: [Nook.inboxTag],
-            updatedAt: now,
-            lastOpenedAt: now
-        )
-        let noteB = makeNook(
-            name: "Pending",
-            updatedAt: now,
-            pendingAIProposal: PendingAIProposal(
-                prompt: "Summarize",
-                proposedText: "Draft",
-                summary: "Summarize",
-                createdAt: now
-            )
-        )
-
-        let sections = TodayWorkspaceService.shared.sections(from: [noteA, noteB], now: now)
-        XCTAssertTrue(sections.contains(where: { $0.kind == TodaySectionKind.pinned && $0.nooks.contains(noteA) }))
-        XCTAssertTrue(sections.contains(where: { $0.kind == TodaySectionKind.inbox && $0.nooks.contains(noteA) }))
-        XCTAssertTrue(sections.contains(where: { $0.kind == TodaySectionKind.pendingAI && $0.nooks.contains(noteB) }))
-    }
-
     @MainActor
     func testCommandRouterIncludesCoreActionsAndPreset() {
         let current = makeNook(name: "Current")
@@ -107,20 +80,16 @@ final class RemiCoreTests: XCTestCase {
             openNote: { _ in },
             createNote: { _ in },
             deleteNote: { _ in },
-            togglePinned: { _ in },
             editNote: { _, _ in },
-            openToday: {},
-            openQuickCapture: {},
             openFocusWindow: {},
-            pinCurrentNoteToDesktop: { _ in },
             openSettings: {},
             setTheme: { _ in },
             applyAIPreset: { _ in }
         )
 
         let commands = CommandRouter.shared.commands(matching: "", context: context)
-        XCTAssertTrue(commands.contains(where: { $0.id == "open-today" }))
-        XCTAssertTrue(commands.contains(where: { $0.id == "quick-capture" }))
+        XCTAssertTrue(commands.contains(where: { $0.id == "create-note" }))
+        XCTAssertTrue(commands.contains(where: { $0.id == "open-settings" }))
         XCTAssertTrue(commands.contains(where: { $0.title == "Summarize this" }))
     }
 
@@ -209,7 +178,6 @@ final class RemiCoreTests: XCTestCase {
             aiSystemPrompt: "Keep notes tidy.",
             aiQuickActions: ["Summarize"],
             ambientSuggestionsEnabled: false,
-            captureDefaultRoute: .appendToCurrentNote,
             historyRetentionDays: 14,
             historyMaxRevisions: 25
         )

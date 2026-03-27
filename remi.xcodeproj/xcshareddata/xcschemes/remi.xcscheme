@@ -28,34 +28,6 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "5E0005DF8858A20759219635"
-               BuildableName = "remiTests.xctest"
-               BlueprintName = "remiTests"
-               ReferencedContainer = "container:remi.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "8A40CAB15DB7555B437E2EC4"
-               BuildableName = "remiUITests.xctest"
-               BlueprintName = "remiUITests"
-               ReferencedContainer = "container:remi.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
                BlueprintIdentifier = "246CD7485D074C4044CF4E75"
                BuildableName = "remiShareExtension.appex"
                BlueprintName = "remiShareExtension"

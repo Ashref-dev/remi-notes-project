@@ -11,14 +11,10 @@ enum RemiCommandAction: Hashable {
     case createNote(String?)
     case renameCurrentNote
     case deleteCurrentNote
-    case togglePinCurrentNote
     case changeCurrentNoteIcon
     case changeCurrentNoteColor
     case editCurrentNoteTags
-    case openToday
-    case openQuickCapture
     case openFocusWindow
-    case pinCurrentNoteToDesktop
     case openSettings
     case setTheme(ColorThemeOption)
     case applyAIPreset(String)
@@ -52,12 +48,8 @@ struct CommandContext {
     let openNote: (Nook) -> Void
     let createNote: (String) -> Void
     let deleteNote: (Nook) -> Void
-    let togglePinned: (Nook) -> Void
     let editNote: (Nook, NoteEditorFocusArea) -> Void
-    let openToday: () -> Void
-    let openQuickCapture: () -> Void
     let openFocusWindow: () -> Void
-    let pinCurrentNoteToDesktop: (Nook) -> Void
     let openSettings: () -> Void
     let setTheme: (ColorThemeOption) -> Void
     let applyAIPreset: (String) -> Void
@@ -93,7 +85,7 @@ final class CommandRouter {
             RemiCommand(
                 id: "open-note-\(nook.id.uuidString)",
                 title: nook.name,
-                subtitle: nook.isPinned ? "Pinned note" : nook.tags.joined(separator: ", "),
+                subtitle: nook.tags.isEmpty ? "Open note" : nook.tags.joined(separator: ", "),
                 icon: nook.iconName,
                 keywords: ["note", "open", nook.name] + nook.tags,
                 shortcutHint: nil,
@@ -123,10 +115,6 @@ final class CommandRouter {
                 guard let current = context.currentNook else { return }
                 context.deleteNote(current)
 
-            case .togglePinCurrentNote:
-                guard let current = context.currentNook else { return }
-                context.togglePinned(current)
-
             case .changeCurrentNoteIcon:
                 guard let current = context.currentNook else { return }
                 context.editNote(current, .icon)
@@ -139,18 +127,8 @@ final class CommandRouter {
                 guard let current = context.currentNook else { return }
                 context.editNote(current, .tags)
 
-            case .openToday:
-                context.openToday()
-
-            case .openQuickCapture:
-                context.openQuickCapture()
-
             case .openFocusWindow:
                 context.openFocusWindow()
-
-            case .pinCurrentNoteToDesktop:
-                guard let current = context.currentNook else { return }
-                context.pinCurrentNoteToDesktop(current)
 
             case .openSettings:
                 context.openSettings()
@@ -166,24 +144,6 @@ final class CommandRouter {
 
     private func baseCommands(context: CommandContext) -> [RemiCommand] {
         var commands: [RemiCommand] = [
-            RemiCommand(
-                id: "open-today",
-                title: "Open Today",
-                subtitle: "See pinned, recent, inbox, and pending AI notes",
-                icon: "sun.max.fill",
-                keywords: ["today", "recent", "pinned", "inbox"],
-                shortcutHint: nil,
-                target: .action(.openToday)
-            ),
-            RemiCommand(
-                id: "quick-capture",
-                title: "Quick Capture",
-                subtitle: "Capture text into Remi without changing the current view",
-                icon: "square.and.pencil",
-                keywords: ["capture", "quick", "inbox", "panel"],
-                shortcutHint: nil,
-                target: .action(.openQuickCapture)
-            ),
             RemiCommand(
                 id: "create-note",
                 title: "Create New Note",
@@ -252,15 +212,6 @@ final class CommandRouter {
                     target: .action(.renameCurrentNote)
                 ),
                 RemiCommand(
-                    id: "toggle-pin-current-note",
-                    title: context.currentNook?.isPinned == true ? "Unpin Current Note" : "Pin Current Note",
-                    subtitle: "Control whether the note stays in the Today pinned section",
-                    icon: context.currentNook?.isPinned == true ? "pin.slash.fill" : "pin.fill",
-                    keywords: ["pin", "unpin", "today"],
-                    shortcutHint: nil,
-                    target: .action(.togglePinCurrentNote)
-                ),
-                RemiCommand(
                     id: "change-current-note-icon",
                     title: "Change Current Note Icon",
                     subtitle: "Open note details focused on the icon picker",
@@ -295,15 +246,6 @@ final class CommandRouter {
                     keywords: ["delete", "remove", "trash"],
                     shortcutHint: nil,
                     target: .action(.deleteCurrentNote)
-                ),
-                RemiCommand(
-                    id: "pin-current-note-to-desktop",
-                    title: "Pin Current Note to Desktop",
-                    subtitle: "Toggle the current note as a sticky desktop surface",
-                    icon: "pin.circle.fill",
-                    keywords: ["desktop", "sticky", "pin"],
-                    shortcutHint: nil,
-                    target: .action(.pinCurrentNoteToDesktop)
                 )
             ])
         }

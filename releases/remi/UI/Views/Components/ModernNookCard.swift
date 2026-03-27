@@ -128,15 +128,6 @@ struct ModernNookCard: View {
                 } label: {
                     Label("Edit Nook", systemImage: "pencil")
                 }
-                
-                Divider()
-                
-                // Pin to Desktop Action
-                Button {
-                    NotificationCenter.default.post(name: .toggleStickyWindow, object: nook)
-                } label: {
-                    Label("Pin to Desktop", systemImage: "pin.fill")
-                }
             }
             .onHover { hovering in
                 isHovering = hovering

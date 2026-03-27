@@ -169,13 +169,6 @@ final class NookListViewModel: ObservableObject {
         return updatedNook
     }
 
-    @discardableResult
-    func togglePinned(_ nook: Nook) -> Nook? {
-        var updatedNook = nook
-        updatedNook.isPinned.toggle()
-        return updateNook(updatedNook)
-    }
-
     func moveNook(from sourceIndex: Int, to destinationIndex: Int) {
         guard sourceIndex != destinationIndex,
               sourceIndex >= 0, sourceIndex < allNooks.count,

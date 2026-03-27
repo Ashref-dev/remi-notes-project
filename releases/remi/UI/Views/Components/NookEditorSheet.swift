@@ -15,7 +15,6 @@ struct NookEditorSheet: View {
     @State private var selectedColor: NookIconColor
     @State private var selectedCategory: NookIconCategory
     @State private var tagsText: String
-    @State private var isPinned: Bool
     @State private var validationError: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -36,7 +35,6 @@ struct NookEditorSheet: View {
             category.icons.contains(nook.wrappedValue.iconName)
         } ?? NookIcons.categories[0])
         _tagsText = State(initialValue: nook.wrappedValue.tags.joined(separator: ", "))
-        _isPinned = State(initialValue: nook.wrappedValue.isPinned)
     }
 
     var body: some View {
@@ -107,7 +105,7 @@ struct NookEditorSheet: View {
                 Text("Edit Note")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(theme.textPrimary)
-                Text("Update the note name, icon, pin state, and tags.")
+                Text("Update the note name, icon, color, and tags.")
                     .font(.system(size: 12))
                     .foregroundStyle(theme.textSecondary)
             }
@@ -147,17 +145,9 @@ struct NookEditorSheet: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Note" : editedName)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(theme.textPrimary)
-
-                        if isPinned {
-                            Image(systemName: "pin.fill")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.orange)
-                        }
-                    }
+                    Text(editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Note" : editedName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(theme.textPrimary)
 
                     if !parsedTags.isEmpty {
                         Text(parsedTags.joined(separator: ", "))
@@ -201,18 +191,6 @@ struct NookEditorSheet: View {
     private func metadataSection(theme: Theme) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionHeader(title: "Metadata", icon: "tag.fill", theme: theme)
-
-            Toggle(isOn: $isPinned) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Pin in Today")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(theme.textPrimary)
-                    Text("Pinned notes stay in the Today pinned section.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(theme.textSecondary)
-                }
-            }
-            .toggleStyle(.switch)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Tags")
@@ -298,7 +276,6 @@ struct NookEditorSheet: View {
         nook.iconName = selectedIcon
         nook.iconColor = selectedColor
         nook.tags = parsedTags
-        nook.isPinned = isPinned
         // Mark as user-named so auto-titling never overwrites this note again.
         nook.hasBeenAutoTitled = true
 

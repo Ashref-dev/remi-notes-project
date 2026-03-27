@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BuildMachineOSBuild</key>
+	<string>25D2128</string>
+	<key>CFBundleDisplayName</key>
+	<string>Save to Remi</string>
+	<key>CFBundleIdentifier</key>
+	<string>ashref.tn.remi.share</string>
+	<key>CFBundleShortVersionString</key>
+	<string>2.0.1</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>MacOSX</string>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>7</string>
+	<key>DTCompiler</key>
+	<string>com.apple.compilers.llvm.clang.1_0</string>
+	<key>DTPlatformBuild</key>
+	<string>25C58</string>
+	<key>DTPlatformName</key>
+	<string>macosx</string>
+	<key>DTPlatformVersion</key>
+	<string>26.2</string>
+	<key>DTSDKBuild</key>
+	<string>25C58</string>
+	<key>DTSDKName</key>
+	<string>macosx26.2</string>
+	<key>DTXcode</key>
+	<string>2630</string>
+	<key>DTXcodeBuild</key>
+	<string>17C529</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.5</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionAttributes</key>
+		<dict>
+			<key>NSExtensionActivationRule</key>
+			<dict>
+				<key>NSExtensionActivationSupportsText</key>
+				<true/>
+				<key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
+				<integer>1</integer>
+			</dict>
+		</dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.share-services</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>remiShareExtension.ShareViewController</string>
+	</dict>
+</dict>
+</plist>

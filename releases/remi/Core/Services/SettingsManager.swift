@@ -78,10 +78,6 @@ class SettingsManager: ObservableObject {
         didSet { UserDefaults.standard.set(ambientSuggestionsEnabled, forKey: Keys.ambientSuggestionsEnabled) }
     }
 
-    @Published var captureDefaultRoute: CaptureRoute {
-        didSet { UserDefaults.standard.set(captureDefaultRoute.rawValue, forKey: Keys.captureDefaultRoute) }
-    }
-
     @Published var historyRetentionDays: Int {
         didSet {
             let clamped = max(1, min(historyRetentionDays, 365))
@@ -134,20 +130,6 @@ class SettingsManager: ObservableObject {
         }
     }
 
-    @Published var enableQuickCaptureHotkey: Bool {
-        didSet {
-            UserDefaults.standard.set(enableQuickCaptureHotkey, forKey: Keys.enableQuickCaptureHotkey)
-            saveAuxiliaryHotkeys()
-        }
-    }
-
-    @Published var enableTodayHotkey: Bool {
-        didSet {
-            UserDefaults.standard.set(enableTodayHotkey, forKey: Keys.enableTodayHotkey)
-            saveAuxiliaryHotkeys()
-        }
-    }
-
     private enum Keys {
         static let llmAPIKey = "llmAPIKey"
         static let selectedModelId = "selectedModelId"
@@ -157,15 +139,12 @@ class SettingsManager: ObservableObject {
         static let aiSystemPrompt = "aiSystemPrompt"
         static let aiQuickActions = "aiQuickActions"
         static let ambientSuggestionsEnabled = "ambientSuggestionsEnabled"
-        static let captureDefaultRoute = "captureDefaultRoute"
         static let historyRetentionDays = "historyRetentionDays"
         static let historyMaxRevisions = "historyMaxRevisions"
         static let globalHotkeyKey = "globalHotkeyKey"
         static let globalHotkeyModifiers = "globalHotkeyModifiers"
         static let nookHotkeyModifiers = "nookHotkeyModifiers"
         static let enableNookHotkeys = "enableNookHotkeys"
-        static let enableQuickCaptureHotkey = "enableQuickCaptureHotkey"
-        static let enableTodayHotkey = "enableTodayHotkey"
         static let lastViewedNookURL = "lastViewedNookURL"
         static let didMigrateAISettingsV2 = "didMigrateAISettingsV2"
         static let colorSchemeOption = "colorSchemeOption"
@@ -198,9 +177,6 @@ class SettingsManager: ObservableObject {
         ]
         self.aiQuickActions = UserDefaults.standard.stringArray(forKey: Keys.aiQuickActions) ?? defaultQuickActions
         self.ambientSuggestionsEnabled = UserDefaults.standard.object(forKey: Keys.ambientSuggestionsEnabled) as? Bool ?? true
-        self.captureDefaultRoute = CaptureRoute(
-            rawValue: UserDefaults.standard.string(forKey: Keys.captureDefaultRoute) ?? CaptureRoute.createInboxNote.rawValue
-        ) ?? .createInboxNote
         let storedRetentionDays = UserDefaults.standard.integer(forKey: Keys.historyRetentionDays)
         self.historyRetentionDays = storedRetentionDays == 0 ? 30 : storedRetentionDays
         let storedMaxRevisions = UserDefaults.standard.integer(forKey: Keys.historyMaxRevisions)
@@ -213,13 +189,9 @@ class SettingsManager: ObservableObject {
         let nookModifiersRawValue = UserDefaults.standard.integer(forKey: Keys.nookHotkeyModifiers)
         self.nookHotkeyModifiers = nookModifiersRawValue == 0 ? [.command, .shift] : NSEvent.ModifierFlags(rawValue: UInt(nookModifiersRawValue))
         self.enableNookHotkeys = UserDefaults.standard.bool(forKey: Keys.enableNookHotkeys)
-        self.enableQuickCaptureHotkey = UserDefaults.standard.object(forKey: Keys.enableQuickCaptureHotkey) as? Bool ?? true
-        self.enableTodayHotkey = UserDefaults.standard.object(forKey: Keys.enableTodayHotkey) as? Bool ?? false
         
         let storedThemeRaw = UserDefaults.standard.string(forKey: Keys.colorSchemeOption) ?? ColorThemeOption.system.rawValue
         self.colorSchemeOption = ColorThemeOption(rawValue: storedThemeRaw) ?? .system
-
-        saveAuxiliaryHotkeys()
     }
 
     func migrateLegacyAISettingsIfNeeded() {
@@ -305,24 +277,6 @@ class SettingsManager: ObservableObject {
         }
     }
 
-    private func saveAuxiliaryHotkeys() {
-        if enableQuickCaptureHotkey {
-            HotkeyManager.shared.registerQuickCaptureHotkey {
-                NotificationCenter.default.post(name: .showQuickCapturePanel, object: nil)
-            }
-        } else {
-            HotkeyManager.shared.unregisterQuickCaptureHotkey()
-        }
-
-        if enableTodayHotkey {
-            HotkeyManager.shared.registerTodayHotkey {
-                NotificationCenter.default.post(name: .showTodayOverlay, object: nil)
-            }
-        } else {
-            HotkeyManager.shared.unregisterTodayHotkey()
-        }
-    }
-
     func lastViewedNookURL() -> URL? {
         UserDefaults.standard.url(forKey: Keys.lastViewedNookURL)
     }
@@ -344,7 +298,6 @@ class SettingsManager: ObservableObject {
             aiSystemPrompt: aiSystemPrompt,
             aiQuickActions: aiQuickActions,
             ambientSuggestionsEnabled: ambientSuggestionsEnabled,
-            captureDefaultRoute: captureDefaultRoute,
             historyRetentionDays: historyRetentionDays,
             historyMaxRevisions: historyMaxRevisions
         )
@@ -362,7 +315,6 @@ class SettingsManager: ObservableObject {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         ambientSuggestionsEnabled = imported.ambientSuggestionsEnabled
-        captureDefaultRoute = imported.captureDefaultRoute
         historyRetentionDays = imported.historyRetentionDays
         historyMaxRevisions = imported.historyMaxRevisions
     }

@@ -13,23 +13,17 @@ struct TaskEditorView: View {
     let workspaceMode: WorkspaceMode
     @Binding var showingSettings: Bool
     @Binding var pendingAIPreset: String?
-    let onOpenToday: () -> Void
-    let onOpenQuickCapture: () -> Void
 
     init(
         nook: Nook,
         workspaceMode: WorkspaceMode = .quickPopover,
         showingSettings: Binding<Bool> = .constant(false),
-        pendingAIPreset: Binding<String?> = .constant(nil),
-        onOpenToday: @escaping () -> Void = {},
-        onOpenQuickCapture: @escaping () -> Void = {}
+        pendingAIPreset: Binding<String?> = .constant(nil)
     ) {
         self.nook = nook
         self.workspaceMode = workspaceMode
         self._showingSettings = showingSettings
         self._pendingAIPreset = pendingAIPreset
-        self.onOpenToday = onOpenToday
-        self.onOpenQuickCapture = onOpenQuickCapture
         _viewModel = StateObject(wrappedValue: TaskEditorViewModel(nook: nook))
         _isMarkdownPreviewEnabled = State(initialValue: UserDefaults.standard.bool(forKey: "isMarkdownPreviewEnabled"))
     }
@@ -274,13 +268,6 @@ struct TaskEditorView: View {
                 .help("Open AI editing tools")
 
                 Menu {
-                    Button("Open Today") {
-                        onOpenToday()
-                    }
-                    Button("Quick Capture") {
-                        onOpenQuickCapture()
-                    }
-                    Divider()
                     Menu("AI Presets") {
                         ForEach(SettingsManager.shared.aiQuickActions, id: \.self) { preset in
                             Button(preset) {
@@ -302,10 +289,6 @@ struct TaskEditorView: View {
                     if workspaceMode == .quickPopover {
                         Button("Open Focus Window") {
                             NotificationCenter.default.post(name: .openFocusWindow, object: nil)
-                        }
-
-                        Button("Pin to Desktop") {
-                            NotificationCenter.default.post(name: .toggleStickyWindow, object: nook)
                         }
                     }
                     Button("Settings") { showingSettings = true }

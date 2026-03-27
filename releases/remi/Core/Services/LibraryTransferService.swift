@@ -8,7 +8,6 @@ struct LibraryTransferSettings: Codable, Hashable {
     var aiSystemPrompt: String
     var aiQuickActions: [String]
     var ambientSuggestionsEnabled: Bool
-    var captureDefaultRoute: CaptureRoute
     var historyRetentionDays: Int
     var historyMaxRevisions: Int
 }

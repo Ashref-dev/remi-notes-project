@@ -124,10 +124,6 @@ struct ManageNooksOverlay: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(theme.textPrimary)
 
-                    if nook.isPinned {
-                        badge(text: "Pinned", tint: .orange)
-                    }
-
                     if nook.isInbox {
                         badge(text: "Inbox", tint: theme.accent)
                     }
@@ -142,19 +138,6 @@ struct ManageNooksOverlay: View {
             }
 
             Spacer()
-
-            Button {
-                var updated = nook
-                updated.isPinned.toggle()
-                if let saved = viewModel.updateNook(updated), selectedNook?.id == saved.id {
-                    selectedNook = saved
-                }
-            } label: {
-                Image(systemName: nook.isPinned ? "pin.slash.fill" : "pin.fill")
-                    .font(.system(size: 13))
-                    .foregroundStyle(nook.isPinned ? .orange : theme.textSecondary.opacity(0.8))
-            }
-            .buttonStyle(.plain)
 
             Button {
                 onEditNote(nook, .general)

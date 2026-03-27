@@ -29,16 +29,6 @@ struct remiApp: App {
                 }
                 .keyboardShortcut("r", modifiers: [.command])
 
-                Button("Open Today") {
-                    NotificationCenter.default.post(name: .showTodayOverlay, object: nil)
-                }
-                .keyboardShortcut("t", modifiers: [.command, .option])
-
-                Button("Quick Capture") {
-                    NotificationCenter.default.post(name: .showQuickCapturePanel, object: nil)
-                }
-                .keyboardShortcut("n", modifiers: [.command, .option])
-
                 Button("Open Focus Window") {
                     NotificationCenter.default.post(name: .openFocusWindow, object: nil)
                 }
